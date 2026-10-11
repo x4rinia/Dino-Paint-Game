@@ -57,13 +57,17 @@ export function LevelLibrary({ onPlayLevel, onEditDrawing, onBackToMenu }: Level
     exportLevelFile(item);
   };
 
+  const [importSuccessMsg, setImportSuccessMsg] = useState<string | null>(null);
+
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
-      await importLevelFile(file);
+      const item = await importLevelFile(file);
       await fetchLevels();
+      setImportSuccessMsg(`✓ "${item.name}" erfolgreich importiert!`);
+      setTimeout(() => setImportSuccessMsg(null), 3500);
     } catch (err) {
       alert("Fehler beim Importieren der Datei: " + (err instanceof Error ? err.message : String(err)));
     } finally {
@@ -95,13 +99,14 @@ export function LevelLibrary({ onPlayLevel, onEditDrawing, onBackToMenu }: Level
             className="button button-secondary"
             type="button"
             onClick={() => importInputRef.current?.click()}
+            title="Level-Datei (.json) oder Bildzeichnung (.png / .jpg) importieren"
           >
-            📥 Level importieren
+            {importSuccessMsg ? importSuccessMsg : "📥 Level oder Bild importieren"}
           </button>
           <input
             ref={importInputRef}
             type="file"
-            accept=".json,application/json"
+            accept=".json,application/json,.dino.json,image/png,image/jpeg,image/webp"
             className="visually-hidden"
             onChange={handleImport}
           />

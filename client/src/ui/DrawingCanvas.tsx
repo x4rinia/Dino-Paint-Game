@@ -383,7 +383,7 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
     if (!ctx) return;
 
     try {
-      if (file.name.endsWith(".json")) {
+      if (/\.json$/i.test(file.name) || file.type === "application/json") {
         const item = await importLevelFile(file);
         setLevelNameInput(item.name);
         setSaveToast(`✓ Level "${item.name}" importiert!`);
@@ -399,6 +399,60 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
             saveHistory();
           };
           img.src = imgSource;
+        } else if (item.level) {
+          // Zeichne Level-Objekte auf Canvas falls kein Bild vorhanden ist
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+          // Schwarz: Plattformen
+          ctx.fillStyle = "#1d1d24";
+          for (const p of item.level.platforms ?? []) {
+            ctx.fillRect((p.x / 1000) * CANVAS_WIDTH, (p.y / 1000) * CANVAS_HEIGHT, (p.w / 1000) * CANVAS_WIDTH, (p.h / 1000) * CANVAS_HEIGHT);
+          }
+          // Rot: Gefahren
+          ctx.fillStyle = "#d6453d";
+          for (const h of item.level.hazards ?? []) {
+            ctx.fillRect((h.x / 1000) * CANVAS_WIDTH, (h.y / 1000) * CANVAS_HEIGHT, (h.w / 1000) * CANVAS_WIDTH, (h.h / 1000) * CANVAS_HEIGHT);
+          }
+          // Grün: Bouncer
+          ctx.fillStyle = "#2fb457";
+          for (const b of item.level.bouncers ?? []) {
+            ctx.fillRect((b.x / 1000) * CANVAS_WIDTH, (b.y / 1000) * CANVAS_HEIGHT, (b.w / 1000) * CANVAS_WIDTH, (b.h / 1000) * CANVAS_HEIGHT);
+          }
+          // Blau: Movers
+          ctx.fillStyle = "#2a6df4";
+          for (const m of item.level.movers ?? []) {
+            ctx.fillRect((m.x / 1000) * CANVAS_WIDTH, (m.y / 1000) * CANVAS_HEIGHT, (m.w / 1000) * CANVAS_WIDTH, (m.h / 1000) * CANVAS_HEIGHT);
+          }
+          // Gelb: Dino-Eier
+          ctx.fillStyle = "#f5c518";
+          for (const c of item.level.collectibles ?? []) {
+            const cw = ((c.w ?? 30) / 1000) * CANVAS_WIDTH;
+            const ch = ((c.h ?? 30) / 1000) * CANVAS_HEIGHT;
+            const cx = (c.x / 1000) * CANVAS_WIDTH + cw / 2;
+            const cy = (c.y / 1000) * CANVAS_HEIGHT + ch / 2;
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, Math.max(6, cw / 2), Math.max(8, ch / 2), 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          // Lila: Teleporter
+          ctx.fillStyle = "#9b51e0";
+          for (const t of item.level.teleporters ?? []) {
+            ctx.fillRect((t.x / 1000) * CANVAS_WIDTH, (t.y / 1000) * CANVAS_HEIGHT, ((t.w ?? 35) / 1000) * CANVAS_WIDTH, ((t.h ?? 55) / 1000) * CANVAS_HEIGHT);
+          }
+          // Braun: Lifte
+          ctx.fillStyle = "#8b5a2b";
+          for (const mp of item.level.movingPlatforms ?? []) {
+            ctx.fillRect((mp.x / 1000) * CANVAS_WIDTH, (mp.y / 1000) * CANVAS_HEIGHT, (mp.w / 1000) * CANVAS_WIDTH, (mp.h / 1000) * CANVAS_HEIGHT);
+          }
+          // Orange: Gegner
+          ctx.fillStyle = "#e8590c";
+          for (const e of item.level.enemies ?? []) {
+            ctx.beginPath();
+            ctx.arc((e.x / 1000) * CANVAS_WIDTH, (e.y / 1000) * CANVAS_HEIGHT, 16, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          saveHistory();
         }
       } else {
         const reader = new FileReader();

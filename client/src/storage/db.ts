@@ -1,4 +1,4 @@
-import type { Level, SavedLevelItem, SaveLevelRequest } from "@sketchquest/shared";
+import { analyzeDrawing, type Level, type SavedLevelItem, type SaveLevelRequest } from "@sketchquest/shared";
 import { DEFAULT_STARTER_LEVELS } from "./starterLevels";
 
 const DB_NAME = "DinoDrawDB";
@@ -184,10 +184,68 @@ export function exportLevelFile(item: SavedLevelItem): void {
 }
 
 /**
- * Importiert ein Level aus einer JSON-Datei oder einem JSON-String
+ * Importiert ein Level aus einer JSON-Datei, einem JSON-String oder einer Bilddatei (PNG, JPG, WebP)
  * und speichert es in IndexedDB.
  */
 export async function importLevelFile(input: File | string): Promise<SavedLevelItem> {
+  // 1. Bilddateien (PNG / JPEG / WebP): Direkt analysieren und als Level abspeichern
+  if (typeof input !== "string" && (input.type.startsWith("image/") || /\.(png|jpe?g|webp)$/i.test(input.name))) {
+    const filename = input.name.replace(/\.[^.]+$/, "");
+    return new Promise<SavedLevelItem>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("Fehler beim Lesen der Bilddatei"));
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        const img = new Image();
+        img.onerror = () => reject(new Error("Das Bild konnte nicht geladen werden."));
+        img.onload = async () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = 1280;
+            canvas.height = 720;
+            const ctx = canvas.getContext("2d", { willReadFrequently: true });
+            if (!ctx) throw new Error("Canvas 2D-Kontext nicht verfügbar");
+
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, 1280, 720);
+            ctx.drawImage(img, 0, 0, 1280, 720);
+
+            const imgData = ctx.getImageData(0, 0, 1280, 720);
+            const analyzed = analyzeDrawing(imgData, {
+              name: filename || "Importierte Zeichnung",
+              gridWidth: 320,
+              gridHeight: 180,
+            });
+
+            // Thumbnail erzeugen (240x135)
+            const thumbCanvas = document.createElement("canvas");
+            thumbCanvas.width = 240;
+            thumbCanvas.height = 135;
+            const tctx = thumbCanvas.getContext("2d");
+            let thumbUrl = dataUrl;
+            if (tctx) {
+              tctx.drawImage(canvas, 0, 0, 240, 135);
+              thumbUrl = thumbCanvas.toDataURL("image/jpeg", 0.7);
+            }
+
+            const item = await saveLevel({
+              name: filename || "Importierte Zeichnung",
+              level: analyzed.level,
+              thumbnail: thumbUrl,
+              originalImage: dataUrl,
+            });
+            resolve(item);
+          } catch (e) {
+            reject(e);
+          }
+        };
+        img.src = dataUrl;
+      };
+      reader.readAsDataURL(input);
+    });
+  }
+
+  // 2. JSON-Dateien oder JSON-String
   let text: string;
   let filename = "Importiertes Level";
 
@@ -198,17 +256,36 @@ export async function importLevelFile(input: File | string): Promise<SavedLevelI
     text = await input.text();
   }
 
-  const parsed = JSON.parse(text);
-  if (!parsed || typeof parsed !== "object" || !parsed.level) {
+  let parsed: any;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error("Die Datei enthält kein gültiges JSON. Bitte wähle eine gültige Level-Datei (.json) oder Bilddatei (.png/.jpg) aus.");
+  }
+
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error("Ungültiges Dateiformat.");
+  }
+
+  let levelData: Level;
+  const thumbData = parsed.thumbnail;
+  const originalImgData = parsed.originalImage;
+  const name = parsed.name || filename;
+
+  if (parsed.level && typeof parsed.level === "object") {
+    levelData = parsed.level;
+  } else if (parsed.platforms || parsed.start) {
+    // Direktes Level-Objekt ohne Wrapper
+    levelData = parsed as Level;
+  } else {
     throw new Error("Ungültiges Level-Format. Die Datei enthält kein gültiges Spielfeld.");
   }
 
-  const name = parsed.name || filename;
   return saveLevel({
     name,
-    level: parsed.level,
-    thumbnail: parsed.thumbnail,
-    originalImage: parsed.originalImage,
+    level: levelData,
+    thumbnail: thumbData,
+    originalImage: originalImgData,
   });
 }
 
