@@ -27,12 +27,14 @@ export function installAudioUnlock() {
 function unlock() {
   const context = ensureContext();
   const music = getBgMusic();
-  if (music && musicStarted && !muted && musicEnabled && music.paused) {
+  if (music && !muted && musicEnabled && music.paused) {
     music.play().catch(() => {});
   }
   if (!context) return removeUnlockListeners();
   void context.resume().then(() => {
-    if (context.state === "running") removeUnlockListeners();
+    if (context.state === "running" && (!music || !music.paused)) {
+      removeUnlockListeners();
+    }
   });
 }
 
@@ -67,7 +69,7 @@ type Tone = {
 };
 
 let bgAudio: HTMLAudioElement | null = null;
-let musicStarted = false;
+let musicStarted = true;
 
 export function getBgMusic(): HTMLAudioElement | null {
   if (typeof window === "undefined") return null;

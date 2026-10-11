@@ -19,12 +19,15 @@ const SQUASH_STRETCH_MS = 120;
 /** Held-state of the three player controls, from keyboard and/or touch. */
 export type MoveInput = { left: boolean; right: boolean; jump: boolean };
 
+export type GravityMode = "normal" | "low" | "inverted";
+
 /** The player rectangle plus its arcade body, movement, and jump feel. */
 export class Player {
   readonly rect: Phaser.GameObjects.Rectangle;
   readonly body: Phaser.Physics.Arcade.Body;
 
   private readonly scene: Phaser.Scene;
+  private gravityMode: GravityMode = "normal";
   private lastGroundedAt = -Infinity;
   private lastJumpPressedAt = -Infinity;
   private wasJumpDown = false;
@@ -45,6 +48,10 @@ export class Player {
     this.body.setCollideWorldBounds(true);
   }
 
+  setGravityMode(mode: GravityMode) {
+    this.gravityMode = mode;
+  }
+
   get x() {
     return this.rect.x;
   }
@@ -58,12 +65,23 @@ export class Player {
     return this.rect.y + PLAYER_H / 2;
   }
 
-  /** True while moving downward, used to tell a stomp from a side hit. */
+  /** Top edge of the player's hitbox, in world px. */
+  get top() {
+    return this.rect.y - PLAYER_H / 2;
+  }
+
+  /** True while moving downward (or upward when inverted), used to tell a stomp from a side hit. */
   get isFalling() {
+    if (this.gravityMode === "inverted") {
+      return this.body.velocity.y < 0;
+    }
     return this.body.velocity.y > 0;
   }
 
   private get grounded() {
+    if (this.gravityMode === "inverted") {
+      return this.body.blocked.up || this.body.touching.up;
+    }
     return this.body.blocked.down || this.body.touching.down;
   }
 
@@ -94,12 +112,15 @@ export class Player {
     const withinCoyote = now - this.lastGroundedAt <= COYOTE_MS;
     const withinBuffer = now - this.lastJumpPressedAt <= JUMP_BUFFER_MS;
 
+    const jumpVel = this.gravityMode === "low" ? 430 : JUMP_VELOCITY;
+    const jumpDir = this.gravityMode === "inverted" ? 1 : -1;
+
     if (withinBuffer && withinCoyote) {
       // Normaler Sprung vom Boden oder Kante (Coyote-Time)
       this.lastJumpPressedAt = -Infinity;
       this.lastGroundedAt = -Infinity;
       this.canDoubleJump = true;
-      this.body.setVelocityY(-JUMP_VELOCITY);
+      this.body.setVelocityY(jumpDir * jumpVel);
       this.playJumpSquash();
       playJump();
       this.onJump?.();
@@ -107,22 +128,31 @@ export class Player {
       // 🦖 DINO DOPPELSPRUNG: Macht knifflige Sprünge kinderleicht!
       this.canDoubleJump = false;
       this.lastJumpPressedAt = -Infinity;
-      this.body.setVelocityY(-JUMP_VELOCITY);
+      this.body.setVelocityY(jumpDir * jumpVel);
       this.playDoubleJumpSquash();
       playJump();
       this.onJump?.();
-    } else if (!jumpDown && this.body.velocity.y < -JUMP_VELOCITY * JUMP_CUTOFF_FACTOR) {
+    } else if (!jumpDown) {
       // Vorzeitiges Loslassen für kontrollierte Mini-Hüpfer
-      this.body.setVelocityY(-JUMP_VELOCITY * JUMP_CUTOFF_FACTOR);
+      if (this.gravityMode === "inverted") {
+        if (this.body.velocity.y > jumpVel * JUMP_CUTOFF_FACTOR) {
+          this.body.setVelocityY(jumpVel * JUMP_CUTOFF_FACTOR);
+        }
+      } else {
+        if (this.body.velocity.y < -jumpVel * JUMP_CUTOFF_FACTOR) {
+          this.body.setVelocityY(-jumpVel * JUMP_CUTOFF_FACTOR);
+        }
+      }
     }
 
     this.wasJumpDown = jumpDown;
     this.wasGrounded = grounded;
   }
 
-  /** Bounce upward after stomping an enemy or hitting a green trampoline. */
+  /** Bounce upward (or downward when inverted) after stomping an enemy or hitting a green trampoline. */
   bounce(velocity: number) {
-    this.body.setVelocityY(-velocity);
+    const dir = this.gravityMode === "inverted" ? 1 : -1;
+    this.body.setVelocityY(dir * velocity);
     this.lastGroundedAt = -Infinity;
     this.canDoubleJump = true;
     this.playJumpSquash();
@@ -140,7 +170,8 @@ export class Player {
     this.body.setVelocityY(0);
 
     this.scene.time.delayedCall(55, () => {
-      this.body.setVelocityY(-velocity);
+      const dir = this.gravityMode === "inverted" ? 1 : -1;
+      this.body.setVelocityY(dir * velocity);
       this.lastGroundedAt = -Infinity;
       this.canDoubleJump = true;
       this.rect.setScale(0.8, 1.3);
@@ -226,10 +257,11 @@ export class Player {
   private pose() {
     const { body } = this;
     const airborne = !this.grounded;
+    const rising = airborne && (this.gravityMode === "inverted" ? body.velocity.y > 0 : body.velocity.y < 0);
     return {
       running: !airborne && Math.abs(body.velocity.x) > 10,
       airborne,
-      rising: airborne && body.velocity.y < 0,
+      rising,
     };
   }
 
@@ -243,10 +275,11 @@ export class Player {
   ) {
     const { art } = this;
     art.setPosition(x, y);
-    art.setScale(scaleX * this.facing, scaleY);
+    const flipV = this.gravityMode === "inverted" ? -scaleY : scaleY;
+    art.setScale(scaleX * this.facing, flipV);
 
     const { running, airborne, rising } = pose;
-    const key = `${tick}:${running}:${airborne}:${rising}`;
+    const key = `${tick}:${running}:${airborne}:${rising}:${this.gravityMode}`;
     if (key === this.artKey) return;
     this.artKey = key;
     drawPlayer(art, { tick, running, airborne, rising }, seededFor("player", tick % BOIL_VARIANTS));

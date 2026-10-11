@@ -158,6 +158,7 @@ export class GameScene extends Phaser.Scene {
   private isPaused = false;
   private pauseContainer?: Phaser.GameObjects.Container;
   private fallThreshold = WORLD_H + FALL_MARGIN;
+  private bgTheme: BackgroundTheme = "paper";
 
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private keys!: Record<"W" | "A" | "D", Phaser.Input.Keyboard.Key>;
@@ -213,7 +214,20 @@ export class GameScene extends Phaser.Scene {
 
     // Visuelle Ebenen: Gewählter Hintergrund (Notizheft, Dschungel, Kosmos)
     const bgTheme = (this.game.registry.get("backgroundTheme") as BackgroundTheme) || "paper";
+    this.bgTheme = bgTheme;
     addBackground(this, bgTheme);
+
+    // Welt-Gravitation basierend auf Hintergrund-Thema (Mario Maker Stil):
+    // - Kosmos ("space"): Sanftere, schwebende Mondgravitation (520)
+    // - Dschungel ("jungle"): Alles steht kopf! Gravitation nach oben (-1200)
+    // - Notizheft ("paper"): Klassische Standardgravitation (1200)
+    if (bgTheme === "jungle") {
+      this.physics.world.gravity.y = -1200;
+    } else if (bgTheme === "space") {
+      this.physics.world.gravity.y = 520;
+    } else {
+      this.physics.world.gravity.y = 1200;
+    }
 
     // Falls eine Originalzeichnung existiert, zeichne sie als Hintergrund
     const origImage = (level as any).originalImage;
@@ -347,6 +361,19 @@ export class GameScene extends Phaser.Scene {
       const body = rect.body as Phaser.Physics.Arcade.Body;
       body.setAllowGravity(false);
       body.setImmovable(true);
+      body.friction.x = 1;
+      body.friction.y = 0;
+
+      // Einweg-Kollision: Verhindert seitliches Hängenbleiben und Ruckeln
+      if (bgTheme === "jungle") {
+        body.checkCollision.up = false;
+        body.checkCollision.down = true;
+      } else {
+        body.checkCollision.up = true;
+        body.checkCollision.down = false;
+      }
+      body.checkCollision.left = false;
+      body.checkCollision.right = false;
 
       const art = this.add.graphics().setDepth(DEPTH.staticLevel + 2);
       this.drawMovingPlatformArt(art, mw, mh, mp.id, mp.axis);
@@ -451,6 +478,7 @@ export class GameScene extends Phaser.Scene {
 
     // Spieler (Dino)
     this.player = new Player(this, sx(level.start.x), sy(level.start.y));
+    this.player.setGravityMode(bgTheme === "jungle" ? "inverted" : bgTheme === "space" ? "low" : "normal");
     this.player.onJump = () => this.recorder.addJump(this.time.now);
 
     // Kollisionen: Spieler mit Plattformen
@@ -458,7 +486,10 @@ export class GameScene extends Phaser.Scene {
 
     // Kollisionen: Spieler mit grünen Trampolinen (verbessertes elastisches Verhalten)
     this.physics.add.collider(this.player.rect, this.bouncers, (_p, bouncerRect) => {
-      if (this.player.body.touching.down || this.player.isFalling) {
+      const isBounceHit = this.bgTheme === "jungle"
+        ? (this.player.body.touching.up || this.player.isFalling)
+        : (this.player.body.touching.down || this.player.isFalling);
+      if (isBounceHit) {
         this.handleTrampolineBounce(bouncerRect as Phaser.GameObjects.Rectangle);
       }
     });
@@ -650,9 +681,8 @@ export class GameScene extends Phaser.Scene {
 
     if (Phaser.Input.Keyboard.JustDown(this.helperKey)) this.useHelper();
 
-    // Braun: bewegliche Plattformen (Lifte) animieren & Spieler sanft mitführen
-    let riderDx = 0;
-    let riderDy = 0;
+    // Braun: bewegliche Plattformen (Lifte) animieren & Spieler sauber mitführen
+    const dt = Math.max(0.001, Math.min(delta / 1000, 0.05));
 
     for (const mp of this.movingPlatformsList) {
       const moveSpeed = mp.speed > 5 ? mp.speed : 80;
@@ -664,54 +694,85 @@ export class GameScene extends Phaser.Scene {
       const targetX = mp.axis === "horizontal" ? mp.startX + offset : mp.startX;
       const targetY = mp.axis === "vertical" ? mp.startY + offset : mp.startY;
 
-      const dx = targetX - mp.rect.x;
-      const dy = targetY - mp.rect.y;
+      const prevX = mp.rect.x;
+      const prevY = mp.rect.y;
+      const dx = targetX - prevX;
+      const dy = targetY - prevY;
 
       mp.rect.setPosition(targetX, targetY);
-      mp.body.reset(targetX, targetY);
       mp.art.setPosition(targetX, targetY);
+
+      // Durch Zuweisen der echten Physik-Geschwindigkeit nutzt Phaser Arcade Physics
+      // automatisch native Plattformreibung (friction.x = 1). Dadurch bleibt der Dino
+      // stabil darauf stehen UND kann frei darauf laufen (kein "Förderband-Effekt" mehr!).
+      mp.body.setVelocity(dx / dt, dy / dt);
 
       if (this.player && !this.locked) {
         const platTop = targetY - mp.h / 2;
+        const platBottom = targetY + mp.h / 2;
         const platLeft = targetX - mp.w / 2;
         const platRight = targetX + mp.w / 2;
-        const playerBottom = this.player.bottom;
         const playerX = this.player.x;
 
-        const isStandingOn =
-          Math.abs(playerBottom - platTop) <= 12 &&
-          playerX >= platLeft - 10 &&
-          playerX <= platRight + 10 &&
-          (this.player.body.touching.down || this.player.body.blocked.down || this.player.body.velocity.y >= 0);
+        if (this.bgTheme === "jungle") {
+          // Im umgekehrten Dschungel steht Dino kopfüber an der Unterseite
+          const playerTop = this.player.top;
+          const isUnderPlat =
+            Math.abs(playerTop - platBottom) <= 12 &&
+            playerX >= platLeft - 8 &&
+            playerX <= platRight + 8;
 
-        if (isStandingOn) {
-          riderDx = dx;
-          riderDy = dy;
-          this.lastGrounded = { x: playerX, feetY: playerBottom };
+          if (isUnderPlat) {
+            this.lastGrounded = { x: playerX, feetY: playerTop };
+            if (dy < 0) {
+              // Plattform hebt sich Richtung Decke: halte Dino an der Unterseite
+              this.player.rect.y += dy;
+              this.player.body.y += dy;
+            }
+          }
+        } else {
+          // Normal / Space: Dino steht oben auf dem Lift
+          const playerBottom = this.player.bottom;
+          const isOnPlat =
+            Math.abs(playerBottom - platTop) <= 12 &&
+            playerX >= platLeft - 8 &&
+            playerX <= platRight + 8;
+
+          if (isOnPlat) {
+            this.lastGrounded = { x: playerX, feetY: playerBottom };
+            if (dy > 0) {
+              // Vertikaler Abstieg: sanft auf der Plattform halten
+              this.player.rect.y += dy;
+              this.player.body.y += dy;
+            }
+          }
         }
       }
-    }
-
-    if ((riderDx !== 0 || riderDy !== 0) && !this.locked) {
-      this.player.rect.x += riderDx;
-      this.player.rect.y += riderDy;
-      this.player.body.x += riderDx;
-      this.player.body.y += riderDy;
-      // WICHTIG: Kein body.reset()! Dadurch bleiben Sprung- und Lauf-Velocity erhalten,
-      // sodass der Spieler jederzeit flüssig abspringen und auf dem Lift laufen kann.
     }
 
     const input = this.readCombinedInput(gp, touchInput);
     this.player.handleInput(input, this.locked);
 
-    if (!this.locked && this.player.body.blocked.down) {
-      this.lastGrounded = { x: this.player.x, feetY: this.player.bottom };
+    if (!this.locked) {
+      if (this.bgTheme === "jungle" && this.player.body.blocked.up) {
+        this.lastGrounded = { x: this.player.x, feetY: this.player.top };
+      } else if (this.player.body.blocked.down) {
+        this.lastGrounded = { x: this.player.x, feetY: this.player.bottom };
+      }
     }
     this.rotateBanner?.update();
     if (!this.locked) this.recorder.update(this.time.now, this.player, this.enemies);
 
-    if (!this.locked && this.player.y > this.fallThreshold) {
-      this.triggerDeath("fall", this.player.x, this.player.y);
+    if (!this.locked) {
+      if (this.bgTheme === "jungle") {
+        if (this.player.y < -70) {
+          this.triggerDeath("fall", this.player.x, this.player.y);
+        }
+      } else {
+        if (this.player.y > this.fallThreshold) {
+          this.triggerDeath("fall", this.player.x, this.player.y);
+        }
+      }
     }
 
     const tick = boilTick(this);
@@ -1041,12 +1102,15 @@ export class GameScene extends Phaser.Scene {
     }
 
     const prevVy = this.player.body.velocity.y;
-    const isHardImpact = prevVy > 220 || this.cursors?.up.isDown || this.keys?.W.isDown;
+    const isHardImpact = this.bgTheme === "jungle"
+      ? (prevVy < -220 || this.cursors?.down.isDown || this.keys?.W.isDown)
+      : (prevVy > 220 || this.cursors?.up.isDown || this.keys?.W.isDown);
     const bounceVelocity = isHardImpact ? BOUNCE_VELOCITY * 1.08 : BOUNCE_VELOCITY * 0.76;
 
+    const burstY = this.bgTheme === "jungle" ? this.player.top : this.player.bottom;
     this.player.trampolineBounce(bounceVelocity, () => {
       playJump();
-      burstParticles(this, this.player.x, this.player.bottom, {
+      burstParticles(this, this.player.x, burstY, {
         color: INK.green,
         count: 18,
         speed: [90, 270],
@@ -1210,7 +1274,9 @@ export class GameScene extends Phaser.Scene {
   private handleEnemyOverlap(enemy: Enemy) {
     if (this.locked || !enemy.alive) return;
 
-    const isStomp = this.player.isFalling && this.player.bottom <= enemy.midY;
+    const isStomp = this.bgTheme === "jungle"
+      ? (this.player.isFalling && this.player.top >= enemy.midY)
+      : (this.player.isFalling && this.player.bottom <= enemy.midY);
     if (isStomp) {
       enemy.kill();
       this.recorder.addStomp(this.time.now, this.enemies.indexOf(enemy));
