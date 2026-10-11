@@ -1446,3 +1446,36 @@ html, body {
   color: #9b51e0;
   font-weight: 600;
 }
+
+/* Home Footer & Credits */
+.home-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px 16px;
+  background: #181920;
+  border-top: 1px solid #2e313d;
+  color: #8c93a4;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.footer-credits {
+  font-size: 0.95rem;
+  color: #cfd4e2;
+  letter-spacing: 0.2px;
+}
+
+.footer-credits strong {
+  color: #4ade80;
+}
+
+.footer-links {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+

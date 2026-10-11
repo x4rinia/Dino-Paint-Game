@@ -74,14 +74,27 @@ class Narrator {
   private token = 0;
   /** Last few shown lines: the `recentRoasts` payload for the future live source. */
   private recentLines: string[] = [];
+  private enabled = false;
 
   constructor() {
     gameEvents.on("death", (e) => this.onDeath(e));
     gameEvents.on("win", (e) => this.onWin(e));
   }
 
+  setEnabled(val: boolean) {
+    this.enabled = val;
+    if (!val) {
+      this.unbind();
+    }
+  }
+
+  isEnabled() {
+    return this.enabled;
+  }
+
   /** New scene/level: reset per-level counters (total deaths persist for the session). */
   bind(scene: Phaser.Scene, level: Level, getAnchor: () => Anchor | undefined) {
+    if (!this.enabled) return;
     installSpeechUnlock();
     this.unbind();
     this.scene = scene;
@@ -125,14 +138,14 @@ class Narrator {
 
   /** New level shown: the level's own intro string first, then a local intro quip. */
   onLevelIntro() {
-    if (!this.level) return;
+    if (!this.enabled || !this.level) return;
     const intro = this.level.intro.replace(/\p{Cc}+/gu, " ").trim().slice(0, MAX_INTRO_CHARS);
     void this.say({ trigger: { kind: "intro" }, ...this.base(1, 0) }, "high", { prefix: intro });
   }
 
   /** Called after each coin pickup with this attempt's running count and the level's total. */
   onCoin(collected: number, total: number) {
-    if (!this.level) return;
+    if (!this.enabled || !this.level) return;
     if (collected >= total && total >= 2 && !this.allCoinsDone) {
       this.allCoinsDone = true;
       this.firstCoinDone = true;
@@ -144,7 +157,7 @@ class Narrator {
   }
 
   private onDeath(e: DeathEvent) {
-    if (!this.level) return;
+    if (!this.enabled || !this.level) return;
     this.levelDeaths++;
     this.totalDeaths++;
     const ctx: NarratorContext = { ...this.base(e.attempt, e.deathsAtSpot, e.coins), timeAlive: e.timeAlive };
@@ -156,7 +169,7 @@ class Narrator {
   }
 
   private onWin(e: WinEvent) {
-    if (!this.level) return;
+    if (!this.enabled || !this.level) return;
     const ctx: NarratorContext = { ...this.base(this.levelDeaths + 1, 0, e.coins), timeAlive: e.timeAlive };
     void this.say({ trigger: { kind: "win" }, ...ctx }, "high", { pinTop: true });
   }

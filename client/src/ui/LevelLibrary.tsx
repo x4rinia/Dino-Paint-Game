@@ -92,7 +92,7 @@ export function LevelLibrary({ onPlayLevel, onEditDrawing, onBackToMenu }: Level
         </button>
         <div className="studio-title">
           <h2>Meine Spiele & Levels</h2>
-          <span className="studio-subtitle">100% Offline in IndexedDB gespeichert</span>
+          <span className="studio-subtitle">Deine persönliche Spielesammlung</span>
         </div>
         <div className="studio-header-actions">
           <button

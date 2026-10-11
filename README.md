@@ -6,10 +6,18 @@
 [![Online spielen](https://img.shields.io/badge/▶_Jetzt_Spielen-x4rinia.github.io%2FDino--Paint--Game-brightgreen?style=for-the-badge&logo=google-chrome&logoColor=white)](https://x4rinia.github.io/Dino-Paint-Game/)
 [![GitHub Pages](https://img.shields.io/badge/GitHub_Pages-Online-blue?style=for-the-badge&logo=github)](https://x4rinia.github.io/Dino-Paint-Game/)
 
-Eine vollständig lokal und offline betriebene Progressive Web App (PWA) für das Erschaffen und Spielen eigener 2D-Plattformwelten – optimiert für **Tablets (iPad / Android)**, **Smartphones**, **Desktop-PCs** und den **Fernseher (TV-Modus)**.
+---
+
+### ❤️ Info & Widmung
+> **by X4rinia und Dino**  
+> **für Katja u. Dirk <3**  
+> **Datum: 11.10.2026** • **Version: 2.2**
+
+---
+
+Erschaffe und spiele deine eigenen 2D-Plattformwelten – optimiert für **Tablets (iPad / Android)**, **Smartphones**, **Desktop-PCs** und den **Fernseher (TV-Modus)**.
 
 > **Prinzip:** Zeichnen → Farben erkennen → Physikwelt erzeugen → Sofort spielen!  
-> **100% Offline:** Alle Spielfunktionen, das digitale Zeichenstudio, die lokale Bildanalyse und das Speichern laufen direkt im Browser ohne Cloud und ohne zwingenden Server.
 
 ---
 
@@ -30,117 +38,36 @@ Das Spiel erkennt acht Farben deterministisch auf Papier oder digital im Zeichen
 
 ---
 
-## 🚀 Neu: Standalone Offline PWA
+## 🦖 Spiel-Features & Steuerung
 
-- **Keine Serverabhängigkeit zur Laufzeit:** Nach dem ersten Aufruf kann der Node.js-/Express-Server komplett heruntergefahren werden.
-- **Lokale IndexedDB-Datenbank (`DinoDrawDB`):**
-  - Gespeicherte Level, Thumbnails und Originalzeichnungen bleiben dauerhaft im Browser gesichert.
-  - Automatischer Import bestehender LocalStorage-Level (kein Datenverlust beim Update).
-  - Schutz vor Speicherbereinigung durch `navigator.storage.persist()`.
-  - JSON Export & Import für das einfache Teilen von Leveldateien (`.dino.json`).
-  - Drei integrierte Starter-Level für den sofortigen Offline-Start.
-- **Service Worker (`sw.js`):** Intelligentes Caching aller Skripte, Styles, Bilder und Audios mit Stale-While-Revalidate.
+- **🦖 Dino Doppelsprung:** Dino kann in der Luft einen zweiten Sprung ausführen, um weite Abgründe mühelos zu überwinden.
+- **🎵 Echte Dino-Musik:** Fröhliche Dino-Hintergrundmusik begleitet jedes Abenteuer (Taste `M` schaltet den Ton stumm/an).
+- **🎲 Zufalls-Level Generator:** Mit einem Klick auf `🎲 Zufalls-Level` wird sofort eine bunte, voll spielbare Welt auf die Leinwand gezeichnet.
+- **🚩 Start (S) & 🏁 Ziel (Z) Marker:** Bestimme im Editor genau, wo Dino startet und wo das Zieltor steht, oder wähle in den Einstellungen die automatische Platzierung.
+- **🗣️ Vorleser (Erzähler):** Standardmäßig stumm, kann bei Bedarf in den Einstellungen aktiviert werden.
+- **💾 Eigene Spielesammlung:** Speichere deine Meisterwerke direkt in deiner lokalen Bibliothek und spiele sie jederzeit wieder.
 
 ---
 
-## 📲 Installation als PWA
+## 🎮 Steuerung & Controller
 
-### iPad & iPhone (iOS / iPadOS Safari)
-1. Öffne die Web-App in Safari.
-2. Tippe in der Navigationsleiste auf das **Teilen-Symbol** (Viereck mit Pfeil nach oben).
-3. Scrolle nach unten und wähle **„Zum Home-Bildschirm“** (`➕`).
-4. Tippe oben rechts auf **„Hinzufügen“**.  
-*Die App startet nun als echte Vollbild-App ohne störende Safari-Leisten.*
-
-### Android (Chrome / Edge / Samsung Internet)
-1. Öffne die Web-App im mobilen Browser.
-2. Tippe auf den Button **„📲 App installieren“** in der Kopfzeile oder im Browser-Menü auf **„App installieren“**.
-3. Bestätige den Dialog – die App wird wie eine native Android-App installiert.
-
-### Windows & Mac (Chrome / Edge)
-1. Klicke in der Adressleiste auf das Installationssymbol (Computer mit Pfeil) oder den Button **„📲 App installieren“**.
-2. Die App öffnet sich in einem separaten, randlosen Desktop-Fenster.
-
----
-
-## ✏️ Tablet-First Optimierung (iPad & Android-Tablets)
-
-Das Tablet ist das primäre Zielgerät für das Zeichnen und Spielen:
-- **Apple Pencil & Stylus Support:** Erkennt `pointerType === "pen"` mit sanfter Druckempfindlichkeit (Pressure Sensitivity).
-- **Palm Rejection (Handballenerkennung):** Versehentliche Handflächenberührungen werden ignoriert, während der Stift aktiv zeichnet.
-- **Displayränder & Safe Areas:** Vollbilddarstellung unter Berücksichtigung von `env(safe-area-inset-*)`.
-- **Gesten-Sperre:** Verhindert versehentliches Pull-to-Refresh und Wisch-Navigation (`overscroll-behavior: none`, `touch-action: none`).
-
----
-
-## 📺 TV-Modus & Bildübertragung
-
-Für das gemeinsame Spielen im Wohnzimmer auf dem großen Bildschirm:
-- **Großes HUD:** Stark vergrößerte Anzeigen für Münzen, Dino-Eier und Texte (auch aus 3–4 Metern Entfernung lesbar).
-- **Auto-Hide Touch Controls:** Die Touch-Tasten werden automatisch ausgeblendet, sobald ein Controller bedient wird.
-- **Vollbild:** Randlose Theaterdarstellung des Spielfelds.
-
-### Bildübertragung auf den Fernseher
-1. **Apple AirPlay (iPad & iPhone):** Kontrollzentrum öffnen → *„Bildschirmsynchronisierung“* → Apple TV oder Smart TV wählen.
-2. **Android Smart View / Google Cast:** Schnelleinstellungen nach unten ziehen → *„Smart View“* oder *„Bildschirm übertragen“* aktivieren.
-3. **HDMI / USB-C Kabel:** Tablet oder Laptop per USB-C-auf-HDMI-Kabel verbinden für 0 ms Latenz.
-4. **Tipp:** Das Mobilgerät im **Querformat (Landscape)** sperren, um das Fernsehbild optimal auszufüllen.
-
----
-
-## 🎮 Controller-Unterstützung (Gamepad API)
-
-Voll kompatibel mit **Xbox Wireless Controllern**, **PlayStation DualShock / DualSense** und generischen Bluetooth-Gamepads.
-
-### Spielsteuerung
-| Aktion | Tastatur | Xbox / Bluetooth Gamepad | Touchscreen |
+| Aktion | Tastatur | Xbox / Bluetooth Controller | Touch (Tablet & Smartphone) |
 |---|---|---|---|
-| **Laufen** | `A` / `D` oder `◀` / `▶` | Linker Stick oder Steuerkreuz | Touch-Pfeile links |
-| **Springen** | `Leertaste` / `W` / `▲` | `A` (Xbox) / `✕` (PlayStation) | Sprungtaste rechts |
-| **Pause** | `Escape` | `Start` / `Options` | Pause-Taste oben |
-| **Neustart** | `R` | `Y` (Xbox) / `△` (PlayStation) | Restart-Button nach Tod |
-
-### Menü-Navigation per Controller
-- **Steuerkreuz / Linker Stick:** Blättert durch Menüs und Levelkarten mit gut sichtbarem grünen Fokus-Glow.
-- **A-Taste:** Wählt den fokussierten Menüpunkt aus.
-- **B-Taste:** Geht zurück ins vorherige Menü oder schließt Modals.
-- **Start-Taste:** Öffnet direkt die Einstellungen.
-
-*Hinweis zu Browsern:* Unter iOS Safari und Chrome muss nach dem Verbinden eines Bluetooth-Controllers **einmal eine beliebige Taste gedrückt werden**, damit der Browser den Zugriff aus Sicherheitsgründen freigibt.
+| **Laufen** | `A` / `D` oder `◀` `▶` | Linker Stick / Steuerkreuz | Touch-Pfeile |
+| **Springen & Doppelsprung** | `Leertaste` oder `W` / `▲` (2x) | `A`-Taste oder `▲` (2x) | Sprungtaste (2x) |
+| **Pause** | `Escape` | `Start`-Taste | Pause-Taste oben |
+| **Level neustarten** | `R` | `Y`-Taste | Nach Respawn |
+| **Ton stumm / an** | `M` | – | Im Pausemenü |
 
 ---
 
-## 🛠️ Entwicklung & Statisches Hosting
+## 📲 Als App hinzufügen
 
-### Lokale Entwicklung
-```bash
-# Abhängigkeiten installieren
-npm install
+### iPad & iPhone (Safari)
+1. Öffne die Seite in Safari.
+2. Tippe auf das **Teilen-Symbol** (Viereck mit Pfeil nach oben).
+3. Wähle **„Zum Home-Bildschirm“** (`➕`) und tippe auf **„Hinzufügen“**.
 
-# Entwicklungsserver (Vite)
-npm run dev
-
-# Typenprüfung ausführen
-npm run typecheck
-
-# Produktions-Bundle (PWA) erstellen
-npm run build
-```
-
-### GitHub Pages / Statisches HTTPS-Hosting
-Das Projekt ist so konfiguriert, dass der Ordner `client/dist/` komplett eigenständig auf jedem beliebigen HTTPS-Webspace oder via **GitHub Pages** bereitgestellt werden kann:
-1. Führe `npm run build` aus.
-2. Der Inhalt von `client/dist/` enthält relative Asset-Pfade (`./assets/`) und funktioniert sofort in Unterverzeichnissen (z. B. `https://username.github.io/dino-draw/`).
-3. Kein Node.js-Backend zur Laufzeit erforderlich.
-
----
-
-## 🧪 Durchgeführte Tests
-
-- [x] **IndexedDB-Speicher:** Speichern, Laden, Duplizieren und Löschen von Leveln lokal ohne Express-Server.
-- [x] **Starter-Level Seeding:** 3 Starter-Level (`Dinos Erstes Abenteuer`, `Portal-Express`, `Die 6 Farben-Arena`) validiert und beatable.
-- [x] **PWA Manifest & Icons:** Vollständige Icons (192, 512, maskable, apple-touch-icon, favicon.svg) generiert und im Manifest verlinkt.
-- [x] **Service Worker:** Offline-Caching mit Stale-While-Revalidate und sofortigem Offline-Start verifiziert.
-- [x] **Gamepad & TV-Modus:** Controller-Auslesen, Auto-Hiding der Touch-Tasten und TV-HUD-Skalierung implementiert.
-- [x] **Tablet & Stylus:** Palm Rejection und Druckdynamik für Apple Pencil / Stylus implementiert.
-- [x] **Farberkennungs-Pipeline:** 6-Farben-Klassifikation und Portalen-Paarung 100% lokal ohne externe Cloud-APIs (5/5 Tests bestanden).
+### Android (Chrome / Edge)
+1. Öffne die Seite im mobilen Browser.
+2. Tippe auf **„App installieren“** oder wähle im Menü **„Zum Startbildschirm hinzufügen“**.

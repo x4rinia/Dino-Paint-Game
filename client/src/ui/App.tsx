@@ -10,6 +10,8 @@ import { InstallPromptModal } from "./InstallPromptModal";
 import { GuideModal } from "./GuideModal";
 import { useGamepadNav } from "./useGamepadNav";
 import { initStorage, saveLevel, getSetting, setSetting } from "../storage/db";
+import { setMusicEnabled } from "../game/audio";
+import { narrator } from "../game/narrator";
 import "./App.css";
 
 type Screen = "menu" | "draw" | "camera" | "library" | "playing";
@@ -111,6 +113,14 @@ export function App() {
 
     getSetting<boolean>("tv_mode", false).then((val) => {
       setTvModeState(val);
+    });
+
+    getSetting<boolean>("music_enabled", true).then((enabled) => {
+      setMusicEnabled(enabled);
+    });
+
+    getSetting<boolean>("narrator_enabled", false).then((enabled) => {
+      narrator.setEnabled(enabled);
     });
 
     // Prüfe ob PWA bereits installiert ist
@@ -390,14 +400,14 @@ export function App() {
             <div className="speech-bubble">
               <strong>Hallo! Ich bin Dino!</strong>
               <span>
-                Zeichne deine eigene Plattform-Welt mit 6 magischen Farben oder fotografiere deine Zeichnung!
+                Zeichne deine eigene Plattform-Welt mit 8 magischen Farben oder fotografiere deine Zeichnung!
               </span>
             </div>
           </div>
 
           <h1 className="hero-heading">Zeichnen. Erkennen. Sofort spielen!</h1>
           <p className="hero-lead">
-            Vollständig offline als PWA auf Tablet, Smartphone, PC und TV ohne Server nutzbar.
+            Erschaffe deine eigenen bunten Plattformwelten auf Tablet, Smartphone, PC und TV!
           </p>
         </section>
 
@@ -457,7 +467,7 @@ export function App() {
           <div className="menu-card card-library" tabIndex={0} onClick={() => setScreen("library")}>
             <div className="card-symbol">📁</div>
             <h3>Meine Spiele</h3>
-            <p>Deine in IndexedDB gespeicherten Welten öffnen, bearbeiten und spielen.</p>
+            <p>Deine gespeicherten Welten öffnen, bearbeiten und spielen.</p>
             <span className="card-cta">Bibliothek öffnen ▶</span>
           </div>
         </section>
@@ -531,16 +541,20 @@ export function App() {
       </main>
 
       <footer className="home-footer">
-        <span>🦖 Dino Paint Game – Standalone Offline PWA</span>
-        <button className="link-button" type="button" onClick={() => setShowGuide(true)}>
-          📖 Zeichen-Tipps
-        </button>
-        <button className="link-button" type="button" onClick={() => setShowTvModal(true)}>
-          📺 TV-Anleitung
-        </button>
-        <button className="link-button" type="button" onClick={() => setShowSettings(true)}>
-          🎮 Steuerung & Controller
-        </button>
+        <div className="footer-credits">
+          <strong>Dino Paint Game</strong> • by X4rinia und Dino • für Katja u. Dirk &lt;3 • 11.10.2026 • Version 2.2
+        </div>
+        <div className="footer-links">
+          <button className="link-button" type="button" onClick={() => setShowGuide(true)}>
+            📖 Zeichen-Tipps
+          </button>
+          <button className="link-button" type="button" onClick={() => setShowTvModal(true)}>
+            📺 TV-Anleitung
+          </button>
+          <button className="link-button" type="button" onClick={() => setShowSettings(true)}>
+            ⚙️ Einstellungen & Info
+          </button>
+        </div>
       </footer>
 
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}

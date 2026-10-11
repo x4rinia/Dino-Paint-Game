@@ -67,6 +67,21 @@ function ensureContext(): AudioContext | null {
   return ctx;
 }
 
+let musicEnabled = true;
+
+export function isMusicEnabled() {
+  return musicEnabled;
+}
+
+export function setMusicEnabled(enabled: boolean) {
+  musicEnabled = enabled;
+  if (!enabled) {
+    if (bgMusic) bgMusic.pause();
+  } else if (musicStarted && !muted) {
+    if (bgMusic) bgMusic.play().catch(() => {});
+  }
+}
+
 export function isMuted() {
   return muted;
 }
@@ -77,7 +92,7 @@ export function toggleMute(): boolean {
   if (master) master.gain.value = muted ? 0 : MASTER_VOLUME;
   if (bgMusic) {
     bgMusic.volume = muted ? 0 : 0.45;
-    if (muted) {
+    if (muted || !musicEnabled) {
       bgMusic.pause();
     } else if (musicStarted) {
       bgMusic.play().catch(() => {});
@@ -99,13 +114,13 @@ export function startBgMusic() {
     bgMusic.onerror = () => {
       if (bgMusic && !bgMusic.src.endsWith(".mp3")) {
         bgMusic.src = `${cleanBase}dino.mp3`;
-        if (musicStarted && !muted) {
+        if (musicStarted && !muted && musicEnabled) {
           bgMusic.play().catch(() => {});
         }
       }
     };
   }
-  if (!muted) {
+  if (!muted && musicEnabled) {
     bgMusic.play().catch(() => {});
   }
 }
@@ -117,7 +132,7 @@ export function pauseBgMusic() {
 }
 
 export function resumeBgMusic() {
-  if (bgMusic && musicStarted && !muted) {
+  if (bgMusic && musicStarted && !muted && musicEnabled) {
     bgMusic.play().catch(() => {});
   }
 }

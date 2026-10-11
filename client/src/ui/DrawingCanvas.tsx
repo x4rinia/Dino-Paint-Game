@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { analyzeDrawing, type Level } from "@sketchquest/shared";
 import { GuideModal } from "./GuideModal";
-import { saveLevel, importLevelFile } from "../storage/db";
+import { saveLevel, importLevelFile, getSetting } from "../storage/db";
 
 const COLOR_TOOLS = ["black", "red", "green", "blue", "yellow", "purple", "brown", "orange", "eraser"] as const;
 type ColorTool = (typeof COLOR_TOOLS)[number];
@@ -469,10 +469,13 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
       const dataUrl = canvas.toDataURL("image/png");
       const nameToUse = (chosenName || levelNameInput || "Mein Dino-Level").trim();
 
-      const customStart = startPos
+      const spawnMode = await getSetting<string>("spawn_mode", "manual");
+      const useManual = spawnMode === "manual";
+
+      const customStart = (useManual && startPos)
         ? { x: Math.round((startPos.x / CANVAS_WIDTH) * 1000), y: Math.round((startPos.y / CANVAS_HEIGHT) * 1000) }
         : undefined;
-      const customGoal = goalPos
+      const customGoal = (useManual && goalPos)
         ? { x: Math.round((goalPos.x / CANVAS_WIDTH) * 1000), y: Math.round((goalPos.y / CANVAS_HEIGHT) * 1000) }
         : undefined;
 
@@ -618,22 +621,24 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
     }
   };
 
-  const playNow = () => {
+  const playNow = async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) return;
 
     setAnalyzing(true);
+    const spawnMode = await getSetting<string>("spawn_mode", "manual");
     setTimeout(() => {
       try {
         const imgData = ctx.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         const dataUrl = canvas.toDataURL("image/png");
 
-        const customStart = startPos
+        const useManual = spawnMode === "manual";
+        const customStart = (useManual && startPos)
           ? { x: Math.round((startPos.x / CANVAS_WIDTH) * 1000), y: Math.round((startPos.y / CANVAS_HEIGHT) * 1000) }
           : undefined;
-        const customGoal = goalPos
+        const customGoal = (useManual && goalPos)
           ? { x: Math.round((goalPos.x / CANVAS_WIDTH) * 1000), y: Math.round((goalPos.y / CANVAS_HEIGHT) * 1000) }
           : undefined;
 
