@@ -119,6 +119,30 @@ export function GuideModal({ onClose }: GuideModalProps) {
             </p>
           </div>
 
+          {/* START & ZIEL S / Z */}
+          <div style={{ background: "#f0fdf4", borderLeft: "6px solid #10b981", padding: "12px 16px", borderRadius: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
+              <span style={{ fontSize: "20px" }}>🚩🏁</span>
+              <strong style={{ fontSize: "18px", color: "#065f46" }}>Start (S) & Ziel (Z) Marker</strong>
+            </div>
+            <p style={{ margin: "4px 0 0", color: "#333", fontSize: "15px" }}>
+              Wähle im Editor einfach <strong>🚩 Start (S)</strong> oder <strong>🏁 Ziel (Z)</strong> und klicke auf deine Zeichnung,
+              um Dino und das Zieltor manuell zu platzieren. Setzt du keine Marker, platziert das Spiel beide automatisch sicher auf Plattformen!
+            </p>
+          </div>
+
+          {/* ZUFALLS-LEVEL */}
+          <div style={{ background: "#f5f3ff", borderLeft: "6px solid #6366f1", padding: "12px 16px", borderRadius: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
+              <span style={{ fontSize: "20px" }}>🎲</span>
+              <strong style={{ fontSize: "18px", color: "#4338ca" }}>Zufalls-Level Generator</strong>
+            </div>
+            <p style={{ margin: "4px 0 0", color: "#333", fontSize: "15px" }}>
+              Klicke oben auf <strong>🎲 Zufalls-Level</strong>, um dir mit einem Klick eine komplett fertige, abwechslungsreiche
+              und spielbare Doodle-Welt mit Plattformen, Liften, Portalen, Trampolinen und Gegnern generieren zu lassen!
+            </p>
+          </div>
+
         </div>
 
         <div style={{ marginTop: "24px", textAlign: "center" }}>

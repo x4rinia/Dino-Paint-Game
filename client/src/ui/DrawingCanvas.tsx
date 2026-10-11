@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { analyzeDrawing, type Level } from "@sketchquest/shared";
 import { GuideModal } from "./GuideModal";
-import { saveLevel, exportLevelFile, importLevelFile } from "../storage/db";
+import { saveLevel, importLevelFile } from "../storage/db";
 
-type Tool = "black" | "red" | "green" | "blue" | "yellow" | "purple" | "brown" | "orange" | "eraser";
+const COLOR_TOOLS = ["black", "red", "green", "blue", "yellow", "purple", "brown", "orange", "eraser"] as const;
+type ColorTool = (typeof COLOR_TOOLS)[number];
+type Tool = ColorTool | "start" | "goal";
 
 interface DrawingCanvasProps {
   onPlayLevel: (level: Level, drawingDataUrl: string) => void;
@@ -11,7 +13,7 @@ interface DrawingCanvasProps {
   initialImage?: string;
 }
 
-const COLORS: Record<Tool, { hex: string; label: string; desc: string }> = {
+const COLORS: Record<ColorTool, { hex: string; label: string; desc: string }> = {
   black: { hex: "#1d1d24", label: "Schwarz", desc: "Feste Plattformen & Wände" },
   red: { hex: "#d6453d", label: "Rot", desc: "Tödliche Gefahren (Lava / Stacheln)" },
   green: { hex: "#2fb457", label: "Grün", desc: "Trampoline & Sprungflächen" },
@@ -43,6 +45,10 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+
+  // Start (S) und Ziel (Z) Marker
+  const [startPos, setStartPos] = useState<{ x: number; y: number } | null>(null);
+  const [goalPos, setGoalPos] = useState<{ x: number; y: number } | null>(null);
 
   // Speicher-, Export- & Upload-Zustände für den Editor
   const [saveToast, setSaveToast] = useState<string | null>(null);
@@ -146,6 +152,8 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
 
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    setStartPos(null);
+    setGoalPos(null);
     saveHistory();
     setShowClearConfirm(false);
   };
@@ -180,6 +188,22 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
     }
 
     if (e.button !== 0 && e.button !== undefined) return;
+
+    const pt = getCanvasCoords(e);
+
+    // Start- und Ziel-Marker setzen
+    if (tool === "start") {
+      setStartPos(pt);
+      setSaveToast("🚩 Startpunkt (S) gesetzt!");
+      setTimeout(() => setSaveToast(null), 2000);
+      return;
+    }
+    if (tool === "goal") {
+      setGoalPos(pt);
+      setSaveToast("🏁 Zielpunkt (Z) gesetzt!");
+      setTimeout(() => setSaveToast(null), 2000);
+      return;
+    }
     
     // Pointer capture für kontinuierliche Striche bis über den Rand hinaus
     try {
@@ -189,7 +213,6 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
     activePointerIdRef.current = e.pointerId;
     activePointerTypeRef.current = e.pointerType;
     isDrawingRef.current = true;
-    const pt = getCanvasCoords(e);
     lastPointRef.current = pt;
 
     const canvas = canvasRef.current;
@@ -206,8 +229,8 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.lineWidth = effectiveWidth;
-    ctx.strokeStyle = COLORS[tool].hex;
-    ctx.fillStyle = COLORS[tool].hex;
+    ctx.strokeStyle = COLORS[tool as Exclude<Tool, "start" | "goal">].hex;
+    ctx.fillStyle = COLORS[tool as Exclude<Tool, "start" | "goal">].hex;
 
     // Ein einzelner Klick/Tipp zeichnet einen sauberen Punkt
     ctx.beginPath();
@@ -246,7 +269,7 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.lineWidth = effectiveWidth;
-    ctx.strokeStyle = COLORS[tool].hex;
+    ctx.strokeStyle = COLORS[tool as Exclude<Tool, "start" | "goal">]?.hex || "#1d1d24";
 
     ctx.beginPath();
     ctx.moveTo(lastPointRef.current.x, lastPointRef.current.y);
@@ -282,6 +305,147 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
     }
   };
 
+  const generateRandomLevel = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return;
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    const drawSolidRect = (x: number, y: number, w: number, h: number, color: string) => {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      if (typeof ctx.roundRect === "function") {
+        ctx.roundRect(x, y, w, h, 6);
+      } else {
+        ctx.rect(x, y, w, h);
+      }
+      ctx.fill();
+    };
+
+    const drawCircle = (cx: number, cy: number, r: number, color: string) => {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fill();
+    };
+
+    const drawEgg = (cx: number, cy: number) => {
+      ctx.fillStyle = "#f5c518";
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, 14, 18, 0, 0, Math.PI * 2);
+      ctx.fill();
+    };
+
+    const drawPortal = (x: number, y: number, w: number = 38, h: number = 68) => {
+      ctx.fillStyle = "#9b51e0";
+      ctx.beginPath();
+      if (typeof ctx.roundRect === "function") {
+        ctx.roundRect(x, y, w, h, 18);
+      } else {
+        ctx.rect(x, y, w, h);
+      }
+      ctx.fill();
+    };
+
+    const choice = Math.floor(Math.random() * 3);
+
+    if (choice === 0) {
+      // Layout 1: Canyons & Floating Islets
+      drawSolidRect(40, 560, 280, 140, "#1d1d24");
+      drawSolidRect(430, 500, 260, 200, "#1d1d24");
+      drawSolidRect(940, 440, 300, 260, "#1d1d24");
+      drawSolidRect(270, 420, 140, 28, "#1d1d24");
+      drawSolidRect(720, 340, 160, 28, "#1d1d24");
+
+      drawSolidRect(330, 670, 90, 40, "#d6453d"); // Lava
+      drawSolidRect(220, 540, 90, 20, "#2fb457");  // Trampolin
+      drawSolidRect(460, 450, 50, 50, "#2a6df4");  // Physik-Box
+      drawSolidRect(720, 460, 150, 26, "#8b5a2b"); // Braun Lift
+
+      drawCircle(580, 480, 18, "#e8590c");         // Gegner
+      drawPortal(70, 480, 40, 70);                 // Portal 1
+      drawPortal(1000, 360, 40, 70);               // Portal 2
+
+      drawEgg(340, 370);
+      drawEgg(540, 380);
+      drawEgg(800, 290);
+      drawEgg(1120, 390);
+
+      setStartPos({ x: 120, y: 520 });
+      setGoalPos({ x: 1160, y: 380 });
+    } else if (choice === 1) {
+      // Layout 2: Stepping Platforms & Double Springs
+      drawSolidRect(40, 620, 400, 90, "#1d1d24");
+      drawSolidRect(880, 620, 360, 90, "#1d1d24");
+      drawSolidRect(450, 680, 420, 35, "#d6453d");
+
+      drawSolidRect(280, 490, 150, 28, "#1d1d24");
+      drawSolidRect(100, 360, 180, 28, "#1d1d24");
+      drawSolidRect(380, 270, 240, 28, "#1d1d24");
+      drawSolidRect(700, 230, 200, 28, "#1d1d24");
+      drawSolidRect(980, 320, 240, 28, "#1d1d24");
+
+      drawSolidRect(320, 600, 110, 20, "#2fb457");
+      drawSolidRect(540, 250, 70, 20, "#2fb457");
+
+      drawSolidRect(160, 310, 48, 48, "#2a6df4");
+      drawSolidRect(480, 460, 160, 26, "#8b5a2b");
+
+      drawCircle(440, 250, 18, "#e8590c");
+      drawCircle(1050, 295, 18, "#e8590c");
+
+      drawPortal(70, 280, 38, 70);
+      drawPortal(1140, 540, 38, 70);
+
+      drawEgg(160, 440);
+      drawEgg(480, 220);
+      drawEgg(780, 180);
+      drawEgg(1080, 570);
+
+      setStartPos({ x: 120, y: 580 });
+      setGoalPos({ x: 1040, y: 260 });
+    } else {
+      // Layout 3: Cavern Valley & Double Lift
+      drawSolidRect(40, 520, 320, 180, "#1d1d24");
+      drawSolidRect(460, 600, 340, 110, "#1d1d24");
+      drawSolidRect(920, 500, 320, 200, "#1d1d24");
+
+      drawSolidRect(370, 680, 80, 35, "#d6453d");
+      drawSolidRect(810, 680, 100, 35, "#d6453d");
+
+      drawSolidRect(200, 380, 180, 28, "#1d1d24");
+      drawSolidRect(550, 340, 200, 28, "#1d1d24");
+      drawSolidRect(880, 320, 160, 28, "#1d1d24");
+
+      drawSolidRect(280, 500, 75, 20, "#2fb457");
+      drawSolidRect(720, 580, 75, 20, "#2fb457");
+
+      drawSolidRect(370, 440, 110, 25, "#8b5a2b");
+      drawSolidRect(800, 420, 110, 25, "#8b5a2b");
+
+      drawSolidRect(500, 550, 45, 45, "#2a6df4");
+      drawCircle(640, 575, 18, "#e8590c");
+
+      drawPortal(90, 440, 40, 70);
+      drawPortal(1160, 420, 40, 70);
+
+      drawEgg(290, 330);
+      drawEgg(650, 290);
+      drawEgg(950, 270);
+      drawEgg(600, 550);
+
+      setStartPos({ x: 120, y: 470 });
+      setGoalPos({ x: 1080, y: 440 });
+    }
+
+    saveHistory();
+    setSaveToast("🎲 Neues Zufalls-Level gezeichnet!");
+    setTimeout(() => setSaveToast(null), 3000);
+  };
+
   const exportPng = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -289,42 +453,8 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
     link.download = `dino-level-${Date.now()}.png`;
     link.href = canvas.toDataURL("image/png");
     link.click();
-    setSaveToast("✓ PNG heruntergeladen!");
+    setSaveToast("✓ Bild heruntergeladen!");
     setTimeout(() => setSaveToast(null), 2500);
-  };
-
-  const handleExportJson = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    if (!ctx) return;
-
-    try {
-      const imgData = ctx.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-      const dataUrl = canvas.toDataURL("image/png");
-      const nameToUse = (levelNameInput || "Mein Dino-Level").trim();
-
-      const result = analyzeDrawing(imgData, {
-        name: nameToUse,
-        gridWidth: 320,
-        gridHeight: 180,
-      });
-
-      exportLevelFile({
-        id: `level-${Date.now()}`,
-        name: nameToUse,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        level: result.level,
-        thumbnail: dataUrl,
-        originalImage: dataUrl,
-      });
-
-      setSaveToast("✓ JSON heruntergeladen!");
-      setTimeout(() => setSaveToast(null), 2500);
-    } catch (err) {
-      alert("Fehler beim JSON-Export: " + (err instanceof Error ? err.message : String(err)));
-    }
   };
 
   const handleSaveToLibrary = async (chosenName?: string) => {
@@ -339,10 +469,19 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
       const dataUrl = canvas.toDataURL("image/png");
       const nameToUse = (chosenName || levelNameInput || "Mein Dino-Level").trim();
 
+      const customStart = startPos
+        ? { x: Math.round((startPos.x / CANVAS_WIDTH) * 1000), y: Math.round((startPos.y / CANVAS_HEIGHT) * 1000) }
+        : undefined;
+      const customGoal = goalPos
+        ? { x: Math.round((goalPos.x / CANVAS_WIDTH) * 1000), y: Math.round((goalPos.y / CANVAS_HEIGHT) * 1000) }
+        : undefined;
+
       const result = analyzeDrawing(imgData, {
         name: nameToUse,
         gridWidth: 320,
         gridHeight: 180,
+        customStart,
+        customGoal,
       });
 
       // Erstelle ein kompaktes Thumbnail
@@ -491,10 +630,19 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
         const imgData = ctx.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         const dataUrl = canvas.toDataURL("image/png");
 
+        const customStart = startPos
+          ? { x: Math.round((startPos.x / CANVAS_WIDTH) * 1000), y: Math.round((startPos.y / CANVAS_HEIGHT) * 1000) }
+          : undefined;
+        const customGoal = goalPos
+          ? { x: Math.round((goalPos.x / CANVAS_WIDTH) * 1000), y: Math.round((goalPos.y / CANVAS_HEIGHT) * 1000) }
+          : undefined;
+
         const result = analyzeDrawing(imgData, {
           name: levelNameInput || "Mein gezeichnetes Level",
           gridWidth: 320,
           gridHeight: 180,
+          customStart,
+          customGoal,
         });
 
         const levelWithImage: Level = {
@@ -531,8 +679,23 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
           <button
             className="button button-secondary"
             type="button"
+            onClick={generateRandomLevel}
+            title="Generiert ein zufälliges buntes, spielbares Level"
+            style={{
+              background: "linear-gradient(135deg, #6366f1, #4f46e5)",
+              color: "#ffffff",
+              borderColor: "#4338ca",
+              fontWeight: 600,
+            }}
+          >
+            🎲 Zufalls-Level
+          </button>
+
+          <button
+            className="button button-secondary"
+            type="button"
             onClick={() => setShowGuide(true)}
-            title="Zeichen-Anleitung"
+            title="Zeichen-Anleitung & Farbbedeutungen"
           >
             📖 Anleitung
           </button>
@@ -541,9 +704,9 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
             className="button button-secondary"
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            title="Level (JSON) oder Bild (PNG/JPG) in den Editor laden"
+            title="Eigenes Bild oder Level in den Editor laden"
           >
-            📥 Upload
+            📥 Bild laden
           </button>
           <input
             ref={fileInputRef}
@@ -554,22 +717,12 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
           />
 
           <button
-            className="button button-export"
-            type="button"
-            onClick={exportPng}
-            title="Zeichnung als PNG speichern"
-          >
-            🖼️ PNG Export
-          </button>
-
-          <button
             className="button button-secondary"
             type="button"
-            onClick={handleExportJson}
-            title="Level als JSON-Datei exportieren"
-            style={{ backgroundColor: "#2b3245", color: "#fff", borderColor: "#414b66" }}
+            onClick={exportPng}
+            title="Zeichnung als PNG-Bild herunterladen"
           >
-            📄 JSON Export
+            ⬇️ Bild herunterladen
           </button>
 
           <button
@@ -595,7 +748,7 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
       <div className="studio-toolbar">
         <div className="tool-group colors-group">
           <span className="tool-label">Farbe:</span>
-          {(["black", "red", "green", "blue", "yellow", "purple", "brown", "orange", "eraser"] as Tool[]).map((t) => (
+          {COLOR_TOOLS.map((t) => (
             <button
               key={t}
               type="button"
@@ -616,6 +769,47 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
               <span className="color-name">{COLORS[t].label}</span>
             </button>
           ))}
+        </div>
+
+        <div className="tool-group marker-group">
+          <span className="tool-label">Marker:</span>
+          <button
+            type="button"
+            className={`tool-btn-marker ${tool === "start" ? "active-start" : ""}`}
+            onClick={() => {
+              setTool("start");
+              setIsPanMode(false);
+            }}
+            title="Klicke auf die Leinwand, um den Startpunkt (S) zu setzen"
+          >
+            🚩 Start (S)
+          </button>
+          <button
+            type="button"
+            className={`tool-btn-marker ${tool === "goal" ? "active-goal" : ""}`}
+            onClick={() => {
+              setTool("goal");
+              setIsPanMode(false);
+            }}
+            title="Klicke auf die Leinwand, um den Zielpunkt (Z) zu setzen"
+          >
+            🏁 Ziel (Z)
+          </button>
+          {(startPos || goalPos) && (
+            <button
+              type="button"
+              className="tool-btn-reset-markers"
+              onClick={() => {
+                setStartPos(null);
+                setGoalPos(null);
+                setSaveToast("Marker zurückgesetzt (automatisch)");
+                setTimeout(() => setSaveToast(null), 2000);
+              }}
+              title="Start- und Ziel-Marker entfernen (fällt auf automatische Platzierung zurück)"
+            >
+              ✕ Reset
+            </button>
+          )}
         </div>
 
         <div className="tool-group size-group">
@@ -678,11 +872,23 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
         className="canvas-viewport"
         ref={containerRef}
         onWheel={handleWheel}
-        style={{ cursor: isPanMode ? "grab" : tool === "eraser" ? "cell" : "crosshair" }}
+        style={{
+          cursor:
+            isPanMode
+              ? "grab"
+              : tool === "eraser"
+              ? "cell"
+              : tool === "start" || tool === "goal"
+              ? "pointer"
+              : "crosshair",
+        }}
       >
         <div
           className="canvas-transform-wrapper"
           style={{
+            position: "relative",
+            width: CANVAS_WIDTH,
+            height: CANVAS_HEIGHT,
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
             transformOrigin: "center center",
           }}
@@ -697,6 +903,78 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
             onPointerUp={handlePointerUp}
             onPointerLeave={handlePointerUp}
           />
+
+          {startPos && (
+            <div
+              style={{
+                position: "absolute",
+                left: `${startPos.x}px`,
+                top: `${startPos.y}px`,
+                transform: "translate(-50%, -100%)",
+                pointerEvents: "none",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                zIndex: 10,
+                userSelect: "none",
+              }}
+            >
+              <div
+                style={{
+                  background: "linear-gradient(135deg, #10b981, #059669)",
+                  color: "#ffffff",
+                  padding: "4px 8px",
+                  borderRadius: "12px",
+                  fontWeight: "bold",
+                  fontSize: "12px",
+                  boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                🦖 Start (S)
+              </div>
+              <div style={{ width: "3px", height: "12px", background: "#059669" }} />
+            </div>
+          )}
+
+          {goalPos && (
+            <div
+              style={{
+                position: "absolute",
+                left: `${goalPos.x}px`,
+                top: `${goalPos.y}px`,
+                transform: "translate(-50%, -100%)",
+                pointerEvents: "none",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                zIndex: 10,
+                userSelect: "none",
+              }}
+            >
+              <div
+                style={{
+                  background: "linear-gradient(135deg, #f59e0b, #d97706)",
+                  color: "#ffffff",
+                  padding: "4px 8px",
+                  borderRadius: "12px",
+                  fontWeight: "bold",
+                  fontSize: "12px",
+                  boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                🏁 Ziel (Z)
+              </div>
+              <div style={{ width: "3px", height: "12px", background: "#d97706" }} />
+            </div>
+          )}
         </div>
       </div>
 

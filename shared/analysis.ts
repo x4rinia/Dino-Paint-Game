@@ -37,6 +37,8 @@ export type AnalysisOptions = {
   gridWidth?: number;  // Ziel-Auflösung für Analyse, Standard z.B. 400
   gridHeight?: number; // Standard z.B. 225 (16:9 Verhältnis)
   minComponentPixels?: number; // Filtert kleine Störungen/Punkte heraus
+  customStart?: { x: number; y: number }; // Manuell gesetzter Startpunkt (0-1000)
+  customGoal?: { x: number; y: number };  // Manuell gesetzter Zielpunkt (0-1000)
 };
 
 export type AnalysisResult = {
@@ -261,17 +263,15 @@ export function sampleToGrid(
     }
   }
 
-  // 2. Intelligentes Rand-Snapping: Wenn gezeichnete Striche fast den Rand berühren (1-3 Pixel Abstand),
-  // verlängere sie bis zur jeweiligen Kante, damit Zeichnungen in Ecken & an Kanten nahtlos abschließen.
+  // 2. Intelligentes Rand-Snapping: Wenn gezeichnete Striche fast den Boden oder die Seitenwände berühren (1-3 Pixel Abstand),
+  // verlängere sie bis zur jeweiligen Kante, damit Böden und Wände in Ecken nahtlos abschließen.
+  // (Der Himmel gy <= 3 bleibt offen, damit die Spielwelt niemals in Fels versinkt!)
   for (let gy = 0; gy < gridH; gy++) {
     for (let gx = 0; gx < gridW; gx++) {
       const val = grid[gy * gridW + gx];
       if (val === 1) { // Feste schwarze Plattform-Striche
         if (gy >= gridH - 4) {
           for (let y = gy + 1; y < gridH; y++) cleaned[y * gridW + gx] = 1;
-        }
-        if (gy <= 3) {
-          for (let y = 0; y < gy; y++) cleaned[y * gridW + gx] = 1;
         }
         if (gx <= 3) {
           for (let x = 0; x < gx; x++) cleaned[gy * gridW + x] = 1;
@@ -375,6 +375,11 @@ function fillComponentHoles(comp: Component, gridW = 320, gridH = 180): void {
   const height = comp.maxY - comp.minY + 1;
   if (width < 4 || height < 4) return;
 
+  // Niemals einen Vollbild-Rahmen füllen (verhindert das Versinken der Spielwelt im Fels)
+  if (width >= gridW - 6 && height >= gridH - 6) {
+    return;
+  }
+
   const lw = width + 2;
   const lh = height + 2;
   const local = new Uint8Array(lw * lh);
@@ -401,17 +406,13 @@ function fillComponentHoles(comp: Component, gridW = 320, gridH = 180): void {
     }
   }
 
-  // Wenn die Form den Bildschirmrand berührt, schließt der Rand die Form automatisch ab!
-  const touchesBottom = comp.maxY >= gridH - 2;
-  const touchesTop = comp.minY <= 1;
-  const touchesLeft = comp.minX <= 1;
-  const touchesRight = comp.maxX >= gridW - 2;
+  // Boden und Seitenwände schließen ab (Himmel bleibt offen!)
+  const touchesBottom = comp.maxY >= gridH - 3;
+  const touchesLeft = comp.minX <= 2;
+  const touchesRight = comp.maxX >= gridW - 3;
 
   if (touchesBottom) {
     for (let lx = 1; lx <= width; lx++) closed[(height + 1) * lw + lx] = 1;
-  }
-  if (touchesTop) {
-    for (let lx = 1; lx <= width; lx++) closed[0 * lw + lx] = 1;
   }
   if (touchesLeft) {
     for (let ly = 1; ly <= height; ly++) closed[ly * lw + 0] = 1;
@@ -786,19 +787,23 @@ export function analyzeDrawing(
     });
   }
 
-  // Intelligente Positionierung von Start und Ziel
-  // Start: Links auf der ersten sicheren Plattform/Trampolin/Lift
+  // Intelligente Positionierung von Start (S) und Ziel (Z)
   const standables = [...platforms, ...bouncers, ...movingPlatforms];
   standables.sort((a, b) => a.x - b.x);
 
   const startPlatform = standables[0] ?? { x: 50, y: 880, w: 200, h: 40 };
-  const startX = Math.min(900, Math.max(50, Math.round(startPlatform.x + Math.min(50, startPlatform.w / 2))));
-  const startY = Math.max(40, Math.round(startPlatform.y - 36));
+  const autoStartX = Math.min(900, Math.max(50, Math.round(startPlatform.x + Math.min(50, startPlatform.w / 2))));
+  const autoStartY = Math.max(40, Math.round(startPlatform.y - 36));
 
-  // Ziel: Weit rechts auf einer Plattform oder oben rechts
   const rightmostPlatform = [...standables].sort((a, b) => (b.x + b.w) - (a.x + a.w))[0] ?? startPlatform;
-  const goalX = Math.min(950, Math.max(100, Math.round(rightmostPlatform.x + rightmostPlatform.w - 50)));
-  const goalY = Math.max(30, Math.round(rightmostPlatform.y - 70));
+  const autoGoalX = Math.min(950, Math.max(100, Math.round(rightmostPlatform.x + rightmostPlatform.w - 50)));
+  const autoGoalY = Math.max(30, Math.round(rightmostPlatform.y - 70));
+
+  const startX = options.customStart ? Math.round(options.customStart.x) : autoStartX;
+  const startY = options.customStart ? Math.round(options.customStart.y) : autoStartY;
+
+  const goalX = options.customGoal ? Math.round(options.customGoal.x) : autoGoalX;
+  const goalY = options.customGoal ? Math.round(options.customGoal.y) : autoGoalY;
 
   const level: Level = LevelSchema.parse({
     version: 2,

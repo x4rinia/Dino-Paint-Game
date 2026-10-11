@@ -567,6 +567,60 @@ body {
   background: var(--color-red);
 }
 
+.marker-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tool-btn-marker {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  background: #343846;
+  border: 1px solid #4a5063;
+  color: #ffffff;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.tool-btn-marker:hover {
+  background: #464c5e;
+}
+
+.tool-btn-marker.active-start {
+  background: #059669;
+  border-color: #34d399;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.45);
+}
+
+.tool-btn-marker.active-goal {
+  background: #d97706;
+  border-color: #fbbf24;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.45);
+}
+
+.tool-btn-reset-markers {
+  padding: 5px 8px;
+  background: #4b5563;
+  border: 1px solid #6b7280;
+  color: #f3f4f6;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.tool-btn-reset-markers:hover {
+  background: #ef4444;
+  border-color: #f87171;
+}
+
 .canvas-viewport {
   flex: 1;
   overflow: hidden;
