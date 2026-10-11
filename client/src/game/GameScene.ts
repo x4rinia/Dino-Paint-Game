@@ -682,10 +682,10 @@ export class GameScene extends Phaser.Scene {
         const playerX = this.player.x;
 
         const isStandingOn =
-          Math.abs(playerBottom - platTop) <= 8 &&
-          playerX >= platLeft - 12 &&
-          playerX <= platRight + 12 &&
-          (this.player.body.touching.down || this.player.body.blocked.down);
+          Math.abs(playerBottom - platTop) <= 12 &&
+          playerX >= platLeft - 10 &&
+          playerX <= platRight + 10 &&
+          (this.player.body.touching.down || this.player.body.blocked.down || this.player.body.velocity.y >= 0);
 
         if (isStandingOn) {
           riderDx = dx;
@@ -698,7 +698,10 @@ export class GameScene extends Phaser.Scene {
     if ((riderDx !== 0 || riderDy !== 0) && !this.locked) {
       this.player.rect.x += riderDx;
       this.player.rect.y += riderDy;
-      this.player.body.reset(this.player.rect.x, this.player.rect.y);
+      this.player.body.x += riderDx;
+      this.player.body.y += riderDy;
+      // WICHTIG: Kein body.reset()! Dadurch bleiben Sprung- und Lauf-Velocity erhalten,
+      // sodass der Spieler jederzeit flüssig abspringen und auf dem Lift laufen kann.
     }
 
     const input = this.readCombinedInput(gp, touchInput);

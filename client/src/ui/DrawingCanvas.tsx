@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { analyzeDrawing, type Level } from "@sketchquest/shared";
 import { GuideModal } from "./GuideModal";
+import { saveLevel, exportLevelFile, importLevelFile } from "../storage/db";
 
 type Tool = "black" | "red" | "green" | "blue" | "yellow" | "purple" | "brown" | "orange" | "eraser";
 
@@ -43,6 +44,13 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
   const [showGuide, setShowGuide] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
 
+  // Speicher-, Export- & Upload-Zustände für den Editor
+  const [saveToast, setSaveToast] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [levelNameInput, setLevelNameInput] = useState("Mein Dino-Level");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   // Undo/Redo Stacks (speichert ImageData Snapshot-Strings oder ImageData)
   const historyRef = useRef<ImageData[]>([]);
   const redoRef = useRef<ImageData[]>([]);
@@ -78,10 +86,6 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
     } else {
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-      // Automatischer schwarzer Rand / Rahmen, damit Zeichnungen in den Ecken sauber abgeschlossen sind
-      ctx.strokeStyle = "#1d1d24";
-      ctx.lineWidth = 10;
-      ctx.strokeRect(5, 5, CANVAS_WIDTH - 10, CANVAS_HEIGHT - 10);
       saveHistory();
     }
   }, [initialImage]);
@@ -142,14 +146,11 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
 
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    ctx.strokeStyle = "#1d1d24";
-    ctx.lineWidth = 10;
-    ctx.strokeRect(5, 5, CANVAS_WIDTH - 10, CANVAS_HEIGHT - 10);
     saveHistory();
     setShowClearConfirm(false);
   };
 
-  // Koordinaten-Umrechnung von Bildschirm zu Canvas
+  // Koordinaten-Umrechnung von Bildschirm zu Canvas (mit Clamping an die Ränder)
   const getCanvasCoords = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
@@ -157,8 +158,8 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
     const scaleX = CANVAS_WIDTH / rect.width;
     const scaleY = CANVAS_HEIGHT / rect.height;
     return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY,
+      x: Math.max(0, Math.min(CANVAS_WIDTH, (e.clientX - rect.left) * scaleX)),
+      y: Math.max(0, Math.min(CANVAS_HEIGHT, (e.clientY - rect.top) * scaleY)),
     };
   };
 
@@ -288,6 +289,140 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
     link.download = `dino-level-${Date.now()}.png`;
     link.href = canvas.toDataURL("image/png");
     link.click();
+    setSaveToast("✓ PNG heruntergeladen!");
+    setTimeout(() => setSaveToast(null), 2500);
+  };
+
+  const handleExportJson = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return;
+
+    try {
+      const imgData = ctx.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+      const dataUrl = canvas.toDataURL("image/png");
+      const nameToUse = (levelNameInput || "Mein Dino-Level").trim();
+
+      const result = analyzeDrawing(imgData, {
+        name: nameToUse,
+        gridWidth: 320,
+        gridHeight: 180,
+      });
+
+      exportLevelFile({
+        id: `level-${Date.now()}`,
+        name: nameToUse,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        level: result.level,
+        thumbnail: dataUrl,
+        originalImage: dataUrl,
+      });
+
+      setSaveToast("✓ JSON heruntergeladen!");
+      setTimeout(() => setSaveToast(null), 2500);
+    } catch (err) {
+      alert("Fehler beim JSON-Export: " + (err instanceof Error ? err.message : String(err)));
+    }
+  };
+
+  const handleSaveToLibrary = async (chosenName?: string) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return;
+
+    setIsSaving(true);
+    try {
+      const imgData = ctx.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+      const dataUrl = canvas.toDataURL("image/png");
+      const nameToUse = (chosenName || levelNameInput || "Mein Dino-Level").trim();
+
+      const result = analyzeDrawing(imgData, {
+        name: nameToUse,
+        gridWidth: 320,
+        gridHeight: 180,
+      });
+
+      // Erstelle ein kompaktes Thumbnail
+      const thumbCanvas = document.createElement("canvas");
+      thumbCanvas.width = 240;
+      thumbCanvas.height = 135;
+      const tctx = thumbCanvas.getContext("2d");
+      let thumbUrl = dataUrl;
+      if (tctx) {
+        tctx.drawImage(canvas, 0, 0, 240, 135);
+        thumbUrl = thumbCanvas.toDataURL("image/jpeg", 0.7);
+      }
+
+      await saveLevel({
+        name: nameToUse,
+        level: result.level,
+        thumbnail: thumbUrl,
+        originalImage: dataUrl,
+      });
+
+      setSaveToast("✓ In Bibliothek gespeichert!");
+      setTimeout(() => setSaveToast(null), 3500);
+      setShowSaveModal(false);
+    } catch (err) {
+      alert("Fehler beim Speichern: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return;
+
+    try {
+      if (file.name.endsWith(".json")) {
+        const item = await importLevelFile(file);
+        setLevelNameInput(item.name);
+        setSaveToast(`✓ Level "${item.name}" importiert!`);
+        setTimeout(() => setSaveToast(null), 3500);
+
+        const imgSource = item.originalImage || item.thumbnail;
+        if (imgSource) {
+          const img = new Image();
+          img.onload = () => {
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            ctx.drawImage(img, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            saveHistory();
+          };
+          img.src = imgSource;
+        }
+      } else {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const dataUrl = event.target?.result as string;
+          if (!dataUrl) return;
+          const img = new Image();
+          img.onload = () => {
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            ctx.drawImage(img, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            saveHistory();
+            setSaveToast("✓ Bild erfolgreich geladen!");
+            setTimeout(() => setSaveToast(null), 3000);
+          };
+          img.src = dataUrl;
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch (err) {
+      alert("Fehler beim Hochladen: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      e.target.value = "";
+    }
   };
 
   const playNow = () => {
@@ -303,7 +438,7 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
         const dataUrl = canvas.toDataURL("image/png");
 
         const result = analyzeDrawing(imgData, {
-          name: "Mein gezeichnetes Level",
+          name: levelNameInput || "Mein gezeichnetes Level",
           gridWidth: 320,
           gridHeight: 180,
         });
@@ -335,16 +470,63 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
           ◀ Menü
         </button>
         <div className="studio-title">
-          <h2>Level zeichnen</h2>
-          <span className="studio-subtitle">Zeichne mit allen 6 Spielfarben deine Welt</span>
+          <h2>Level-Editor</h2>
+          <span className="studio-subtitle">Zeichne mit allen 8 Spielfarben deine Welt</span>
         </div>
         <div className="studio-header-actions">
-          <button className="button button-secondary" type="button" onClick={() => setShowGuide(true)} title="Zeichen-Anleitung">
+          <button
+            className="button button-secondary"
+            type="button"
+            onClick={() => setShowGuide(true)}
+            title="Zeichen-Anleitung"
+          >
             📖 Anleitung
           </button>
-          <button className="button button-export" type="button" onClick={exportPng} title="Als PNG speichern">
-            PNG Export
+
+          <button
+            className="button button-secondary"
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            title="Level (JSON) oder Bild (PNG/JPG) in den Editor laden"
+          >
+            📥 Upload
           </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,application/json,image/png,image/jpeg,image/webp"
+            className="visually-hidden"
+            onChange={handleUploadFile}
+          />
+
+          <button
+            className="button button-export"
+            type="button"
+            onClick={exportPng}
+            title="Zeichnung als PNG speichern"
+          >
+            🖼️ PNG Export
+          </button>
+
+          <button
+            className="button button-secondary"
+            type="button"
+            onClick={handleExportJson}
+            title="Level als JSON-Datei exportieren"
+            style={{ backgroundColor: "#2b3245", color: "#fff", borderColor: "#414b66" }}
+          >
+            📄 JSON Export
+          </button>
+
+          <button
+            className="button button-save"
+            type="button"
+            onClick={() => setShowSaveModal(true)}
+            title="Level dauerhaft in lokaler Bibliothek sichern"
+          >
+            {saveToast ? saveToast : "💾 In Bibliothek speichern"}
+          </button>
+
           <button
             className="button button-play-big"
             type="button"
@@ -509,6 +691,55 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
                 Ja, alles löschen
               </button>
               <button className="button button-secondary" type="button" onClick={() => setShowClearConfirm(false)}>
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSaveModal && (
+        <div className="modal-backdrop">
+          <div className="modal-box" style={{ maxWidth: 440 }}>
+            <h3>💾 Level in Bibliothek speichern</h3>
+            <p style={{ marginTop: 8, marginBottom: 12 }}>
+              Gib deinem Level einen Namen. Es wird offline in deiner Bibliothek gespeichert:
+            </p>
+            <input
+              type="text"
+              value={levelNameInput}
+              onChange={(e) => setLevelNameInput(e.target.value)}
+              className="form-input"
+              placeholder="Name des Levels (z.B. Lava-Grotte)"
+              style={{
+                width: "100%",
+                padding: "10px 14px",
+                fontSize: "1.05rem",
+                borderRadius: "8px",
+                border: "2px solid #3c4254",
+                background: "#181a20",
+                color: "#fff",
+                marginBottom: 16,
+              }}
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSaveToLibrary();
+              }}
+            />
+            <div className="modal-actions">
+              <button
+                className="button button-save"
+                type="button"
+                onClick={() => handleSaveToLibrary()}
+                disabled={isSaving}
+              >
+                {isSaving ? "Speichere…" : "Speichern"}
+              </button>
+              <button
+                className="button button-secondary"
+                type="button"
+                onClick={() => setShowSaveModal(false)}
+              >
                 Abbrechen
               </button>
             </div>

@@ -82,7 +82,7 @@ export class Enemy {
 
     if (this.rect.x <= this.minX) this.direction = 1;
     else if (this.rect.x >= this.maxX) this.direction = -1;
-    else if (this.body.blocked.down && !this.hasGroundAhead(scene, platforms)) {
+    else if ((this.body.blocked.down || this.body.touching.down) && !this.hasGroundAhead(scene, platforms)) {
       this.direction *= -1;
     }
 

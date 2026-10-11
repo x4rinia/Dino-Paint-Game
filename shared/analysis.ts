@@ -261,13 +261,26 @@ export function sampleToGrid(
     }
   }
 
-  // 2. Automatischer schwarzer Rand (Boden & Seitenwände), damit Zeichnungen in Ecken & an Kanten geschlossen sind
-  for (let gx = 0; gx < gridW; gx++) {
-    cleaned[(gridH - 1) * gridW + gx] = 1; // Boden-Abschluss
-  }
+  // 2. Intelligentes Rand-Snapping: Wenn gezeichnete Striche fast den Rand berühren (1-3 Pixel Abstand),
+  // verlängere sie bis zur jeweiligen Kante, damit Zeichnungen in Ecken & an Kanten nahtlos abschließen.
   for (let gy = 0; gy < gridH; gy++) {
-    cleaned[gy * gridW + 0] = 1; // Linke Wand
-    cleaned[gy * gridW + (gridW - 1)] = 1; // Rechte Wand
+    for (let gx = 0; gx < gridW; gx++) {
+      const val = grid[gy * gridW + gx];
+      if (val === 1) { // Feste schwarze Plattform-Striche
+        if (gy >= gridH - 4) {
+          for (let y = gy + 1; y < gridH; y++) cleaned[y * gridW + gx] = 1;
+        }
+        if (gy <= 3) {
+          for (let y = 0; y < gy; y++) cleaned[y * gridW + gx] = 1;
+        }
+        if (gx <= 3) {
+          for (let x = 0; x < gx; x++) cleaned[gy * gridW + x] = 1;
+        }
+        if (gx >= gridW - 4) {
+          for (let x = gx + 1; x < gridW; x++) cleaned[gy * gridW + x] = 1;
+        }
+      }
+    }
   }
 
   return cleaned;
@@ -357,7 +370,7 @@ export function findConnectedComponents(
  * Wenn ein Spieler die 4 Kanten einer Plattform zeichnet, wird der Innenraum
  * als solide Plattform gefüllt, anstatt in Dutzende Holzlatten zu zerfallen.
  */
-function fillComponentHoles(comp: Component): void {
+function fillComponentHoles(comp: Component, gridW = 320, gridH = 180): void {
   const width = comp.maxX - comp.minX + 1;
   const height = comp.maxY - comp.minY + 1;
   if (width < 4 || height < 4) return;
@@ -388,10 +401,49 @@ function fillComponentHoles(comp: Component): void {
     }
   }
 
-  // Flood fill von (0,0) (sicher außerhalb)
+  // Wenn die Form den Bildschirmrand berührt, schließt der Rand die Form automatisch ab!
+  const touchesBottom = comp.maxY >= gridH - 2;
+  const touchesTop = comp.minY <= 1;
+  const touchesLeft = comp.minX <= 1;
+  const touchesRight = comp.maxX >= gridW - 2;
+
+  if (touchesBottom) {
+    for (let lx = 1; lx <= width; lx++) closed[(height + 1) * lw + lx] = 1;
+  }
+  if (touchesTop) {
+    for (let lx = 1; lx <= width; lx++) closed[0 * lw + lx] = 1;
+  }
+  if (touchesLeft) {
+    for (let ly = 1; ly <= height; ly++) closed[ly * lw + 0] = 1;
+  }
+  if (touchesRight) {
+    for (let ly = 1; ly <= height; ly++) closed[ly * lw + (width + 1)] = 1;
+  }
+
+  // Flood-Fill von allen noch offenen Außenrandpixeln
   const outside = new Uint8Array(lw * lh);
-  outside[0] = 1;
-  const queue: Array<[number, number]> = [[0, 0]];
+  const queue: Array<[number, number]> = [];
+
+  for (let lx = 0; lx < lw; lx++) {
+    if (closed[0 * lw + lx] === 0 && outside[0 * lw + lx] === 0) {
+      outside[0 * lw + lx] = 1;
+      queue.push([lx, 0]);
+    }
+    if (closed[(lh - 1) * lw + lx] === 0 && outside[(lh - 1) * lw + lx] === 0) {
+      outside[(lh - 1) * lw + lx] = 1;
+      queue.push([lx, lh - 1]);
+    }
+  }
+  for (let ly = 0; ly < lh; ly++) {
+    if (closed[ly * lw + 0] === 0 && outside[ly * lw + 0] === 0) {
+      outside[ly * lw + 0] = 1;
+      queue.push([0, ly]);
+    }
+    if (closed[ly * lw + (lw - 1)] === 0 && outside[ly * lw + (lw - 1)] === 0) {
+      outside[ly * lw + (lw - 1)] = 1;
+      queue.push([lw - 1, ly]);
+    }
+  }
 
   while (queue.length > 0) {
     const [cx, cy] = queue.pop()!;
@@ -436,7 +488,7 @@ export function decomposeComponentToRects(
   gridH: number
 ): Array<{ x: number; y: number; w: number; h: number }> {
   // 1. Innenraum geschlossener Konturen füllen (verhindert das Zerhacken von gezeichneten Kästchen)
-  fillComponentHoles(comp);
+  fillComponentHoles(comp, gridW, gridH);
 
   const width = comp.maxX - comp.minX + 1;
   const height = comp.maxY - comp.minY + 1;
