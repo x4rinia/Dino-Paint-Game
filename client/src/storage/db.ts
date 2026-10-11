@@ -331,7 +331,7 @@ export async function migrateFromLocalStorage(): Promise<number> {
  * Initialisiert die Datenbank beim ersten Start:
  * 1. Führt ggf. Migration aus LocalStorage durch.
  * 2. Wenn noch keine Level vorhanden sind, werden 3 abwechslungsreiche
- *    Starter-Level geladen (Tutorial, Portale, 6-Farben-Arena).
+ *    Starter-Level geladen (Tutorial, Portale, 8-Farben-Arena).
  */
 export async function initStorage(): Promise<void> {
   try {

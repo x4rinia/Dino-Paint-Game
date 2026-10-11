@@ -20,7 +20,7 @@ export function GuideModal({ onClose }: GuideModalProps) {
         </div>
 
         <p style={{ color: "#555", fontSize: "16px", marginBottom: "20px" }}>
-          In <strong>Dino Paint Game</strong> wird jede Farbe zu einer echten Spielmechanik!
+          In <strong>Dino Paint Game</strong> wird jede der <strong>8 magischen Farben</strong> zu einer echten Spielmechanik!
           Hier siehst du genau, wie du die Farben zeichnen musst:
         </p>
 

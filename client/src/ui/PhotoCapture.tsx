@@ -11,6 +11,7 @@ export function PhotoCapture({ onPlayLevel, onBackToMenu }: PhotoCaptureProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraNativeInputRef = useRef<HTMLInputElement | null>(null);
 
   const [cameraActive, setCameraActive] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -32,6 +33,17 @@ export function PhotoCapture({ onPlayLevel, onBackToMenu }: PhotoCaptureProps) {
     };
   }, []);
 
+  // Verbindet den Stream mit dem Video-Element, sobald cameraActive wahr ist und das Element im DOM existiert
+  useEffect(() => {
+    if (cameraActive && videoRef.current && streamRef.current) {
+      const v = videoRef.current;
+      v.srcObject = streamRef.current;
+      v.setAttribute("playsinline", "true");
+      v.setAttribute("webkit-playsinline", "true");
+      v.play().catch((err) => console.warn("Video play error:", err));
+    }
+  }, [cameraActive]);
+
   const stopCamera = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
@@ -48,46 +60,51 @@ export function PhotoCapture({ onPlayLevel, onBackToMenu }: PhotoCaptureProps) {
     setShowHttpsHint(false);
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      // Fehlender sicherer Kontext (z.B. HTTP auf Smartphone)
-      setShowHttpsHint(true);
-      setErrorMessage("Kamera-Zugriff im Browser ist nur über HTTPS oder localhost erlaubt. Bitte Foto über Datei-Upload wählen!");
-      fileInputRef.current?.click();
+      // Wenn getUserMedia im Browser nicht verfügbar ist (z.B. Safari ohne HTTPS),
+      // öffne direkt die native iPad-Kamera über den Datei-Input
+      cameraNativeInputRef.current?.click();
       return;
     }
 
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: {
-          facingMode: { ideal: "environment" },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        },
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+    const constraintsList: MediaStreamConstraints[] = [
+      { audio: false, video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } } },
+      { audio: false, video: { facingMode: { ideal: "environment" } } },
+      { audio: false, video: { facingMode: "environment" } },
+      { audio: false, video: true },
+    ];
+
+    let stream: MediaStream | null = null;
+    for (const c of constraintsList) {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(c);
+        if (stream) break;
+      } catch {
+        // Nächste Option versuchen
       }
+    }
+
+    if (stream) {
+      streamRef.current = stream;
       setCameraActive(true);
-    } catch (err) {
-      console.warn("Kamera konnte nicht gestartet werden:", err);
-      setShowHttpsHint(true);
-      setErrorMessage("Kamera konnte nicht geöffnet werden. Nutze den Foto-Upload!");
-      fileInputRef.current?.click();
+    } else {
+      console.warn("Live-Kamera nicht verfügbar, öffne native iPad-Kamera");
+      cameraNativeInputRef.current?.click();
     }
   };
 
   const snapPhoto = () => {
     const video = videoRef.current;
-    if (!video || !video.videoWidth || !video.videoHeight) return;
+    if (!video) return;
+    const w = video.videoWidth || 1280;
+    const h = video.videoHeight || 720;
 
     const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.width = w;
+    canvas.height = h;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    ctx.drawImage(video, 0, 0);
+    ctx.drawImage(video, 0, 0, w, h);
     const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
 
     stopCamera();
@@ -115,11 +132,25 @@ export function PhotoCapture({ onPlayLevel, onBackToMenu }: PhotoCaptureProps) {
 
     const img = new Image();
     img.onload = () => {
+      // Skalierung auf maximal 1600 Pixel für flüssige iPad-Verarbeitung und sparsamen RAM-Verbrauch
+      let targetW = img.width;
+      let targetH = img.height;
+      const MAX_DIM = 1600;
+      if (targetW > MAX_DIM || targetH > MAX_DIM) {
+        if (targetW > targetH) {
+          targetH = Math.round((targetH * MAX_DIM) / targetW);
+          targetW = MAX_DIM;
+        } else {
+          targetW = Math.round((targetW * MAX_DIM) / targetH);
+          targetH = MAX_DIM;
+        }
+      }
+
       const canvas = document.createElement("canvas");
       // Bei 90° oder 270° vertauschte Dimensionen
       const isSwapped = rotAngle === 90 || rotAngle === 270;
-      canvas.width = isSwapped ? img.height : img.width;
-      canvas.height = isSwapped ? img.width : img.height;
+      canvas.width = isSwapped ? targetH : targetW;
+      canvas.height = isSwapped ? targetW : targetH;
 
       const ctx = canvas.getContext("2d");
       if (!ctx) {
@@ -130,7 +161,7 @@ export function PhotoCapture({ onPlayLevel, onBackToMenu }: PhotoCaptureProps) {
       ctx.save();
       ctx.translate(canvas.width / 2, canvas.height / 2);
       ctx.rotate((rotAngle * Math.PI) / 180);
-      ctx.drawImage(img, -img.width / 2, -img.height / 2);
+      ctx.drawImage(img, -targetW / 2, -targetH / 2, targetW, targetH);
       ctx.restore();
 
       const rotatedDataUrl = canvas.toDataURL("image/jpeg", 0.9);
@@ -239,31 +270,55 @@ export function PhotoCapture({ onPlayLevel, onBackToMenu }: PhotoCaptureProps) {
             <div className="choice-illustration">📸</div>
             <h3>Wie möchtest du deine Zeichnung laden?</h3>
             <p>
-              Halte das Blatt gut beleuchtet und eben. Die 4 Farben werden automatisch erkannt:
+              Halte das Blatt gut beleuchtet und eben. Alle 8 magischen Spielfarben werden automatisch erkannt:
             </p>
             <div className="legend-strip">
               <span>⬛ Schwarz: Plattformen</span>
               <span>🟥 Rot: Gefahren</span>
               <span>🟩 Grün: Trampoline</span>
               <span>🟦 Blau: Blöcke</span>
+              <span>🟨 Gelb: Dino-Eier</span>
+              <span>🟪 Lila: Portale</span>
+              <span>🟫 Braun: Lifte</span>
+              <span>🟧 Orange: Gegner</span>
             </div>
 
             <div className="choice-buttons">
-              <button className="button button-primary" type="button" onClick={startCamera}>
-                📷 Smartphone-Kamera öffnen
+              <button
+                className="button button-primary"
+                type="button"
+                onClick={() => cameraNativeInputRef.current?.click()}
+                style={{ fontSize: "1.1rem", padding: "14px 24px" }}
+              >
+                📸 Mit iPad- / Smartphone-Kamera fotografieren
+              </button>
+              <button
+                className="button button-secondary"
+                type="button"
+                onClick={startCamera}
+              >
+                📹 Live-Kamera im Browser öffnen
               </button>
               <button
                 className="button button-secondary"
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
               >
-                🖼 Foto aus Galerie wählen (JPG / PNG / WebP)
+                🖼️ Foto aus Mediathek / Galerie wählen
               </button>
             </div>
             <input
+              ref={cameraNativeInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="visually-hidden"
+              onChange={handleFileUpload}
+            />
+            <input
               ref={fileInputRef}
               type="file"
-              accept="image/png,image/jpeg,image/webp"
+              accept="image/*"
               className="visually-hidden"
               onChange={handleFileUpload}
             />
@@ -440,6 +495,7 @@ export function PhotoCapture({ onPlayLevel, onBackToMenu }: PhotoCaptureProps) {
                     </div>
                   ))}
 
+                  {/* Schwebende Lifte Braun */}
                   {(analyzedLevel.movingPlatforms ?? []).map((lift) => (
                     <div
                       key={lift.id}
@@ -447,13 +503,39 @@ export function PhotoCapture({ onPlayLevel, onBackToMenu }: PhotoCaptureProps) {
                       style={{
                         left: `${lift.x / 10}%`,
                         top: `${lift.y / 10}%`,
-                        backgroundColor: "#9b51e0",
+                        backgroundColor: "#8b5a2b",
+                        border: "2px solid #5a3818",
                         color: "#fff",
                         fontSize: "12px",
                       }}
-                      title={`Beweglicher Lift (${lift.axis === "horizontal" ? "↔ waagerecht" : "↕ senkrecht"})`}
+                      title={`Schwebender Lift (${lift.axis === "horizontal" ? "↔ waagerecht" : "↕ senkrecht"})`}
                     >
                       {lift.axis === "horizontal" ? "↔" : "↕"}
+                    </div>
+                  ))}
+
+                  {/* Patrouillierende Gegner Orange */}
+                  {(analyzedLevel.enemies ?? []).map((e) => (
+                    <div
+                      key={e.id}
+                      className="detected-box detected-enemy"
+                      style={{
+                        left: `${(e.x - 15) / 10}%`,
+                        top: `${(e.y - 15) / 10}%`,
+                        width: `3%`,
+                        height: `3%`,
+                        backgroundColor: "rgba(232, 89, 12, 0.45)",
+                        border: "2px solid #e8590c",
+                        borderRadius: "6px",
+                        position: "absolute",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "13px",
+                      }}
+                      title="Gegner (Orange)"
+                    >
+                      👾
                     </div>
                   ))}
 
@@ -480,7 +562,7 @@ export function PhotoCapture({ onPlayLevel, onBackToMenu }: PhotoCaptureProps) {
               {analyzing && (
                 <div className="analyzing-cover">
                   <div className="spinner" />
-                  <strong>Erkenne Farben und Physik…</strong>
+                  <strong>Erkenne alle 8 Spielfarben…</strong>
                 </div>
               )}
             </div>
@@ -492,7 +574,9 @@ export function PhotoCapture({ onPlayLevel, onBackToMenu }: PhotoCaptureProps) {
                 <span>Trampoline: {analyzedLevel.bouncers?.length ?? 0}</span>
                 <span>Physikblöcke: {analyzedLevel.movers?.length ?? 0}</span>
                 <span>Dino-Eier: {analyzedLevel.collectibles?.length ?? 0}</span>
+                <span>Portale: {analyzedLevel.teleporters?.length ?? 0}</span>
                 <span>Lifte: {analyzedLevel.movingPlatforms?.length ?? 0}</span>
+                <span>Gegner: {analyzedLevel.enemies?.length ?? 0}</span>
               </div>
             )}
           </div>
