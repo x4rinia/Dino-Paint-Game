@@ -95,21 +95,19 @@ export function LevelLibrary({ onPlayLevel, onEditDrawing, onBackToMenu }: Level
           <span className="studio-subtitle">Deine persönliche Spielesammlung</span>
         </div>
         <div className="studio-header-actions">
-          <button
+          <label
             className="button button-secondary"
-            type="button"
-            onClick={() => importInputRef.current?.click()}
+            style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
             title="Level-Datei (.json) oder Bildzeichnung (.png / .jpg) importieren"
           >
             {importSuccessMsg ? importSuccessMsg : "📥 Level oder Bild importieren"}
-          </button>
-          <input
-            ref={importInputRef}
-            type="file"
-            accept=".json,application/json,.dino.json,image/png,image/jpeg,image/webp"
-            className="visually-hidden"
-            onChange={handleImport}
-          />
+            <input
+              type="file"
+              accept=".json,application/json,.dino.json,image/png,image/jpeg,image/webp"
+              style={{ display: "none" }}
+              onChange={handleImport}
+            />
+          </label>
         </div>
       </header>
 

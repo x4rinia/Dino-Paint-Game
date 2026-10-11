@@ -103,6 +103,7 @@ export function App() {
   const [tvMode, setTvModeState] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any | null>(null);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [isSmartphone, setIsSmartphone] = useState(false);
 
   const gameContainerRef = useRef<HTMLDivElement | null>(null);
   const gameHandleRef = useRef<ReturnType<typeof mountGame> | null>(null);
@@ -131,6 +132,15 @@ export function App() {
       setIsStandalone(true);
     }
 
+    // Smartphone-Erkennung
+    const checkIsPhone = () => {
+      const isNarrow = window.innerWidth <= 680;
+      const isMobileUA = /Mobi|Android|iPhone|iPod/i.test(navigator.userAgent) && !/iPad/i.test(navigator.userAgent);
+      setIsSmartphone(isNarrow || isMobileUA);
+    };
+    checkIsPhone();
+    window.addEventListener("resize", checkIsPhone);
+
     // Fange PWA-Installationsereignis ab
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
@@ -139,6 +149,7 @@ export function App() {
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);
 
     return () => {
+      window.removeEventListener("resize", checkIsPhone);
       window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
     };
   }, []);
@@ -411,6 +422,41 @@ export function App() {
           </p>
         </section>
 
+        {isSmartphone && (
+          <section className="smartphone-helper-card">
+            <div className="phone-badge">📱 Smartphone-Tipp</div>
+            <h3>Für das beste Spielerlebnis empfohlen</h3>
+            <p>
+              Da Smartphone-Bildschirme zum Spielen recht klein sind, empfehlen wir zwei ideale Möglichkeiten:
+            </p>
+            <div className="smartphone-actions-grid">
+              <div
+                className="phone-action-item card-action-scanner"
+                onClick={() => setScreen("camera")}
+              >
+                <div className="phone-action-icon">📸</div>
+                <div className="phone-action-text">
+                  <strong>Foto-Scanner (Handy als Kamera)</strong>
+                  <span>Papier-Zeichnung fotografieren, analysieren & Level exportieren</span>
+                </div>
+                <span className="phone-action-cta">Scannen ▶</span>
+              </div>
+
+              <div
+                className="phone-action-item card-action-stream"
+                onClick={() => setShowTvModal(true)}
+              >
+                <div className="phone-action-icon">📺</div>
+                <div className="phone-action-text">
+                  <strong>Auf den Fernseher streamen</strong>
+                  <span>Per AirPlay / Cast auf den Smart TV übertragen & mit Controller spielen</span>
+                </div>
+                <span className="phone-action-cta">TV-Anleitung ▶</span>
+              </div>
+            </div>
+          </section>
+        )}
+
         {currentLevel && (
           <section className="resume-level-banner">
             <div className="resume-banner-left">
@@ -542,7 +588,7 @@ export function App() {
 
       <footer className="home-footer">
         <div className="footer-credits">
-          <strong>Dino Paint Game</strong> • by X4rinia und Dino • für Katja u. Dirk &lt;3 • 11.10.2026 • Version 2.2
+          <strong>Dino Paint Game</strong> • by X4rinia und Dino • Version 2.2
         </div>
         <div className="footer-links">
           <button className="link-button" type="button" onClick={() => setShowGuide(true)}>

@@ -10,8 +10,6 @@ interface PhotoCaptureProps {
 export function PhotoCapture({ onPlayLevel, onBackToMenu }: PhotoCaptureProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const cameraNativeInputRef = useRef<HTMLInputElement | null>(null);
 
   const [cameraActive, setCameraActive] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -38,9 +36,13 @@ export function PhotoCapture({ onPlayLevel, onBackToMenu }: PhotoCaptureProps) {
     if (cameraActive && videoRef.current && streamRef.current) {
       const v = videoRef.current;
       v.srcObject = streamRef.current;
+      v.muted = true;
       v.setAttribute("playsinline", "true");
       v.setAttribute("webkit-playsinline", "true");
-      v.play().catch((err) => console.warn("Video play error:", err));
+      const playPromise = v.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => console.warn("Video play error:", err));
+      }
     }
   }, [cameraActive]);
 
@@ -60,9 +62,9 @@ export function PhotoCapture({ onPlayLevel, onBackToMenu }: PhotoCaptureProps) {
     setShowHttpsHint(false);
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      // Wenn getUserMedia im Browser nicht verfügbar ist (z.B. Safari ohne HTTPS),
-      // öffne direkt die native iPad-Kamera über den Datei-Input
-      cameraNativeInputRef.current?.click();
+      // Wenn getUserMedia im Browser nicht verfügbar ist (z.B. Safari auf HTTP)
+      setErrorMessage("Live-Kamera im Browser wird auf diesem Gerät/Browser nicht direkt unterstützt (Safari auf iPad/iPhone benötigt HTTPS). Nutze einfach den lila Knopf 'Mit iPad- / Smartphone-Kamera fotografieren'!");
+      setShowHttpsHint(true);
       return;
     }
 
@@ -70,16 +72,18 @@ export function PhotoCapture({ onPlayLevel, onBackToMenu }: PhotoCaptureProps) {
       { audio: false, video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } } },
       { audio: false, video: { facingMode: { ideal: "environment" } } },
       { audio: false, video: { facingMode: "environment" } },
+      { audio: false, video: { facingMode: "user" } },
       { audio: false, video: true },
     ];
 
     let stream: MediaStream | null = null;
+    let streamErr: any = null;
     for (const c of constraintsList) {
       try {
         stream = await navigator.mediaDevices.getUserMedia(c);
         if (stream) break;
-      } catch {
-        // Nächste Option versuchen
+      } catch (err) {
+        streamErr = err;
       }
     }
 
@@ -87,8 +91,14 @@ export function PhotoCapture({ onPlayLevel, onBackToMenu }: PhotoCaptureProps) {
       streamRef.current = stream;
       setCameraActive(true);
     } else {
-      console.warn("Live-Kamera nicht verfügbar, öffne native iPad-Kamera");
-      cameraNativeInputRef.current?.click();
+      console.warn("Live-Kamera nicht verfügbar:", streamErr);
+      const isDenied = streamErr?.name === "NotAllowedError" || streamErr?.name === "PermissionDeniedError";
+      if (isDenied) {
+        setErrorMessage("Zugriff auf die iPad-Kamera wurde im Browser verweigert. Bitte erlaube den Kamera-Zugriff in den Safari-Einstellungen oder nutze den Button 'Mit iPad- / Smartphone-Kamera fotografieren'!");
+      } else {
+        setErrorMessage("Live-Kamera im Browser konnte nicht gestartet werden. Bitte nutze direkt den Knopf 'Mit iPad- / Smartphone-Kamera fotografieren'!");
+        setShowHttpsHint(true);
+      }
     }
   };
 
@@ -211,6 +221,32 @@ export function PhotoCapture({ onPlayLevel, onBackToMenu }: PhotoCaptureProps) {
     }
   };
 
+  const handleExportLevel = () => {
+    if (!analyzedLevel || !capturedImage) return;
+
+    const finalLevel: Level = {
+      ...analyzedLevel,
+      start: startPos,
+      goal: {
+        ...analyzedLevel.goal,
+        x: goalPos.x,
+        y: goalPos.y,
+      },
+    };
+    (finalLevel as any).originalImage = capturedImage;
+
+    const jsonStr = JSON.stringify(finalLevel, null, 2);
+    const blob = new Blob([jsonStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${(finalLevel.name || "Foto-Level").replace(/\s+/g, "_")}-${Date.now()}.dino.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
   const startGame = () => {
     if (!analyzedLevel || !capturedImage) return;
 
@@ -243,9 +279,19 @@ export function PhotoCapture({ onPlayLevel, onBackToMenu }: PhotoCaptureProps) {
             📖 Anleitung
           </button>
           {analyzedLevel && (
-            <button className="button button-play-big" type="button" onClick={startGame}>
-              ▶ Spiel starten!
-            </button>
+            <>
+              <button
+                className="button button-secondary"
+                type="button"
+                onClick={handleExportLevel}
+                title="Level als Datei (.dino.json) herunterladen oder auf iPad/PC/TV übertragen"
+              >
+                💾 Level exportieren (.json)
+              </button>
+              <button className="button button-play-big" type="button" onClick={startGame}>
+                ▶ Spiel starten!
+              </button>
+            </>
           )}
         </div>
       </header>
@@ -255,10 +301,10 @@ export function PhotoCapture({ onPlayLevel, onBackToMenu }: PhotoCaptureProps) {
           <strong>Hinweis:</strong> {errorMessage}
           {showHttpsHint && (
             <p className="https-help">
-              💡 <strong>Tipp für Smartphones:</strong> Mobile Browser (iOS Safari / Android Chrome)
-              blockieren die Live-Kamera über ungesichertes HTTP im lokalen WLAN.
-              Nutze den Knopf <em>„Foto aus Galerie wählen“</em> – das öffnet direkt die Smartphone-Kamera
-              oder deine Galerie und funktioniert garantiert ohne HTTPS!
+              💡 <strong>Tipp für iPad & Smartphones:</strong> Safari und Chrome blockieren die Live-Kamera im Browser
+              über ungesichertes HTTP im lokalen WLAN.
+              Nutze einfach den lila Knopf <em>„Mit iPad- / Smartphone-Kamera fotografieren“</em> – das öffnet direkt die native
+              Kamera-App deines Geräts und funktioniert auf jedem iPad und Handy immer zu 100%!
             </p>
           )}
         </div>
@@ -284,14 +330,47 @@ export function PhotoCapture({ onPlayLevel, onBackToMenu }: PhotoCaptureProps) {
             </div>
 
             <div className="choice-buttons">
-              <button
+              <label
                 className="button button-primary"
-                type="button"
-                onClick={() => cameraNativeInputRef.current?.click()}
-                style={{ fontSize: "1.1rem", padding: "14px 24px" }}
+                style={{
+                  fontSize: "1.1rem",
+                  padding: "14px 24px",
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                }}
               >
                 📸 Mit iPad- / Smartphone-Kamera fotografieren
-              </button>
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  style={{ display: "none" }}
+                  onChange={handleFileUpload}
+                />
+              </label>
+
+              <label
+                className="button button-secondary"
+                style={{
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                }}
+              >
+                🖼️ Foto aus Mediathek / iPad-Galerie wählen
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={handleFileUpload}
+                />
+              </label>
+
               <button
                 className="button button-secondary"
                 type="button"
@@ -299,29 +378,7 @@ export function PhotoCapture({ onPlayLevel, onBackToMenu }: PhotoCaptureProps) {
               >
                 📹 Live-Kamera im Browser öffnen
               </button>
-              <button
-                className="button button-secondary"
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                🖼️ Foto aus Mediathek / Galerie wählen
-              </button>
             </div>
-            <input
-              ref={cameraNativeInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="visually-hidden"
-              onChange={handleFileUpload}
-            />
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="visually-hidden"
-              onChange={handleFileUpload}
-            />
           </div>
         )}
 
@@ -366,6 +423,11 @@ export function PhotoCapture({ onPlayLevel, onBackToMenu }: PhotoCaptureProps) {
               >
                 🏁 Ziel setzen {dragMode === "goal" ? "(Klicke ins Bild)" : ""}
               </button>
+              {analyzedLevel && (
+                <button className="button button-secondary" type="button" onClick={handleExportLevel} title="Level als Datei speichern">
+                  💾 Level exportieren (.json)
+                </button>
+              )}
               <button
                 className="button button-secondary"
                 type="button"

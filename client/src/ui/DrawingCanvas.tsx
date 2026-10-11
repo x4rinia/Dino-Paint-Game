@@ -705,21 +705,19 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
             📖 Anleitung
           </button>
 
-          <button
+          <label
             className="button button-secondary"
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
+            style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
             title="Eigenes Bild oder Level in den Editor laden"
           >
             📥 Bild laden
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".json,application/json,image/png,image/jpeg,image/webp"
-            className="visually-hidden"
-            onChange={handleUploadFile}
-          />
+            <input
+              type="file"
+              accept=".json,application/json,image/png,image/jpeg,image/webp"
+              style={{ display: "none" }}
+              onChange={handleUploadFile}
+            />
+          </label>
 
           <button
             className="button button-secondary"

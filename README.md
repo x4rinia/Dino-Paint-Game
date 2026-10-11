@@ -8,10 +8,9 @@
 
 ---
 
-### ❤️ Info & Widmung
+### ℹ️ Info
 > **by X4rinia und Dino**  
-> **für Katja u. Dirk <3**  
-> **Datum: 11.10.2026** • **Version: 2.2**
+> **Version: 2.2**
 
 ---
 

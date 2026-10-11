@@ -299,17 +299,14 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
           </div>
         </div>
 
-        {/* ❤️ INFO & CREDITS */}
+        {/* ℹ️ INFO & CREDITS */}
         <div className="settings-section" style={{ background: "rgba(255, 255, 255, 0.04)", padding: "16px", borderRadius: "10px", textAlign: "center", border: "1px solid rgba(255, 255, 255, 0.1)" }}>
           <h4 style={{ margin: "0 0 8px 0", color: "#3cb371", fontSize: "1.2rem" }}>🦖 Dino Paint Game</h4>
           <p style={{ margin: "4px 0", fontSize: "1.05rem", color: "#ffffff", fontWeight: 600 }}>
             by <strong>X4rinia</strong> und <strong>Dino</strong>
           </p>
-          <p style={{ margin: "4px 0", fontSize: "1.1rem", color: "#ff8fa3", fontWeight: 700 }}>
-            für Katja u. Dirk &lt;3
-          </p>
           <p style={{ margin: "8px 0 0", fontSize: "0.85rem", color: "#9ca3af" }}>
-            Datum: 11.10.2026 • Version 2.2
+            Version 2.2
           </p>
         </div>
 

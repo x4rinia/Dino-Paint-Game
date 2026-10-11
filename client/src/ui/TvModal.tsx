@@ -101,6 +101,13 @@ export function TvModal({ onClose, tvMode, onToggleTvMode }: TvModalProps) {
           im <em>Querformat (Landscape)</em>, damit das Spiel das gesamte Fernsehbild optimal ausfüllt.
         </div>
 
+        <div className="info-callout" style={{ marginTop: "12px", borderLeft: "4px solid #3b82f6" }}>
+          <strong>📱 Smartphone als TV-Konsole & Scanner nutzen:</strong>
+          <p style={{ margin: "4px 0 0", fontSize: "0.9rem" }}>
+            Auf dem Smartphone ist der Bildschirm für knifflige Sprünge sehr klein. Übertrage das Bild einfach per AirPlay (iPhone) oder Smart View / Cast (Android) auf deinen Fernseher! Dann kannst du ganz bequem von der Couch spielen – entweder per Touch-Steuerung oder mit einem gekoppelten Bluetooth-Controller (z.B. PlayStation, Xbox oder Nintendo Switch).
+          </p>
+        </div>
+
         <div className="modal-actions">
           <button className="button button-primary" type="button" onClick={onClose}>
             Verstanden & Schließen
