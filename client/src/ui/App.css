@@ -1580,3 +1580,108 @@ html, body {
   padding-left: 6px;
 }
 
+/* Background Selector in Settings */
+.background-choices-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.bg-choice-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 14px 12px;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.bg-choice-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(74, 222, 128, 0.5);
+  transform: translateY(-2px);
+}
+
+.bg-choice-card.active {
+  border-color: #4ade80;
+  background: rgba(74, 222, 128, 0.12);
+  box-shadow: 0 0 16px rgba(74, 222, 128, 0.25);
+}
+
+.bg-choice-preview {
+  width: 100%;
+  height: 64px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.preview-paper {
+  background: #f7f2e3;
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 15px, rgba(78, 133, 214, 0.3) 15px, rgba(78, 133, 214, 0.3) 16px);
+}
+
+.preview-jungle {
+  background: linear-gradient(180deg, #d8ece0 0%, #f3f8eb 100%);
+  border-color: #81c784;
+}
+
+.preview-space {
+  background: linear-gradient(180deg, #131728 0%, #1e2645 100%);
+  border-color: #7986cb;
+}
+
+.bg-preview-icon {
+  font-size: 2rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.bg-choice-content strong {
+  display: block;
+  font-size: 0.95rem;
+  color: #ffffff;
+}
+
+.bg-choice-sub {
+  display: block;
+  font-size: 0.78rem;
+  color: #a0a5b5;
+  margin-top: 2px;
+  line-height: 1.25;
+}
+
+.bg-choice-check {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: #4ade80;
+  color: #121820;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* Stage container background matching selected theme */
+.game-stage-container.bg-stage-paper {
+  background-color: #f7f2e3;
+}
+
+.game-stage-container.bg-stage-jungle {
+  background-color: #d8ece0;
+}
+
+.game-stage-container.bg-stage-space {
+  background-color: #131728;
+}
+

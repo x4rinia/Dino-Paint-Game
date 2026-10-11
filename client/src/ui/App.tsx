@@ -10,8 +10,9 @@ import { InstallPromptModal } from "./InstallPromptModal";
 import { GuideModal } from "./GuideModal";
 import { useGamepadNav } from "./useGamepadNav";
 import { initStorage, saveLevel, getSetting, setSetting } from "../storage/db";
-import { setMusicEnabled } from "../game/audio";
+import { setMusicEnabled, installAudioUnlock, startBgMusic } from "../game/audio";
 import { narrator } from "../game/narrator";
+import type { BackgroundTheme } from "../game/paper";
 import "./App.css";
 
 type Screen = "menu" | "draw" | "camera" | "library" | "playing";
@@ -104,6 +105,7 @@ export function App() {
   const [deferredPrompt, setDeferredPrompt] = useState<any | null>(null);
   const [isStandalone, setIsStandalone] = useState(false);
   const [isSmartphone, setIsSmartphone] = useState(false);
+  const [selectedBackground, setSelectedBackground] = useState<BackgroundTheme>("paper");
 
   const gameContainerRef = useRef<HTMLDivElement | null>(null);
   const gameHandleRef = useRef<ReturnType<typeof mountGame> | null>(null);
@@ -111,6 +113,14 @@ export function App() {
   // Initialisiere IndexedDB & Einstellungen beim Start
   useEffect(() => {
     initStorage().catch(console.error);
+
+    // Audio-Freischaltung für das gesamte Spiel & dino.mp4
+    installAudioUnlock();
+    startBgMusic();
+
+    getSetting<BackgroundTheme>("selected_background", "paper").then((bg) => {
+      setSelectedBackground(bg);
+    });
 
     getSetting<boolean>("tv_mode", false).then((val) => {
       setTvModeState(val);
@@ -177,7 +187,7 @@ export function App() {
       if (gameHandleRef.current) {
         gameHandleRef.current.destroy();
       }
-      const handle = mountGame(gameContainerRef.current, { tvMode });
+      const handle = mountGame(gameContainerRef.current, { tvMode, background: selectedBackground });
       gameHandleRef.current = handle;
       handle.loadLevel(currentLevel);
 
@@ -186,7 +196,7 @@ export function App() {
         gameHandleRef.current = null;
       };
     }
-  }, [screen, currentLevel, tvMode]);
+  }, [screen, currentLevel, tvMode, selectedBackground]);
 
   const handleEditCurrentLevel = () => {
     if (!currentLevel) return;
@@ -324,7 +334,7 @@ export function App() {
           </div>
         </header>
 
-        <div className="game-stage-container" ref={gameContainerRef} />
+        <div className={`game-stage-container bg-stage-${selectedBackground}`} ref={gameContainerRef} />
       </main>
     );
   }
@@ -603,7 +613,13 @@ export function App() {
         </div>
       </footer>
 
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      {showSettings && (
+        <SettingsModal
+          onClose={() => setShowSettings(false)}
+          currentBackground={selectedBackground}
+          onBackgroundChange={setSelectedBackground}
+        />
+      )}
       {showTvModal && (
         <TvModal
           onClose={() => setShowTvModal(false)}

@@ -5,6 +5,7 @@ import { prepareLevel } from "./prepareLevel";
 import { DEBUG } from "./debug";
 import { installAudioUnlock } from "./audio";
 import { lockTouchBehavior } from "./touchLock";
+import type { BackgroundTheme } from "./paper";
 
 export type GameHandle = {
   game: Phaser.Game;
@@ -20,20 +21,24 @@ export type GameHandle = {
 
 let current: GameHandle | null = null;
 
-export function mountGame(el: HTMLElement, options?: { tvMode?: boolean }): GameHandle {
+export function mountGame(el: HTMLElement, options?: { tvMode?: boolean; background?: BackgroundTheme }): GameHandle {
   installAudioUnlock();
+  const bgTheme = options?.background || "paper";
+  const bgColor = bgTheme === "space" ? "#131728" : bgTheme === "jungle" ? "#d8ece0" : "#f7f2e3";
+
   const game = new Phaser.Game({
     type: Phaser.AUTO,
     parent: el,
     width: WORLD_W,
     height: WORLD_H,
-    backgroundColor: "#f4efe1",
+    backgroundColor: bgColor,
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     physics: { default: "arcade", arcade: { gravity: { x: 0, y: GRAVITY }, debug: DEBUG } },
     scene: [GameScene],
   });
 
   game.registry.set("tvMode", !!options?.tvMode);
+  game.registry.set("backgroundTheme", bgTheme);
 
   // The canvas exists once Phaser has booted (immediately, if the DOM was already ready).
   const lockCanvas = () => lockTouchBehavior(game.canvas);

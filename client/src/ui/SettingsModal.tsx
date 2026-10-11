@@ -2,16 +2,20 @@ import React, { useEffect, useState } from "react";
 import { isMuted, toggleMute, isMusicEnabled, setMusicEnabled } from "../game/audio";
 import { narrator } from "../game/narrator";
 import { getStorageQuota, requestPersistentStorage, getSetting, setSetting } from "../storage/db";
+import { BACKGROUND_THEMES, type BackgroundTheme } from "../game/paper";
 
 interface SettingsModalProps {
   onClose: () => void;
+  currentBackground?: BackgroundTheme;
+  onBackgroundChange?: (bg: BackgroundTheme) => void;
 }
 
-export function SettingsModal({ onClose }: SettingsModalProps) {
+export function SettingsModal({ onClose, currentBackground, onBackgroundChange }: SettingsModalProps) {
   const [muted, setMuted] = useState(isMuted());
   const [musicOn, setMusicOn] = useState(isMusicEnabled());
   const [narratorOn, setNarratorOn] = useState(narrator.isEnabled());
   const [spawnMode, setSpawnMode] = useState<"manual" | "auto">("manual");
+  const [selectedBg, setSelectedBg] = useState<BackgroundTheme>(currentBackground || "paper");
   const [gamepads, setGamepads] = useState<string[]>([]);
   const [storageInfo, setStorageInfo] = useState<{
     usedBytes: number;
@@ -33,6 +37,9 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     });
     getSetting<"manual" | "auto">("spawn_mode", "manual").then((mode) => {
       setSpawnMode(mode);
+    });
+    getSetting<BackgroundTheme>("selected_background", "paper").then((bg) => {
+      setSelectedBg(bg);
     });
 
     const updateGamepads = () => {
@@ -85,6 +92,12 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const handleToggleSpawnMode = (mode: "manual" | "auto") => {
     setSpawnMode(mode);
     void setSetting("spawn_mode", mode);
+  };
+
+  const handleSelectBackground = (theme: BackgroundTheme) => {
+    setSelectedBg(theme);
+    void setSetting("selected_background", theme);
+    if (onBackgroundChange) onBackgroundChange(theme);
   };
 
   const handleRequestPersistence = async () => {
@@ -154,6 +167,36 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             >
               {narratorOn ? "🗣️ Vorleser: AN" : "🗣️ Vorleser: AUS"}
             </button>
+          </div>
+        </div>
+
+        {/* 🎨 HINTERGRUND & SPIELWELT */}
+        <div className="settings-section">
+          <h4>🎨 Hintergrund & Spielwelt</h4>
+          <p style={{ margin: "4px 0 12px", fontSize: "0.9rem", color: "#b0b5c5" }}>
+            Wähle das Design der Spielwelt für alle Level aus (3 verschiedene Welten verfügbar):
+          </p>
+          <div className="background-choices-grid">
+            {BACKGROUND_THEMES.map((theme) => {
+              const isSelected = selectedBg === theme.id;
+              return (
+                <button
+                  key={theme.id}
+                  className={`bg-choice-card ${isSelected ? "active" : ""}`}
+                  type="button"
+                  onClick={() => handleSelectBackground(theme.id)}
+                >
+                  <div className={`bg-choice-preview preview-${theme.id}`}>
+                    <span className="bg-preview-icon">{theme.icon}</span>
+                  </div>
+                  <div className="bg-choice-content">
+                    <strong>{theme.name}</strong>
+                    <span className="bg-choice-sub">{theme.subtitle}</span>
+                  </div>
+                  {isSelected && <span className="bg-choice-check">✓ Aktiv</span>}
+                </button>
+              );
+            })}
           </div>
         </div>
 

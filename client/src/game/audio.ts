@@ -39,8 +39,9 @@ export function installAudioUnlock() {
 
 function unlock() {
   const context = ensureContext();
-  if (bgMusic && musicStarted && !muted && bgMusic.paused) {
-    bgMusic.play().catch(() => {});
+  const music = getBgMusic();
+  if (music && musicStarted && !muted && musicEnabled && music.paused) {
+    music.play().catch(() => {});
   }
   if (!context) return removeUnlockListeners();
   void context.resume().then(() => {
@@ -69,16 +70,31 @@ function ensureContext(): AudioContext | null {
 
 let musicEnabled = true;
 
+function getBgMusic(): HTMLAudioElement | null {
+  if (typeof window === "undefined") return null;
+  if (!bgMusic) {
+    bgMusic = new Audio();
+    const base = import.meta.env.BASE_URL || "/";
+    const cleanBase = base.endsWith("/") ? base : `${base}/`;
+    bgMusic.src = `${cleanBase}dino.mp4`;
+    bgMusic.loop = true;
+    bgMusic.volume = muted ? 0 : 0.45;
+  }
+  return bgMusic;
+}
+
 export function isMusicEnabled() {
   return musicEnabled;
 }
 
 export function setMusicEnabled(enabled: boolean) {
   musicEnabled = enabled;
+  const music = getBgMusic();
   if (!enabled) {
-    if (bgMusic) bgMusic.pause();
-  } else if (musicStarted && !muted) {
-    if (bgMusic) bgMusic.play().catch(() => {});
+    if (music) music.pause();
+  } else if (!muted) {
+    musicStarted = true;
+    if (music) music.play().catch(() => {});
   }
 }
 
@@ -90,12 +106,14 @@ export function isMuted() {
 export function toggleMute(): boolean {
   muted = !muted;
   if (master) master.gain.value = muted ? 0 : MASTER_VOLUME;
-  if (bgMusic) {
-    bgMusic.volume = muted ? 0 : 0.45;
+  const music = getBgMusic();
+  if (music) {
+    music.volume = muted ? 0 : 0.45;
     if (muted || !musicEnabled) {
-      bgMusic.pause();
-    } else if (musicStarted) {
-      bgMusic.play().catch(() => {});
+      music.pause();
+    } else {
+      musicStarted = true;
+      music.play().catch(() => {});
     }
   }
   return muted;
@@ -104,44 +122,32 @@ export function toggleMute(): boolean {
 export function startBgMusic() {
   if (typeof window === "undefined") return;
   musicStarted = true;
-  if (!bgMusic) {
-    bgMusic = new Audio();
-    const base = import.meta.env.BASE_URL || "/";
-    const cleanBase = base.endsWith("/") ? base : `${base}/`;
-    bgMusic.src = `${cleanBase}dino.mp4`;
-    bgMusic.loop = true;
-    bgMusic.volume = muted ? 0 : 0.45;
-    bgMusic.onerror = () => {
-      if (bgMusic && !bgMusic.src.endsWith(".mp3")) {
-        bgMusic.src = `${cleanBase}dino.mp3`;
-        if (musicStarted && !muted && musicEnabled) {
-          bgMusic.play().catch(() => {});
-        }
-      }
-    };
-  }
-  if (!muted && musicEnabled) {
-    bgMusic.play().catch(() => {});
+  const music = getBgMusic();
+  if (music && !muted && musicEnabled && music.paused) {
+    music.play().catch(() => {});
   }
 }
 
 export function pauseBgMusic() {
-  if (bgMusic) {
-    bgMusic.pause();
+  const music = getBgMusic();
+  if (music) {
+    music.pause();
   }
 }
 
 export function resumeBgMusic() {
-  if (bgMusic && musicStarted && !muted && musicEnabled) {
-    bgMusic.play().catch(() => {});
+  const music = getBgMusic();
+  if (music && musicStarted && !muted && musicEnabled && music.paused) {
+    music.play().catch(() => {});
   }
 }
 
 export function stopBgMusic() {
   musicStarted = false;
-  if (bgMusic) {
-    bgMusic.pause();
-    bgMusic.currentTime = 0;
+  const music = getBgMusic();
+  if (music) {
+    music.pause();
+    music.currentTime = 0;
   }
 }
 

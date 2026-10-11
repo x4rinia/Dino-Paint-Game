@@ -30,7 +30,7 @@ import { DebugOverlay } from "./DebugOverlay";
 import { DEBUG } from "./debug";
 import { prepareLevel } from "./prepareLevel";
 import { COIN_SIZE, sx, sy } from "./units";
-import { addPaper } from "./paper";
+import { addBackground, type BackgroundTheme } from "./paper";
 import { renderStaticLevel } from "./staticArt";
 import { LevelDoodles, boilTick } from "./animatedArt";
 import { DEPTH, INK, INK_CSS } from "./palette";
@@ -211,8 +211,9 @@ export class GameScene extends Phaser.Scene {
     resetParticleBudget(this);
     this.physics.world.setBounds(0, 0, WORLD_W, WORLD_H + FALL_MARGIN + 50);
 
-    // Visuelle Ebenen: Originalzeichnung oder Papier + statische Geometrie
-    addPaper(this);
+    // Visuelle Ebenen: Gewählter Hintergrund (Notizheft, Dschungel, Kosmos)
+    const bgTheme = (this.game.registry.get("backgroundTheme") as BackgroundTheme) || "paper";
+    addBackground(this, bgTheme);
 
     // Falls eine Originalzeichnung existiert, zeichne sie als Hintergrund
     const origImage = (level as any).originalImage;
@@ -586,9 +587,6 @@ export class GameScene extends Phaser.Scene {
     }
 
     startBgMusic();
-    const stopAudio = () => stopBgMusic();
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, stopAudio);
-    this.events.once(Phaser.Scenes.Events.DESTROY, stopAudio);
 
     this.startIntro();
   }
