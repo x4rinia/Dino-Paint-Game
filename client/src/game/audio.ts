@@ -5,26 +5,13 @@
  */
 
 const MASTER_VOLUME = 0.12;
-const UNLOCK_EVENTS = ["keydown", "pointerdown", "pointerup", "touchend"] as const;
+const UNLOCK_EVENTS = ["keydown", "pointerdown", "pointerup", "touchend", "click"] as const;
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
 let muted = false;
 let listening = false;
-
-type Tone = {
-  freq: number;
-  /** Frequency at the end of the tone, for sweeps. */
-  endFreq?: number;
-  type?: OscillatorType;
-  /** Seconds from now. */
-  delay?: number;
-  duration: number;
-  volume?: number;
-};
-
-let bgMusic: HTMLAudioElement | null = null;
-let musicStarted = false;
+let musicEnabled = true;
 
 /**
  * Call once at startup. The first key/pointer/touch input creates and
@@ -68,19 +55,40 @@ function ensureContext(): AudioContext | null {
   return ctx;
 }
 
-let musicEnabled = true;
+type Tone = {
+  freq: number;
+  /** Frequency at the end of the tone, for sweeps. */
+  endFreq?: number;
+  type?: OscillatorType;
+  /** Seconds from now. */
+  delay?: number;
+  duration: number;
+  volume?: number;
+};
 
-function getBgMusic(): HTMLAudioElement | null {
+let bgAudio: HTMLAudioElement | null = null;
+let musicStarted = false;
+
+export function getBgMusic(): HTMLAudioElement | null {
   if (typeof window === "undefined") return null;
-  if (!bgMusic) {
-    bgMusic = new Audio();
+  if (!bgAudio) {
+    const audio = new Audio();
+    audio.id = "dino-bg-music";
+    audio.loop = true;
+    audio.preload = "auto";
+
     const base = import.meta.env.BASE_URL || "/";
     const cleanBase = base.endsWith("/") ? base : `${base}/`;
-    bgMusic.src = `${cleanBase}dino.mp4`;
-    bgMusic.loop = true;
-    bgMusic.volume = muted ? 0 : 0.45;
+    audio.src = `${cleanBase}dino.mp3`;
+    audio.volume = muted ? 0 : 0.45;
+
+    bgAudio = audio;
   }
-  return bgMusic;
+  return bgAudio;
+}
+
+export function isMusicPlaying(): boolean {
+  return bgAudio ? !bgAudio.paused : false;
 }
 
 export function isMusicEnabled() {
@@ -124,7 +132,13 @@ export function startBgMusic() {
   musicStarted = true;
   const music = getBgMusic();
   if (music && !muted && musicEnabled && music.paused) {
-    music.play().catch(() => {});
+    const p = music.play();
+    if (p !== undefined) {
+      p.catch(() => {
+        // Autoplay Policy: Wenn der Browser den Sofortstart blockiert,
+        // startet das Lied beim ersten Antippen/Klick des Nutzers.
+      });
+    }
   }
 }
 

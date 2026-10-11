@@ -4,3 +4,5 @@ dist
 *.log
 .DS_Store
 server/.cache/
+/dino.mp3
+/dino.mp4

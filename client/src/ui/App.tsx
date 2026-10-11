@@ -10,7 +10,7 @@ import { InstallPromptModal } from "./InstallPromptModal";
 import { GuideModal } from "./GuideModal";
 import { useGamepadNav } from "./useGamepadNav";
 import { initStorage, saveLevel, getSetting, setSetting } from "../storage/db";
-import { setMusicEnabled, installAudioUnlock, startBgMusic } from "../game/audio";
+import { setMusicEnabled, installAudioUnlock, startBgMusic, pauseBgMusic, isMusicPlaying } from "../game/audio";
 import { narrator } from "../game/narrator";
 import type { BackgroundTheme } from "../game/paper";
 import "./App.css";
@@ -357,6 +357,21 @@ export function App() {
             style={{ backgroundColor: "#9b51e0", color: "#fff" }}
           >
             📖 Anleitung
+          </button>
+          <button
+            className="button"
+            type="button"
+            onClick={() => {
+              if (isMusicPlaying()) {
+                pauseBgMusic();
+              } else {
+                startBgMusic();
+              }
+            }}
+            title="Dino-Hintergrundmusik an- oder ausschalten"
+            style={{ backgroundColor: "#253048", color: "#4ade80", border: "1px solid rgba(74, 222, 128, 0.45)" }}
+          >
+            🎵 Musik
           </button>
           {!isStandalone && (
             <button

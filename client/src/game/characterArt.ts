@@ -27,15 +27,15 @@ export function drawPlayer(g: Phaser.GameObjects.Graphics, pose: PlayerPose, rng
   const { tick, running, airborne, rising } = pose;
   g.clear();
 
-  // 1. BEINE: 4 kleine, knuffige Dinobeine
-  const legSwing = running ? Math.sin(tick * 1.5) : 0;
+  // 1. BEINE: 4 kleine, knuffige Dinobeine (sanftere, gemütlichere Schritte)
+  const legSwing = running ? Math.sin(tick * 0.65) : 0;
   const legY = airborne ? 11 : 14;
 
   const legs = [
-    { x: -12 - legSwing * 5, y: legY, back: true },
-    { x: -6 + legSwing * 5, y: legY, back: false },
-    { x: 5 - legSwing * 5, y: legY, back: true },
-    { x: 11 + legSwing * 5, y: legY, back: false },
+    { x: -12 - legSwing * 3, y: legY, back: true },
+    { x: -6 + legSwing * 3, y: legY, back: false },
+    { x: 5 - legSwing * 3, y: legY, back: true },
+    { x: 11 + legSwing * 3, y: legY, back: false },
   ];
 
   for (const leg of legs) {
@@ -52,7 +52,7 @@ export function drawPlayer(g: Phaser.GameObjects.Graphics, pose: PlayerPose, rng
   }
 
   // 2. SCHWANZ MIT KEULE (Ankylosaurus-Markenzeichen!)
-  const tailWag = Math.sin(tick * 1.8) * (running ? 3 : 1.5);
+  const tailWag = Math.sin(tick * 0.8) * (running ? 2.2 : 1.2);
   const tailStart = { x: -14, y: 1 };
   const tailMid = { x: -22, y: 1 + tailWag };
   const tailEnd = { x: -28, y: 1 + tailWag * 1.4 };
