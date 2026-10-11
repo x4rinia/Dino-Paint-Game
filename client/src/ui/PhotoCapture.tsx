@@ -1,13 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
 import { analyzeDrawing, type Level } from "@sketchquest/shared";
 import { GuideModal } from "./GuideModal";
+import type { BackgroundTheme } from "../game/paper";
 
 interface PhotoCaptureProps {
   onPlayLevel: (level: Level, drawingDataUrl: string) => void;
   onBackToMenu: () => void;
+  backgroundTheme?: BackgroundTheme;
 }
 
-export function PhotoCapture({ onPlayLevel, onBackToMenu }: PhotoCaptureProps) {
+export function PhotoCapture({ onPlayLevel, onBackToMenu, backgroundTheme }: PhotoCaptureProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
@@ -171,6 +173,10 @@ export function PhotoCapture({ onPlayLevel, onBackToMenu }: PhotoCaptureProps) {
       ctx.save();
       ctx.translate(canvas.width / 2, canvas.height / 2);
       ctx.rotate((rotAngle * Math.PI) / 180);
+      if (backgroundTheme === "jungle") {
+        // Im Dschungel-Modus (Kopfüber-Welt) automatisch vertikal spiegeln
+        ctx.scale(1, -1);
+      }
       ctx.drawImage(img, -targetW / 2, -targetH / 2, targetW, targetH);
       ctx.restore();
 
@@ -307,6 +313,12 @@ export function PhotoCapture({ onPlayLevel, onBackToMenu }: PhotoCaptureProps) {
               Kamera-App deines Geräts und funktioniert auf jedem iPad und Handy immer zu 100%!
             </p>
           )}
+        </div>
+      )}
+
+      {backgroundTheme === "jungle" && (
+        <div style={{ margin: "10px 16px", padding: "10px 16px", background: "rgba(46, 125, 50, 0.22)", border: "1px solid rgba(76, 175, 80, 0.45)", borderRadius: "10px", fontSize: "0.9rem", color: "#a5d6a7", textAlign: "center" }}>
+          🌴 <strong>Urzeit-Dschungel aktiv:</strong> Dein Foto wird automatisch kopfüber gedreht, damit deine gezeichneten Plattformen zum Decken-Baldachin werden und mit umgekehrter Schwerkraft gespielt werden können!
         </div>
       )}
 

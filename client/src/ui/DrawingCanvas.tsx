@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { analyzeDrawing, type Level } from "@sketchquest/shared";
 import { GuideModal } from "./GuideModal";
 import { saveLevel, importLevelFile, getSetting } from "../storage/db";
+import type { BackgroundTheme } from "../game/paper";
 
 const COLOR_TOOLS = ["black", "red", "green", "blue", "yellow", "purple", "brown", "orange", "eraser"] as const;
 type ColorTool = (typeof COLOR_TOOLS)[number];
@@ -11,6 +12,7 @@ interface DrawingCanvasProps {
   onPlayLevel: (level: Level, drawingDataUrl: string) => void;
   onBackToMenu: (currentDrawing?: string) => void;
   initialImage?: string;
+  backgroundTheme?: BackgroundTheme;
 }
 
 const COLORS: Record<ColorTool, { hex: string; label: string; desc: string }> = {
@@ -31,7 +33,7 @@ const BRUSH_SIZES = [
   { size: 28, label: "Breit" },
 ];
 
-export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: DrawingCanvasProps) {
+export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage, backgroundTheme }: DrawingCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -350,99 +352,231 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage }: Drawi
       ctx.fill();
     };
 
+    const isJungle = backgroundTheme === "jungle";
     const choice = Math.floor(Math.random() * 3);
 
-    if (choice === 0) {
-      // Layout 1: Canyons & Floating Islets
-      drawSolidRect(40, 560, 280, 140, "#1d1d24");
-      drawSolidRect(430, 500, 260, 200, "#1d1d24");
-      drawSolidRect(940, 440, 300, 260, "#1d1d24");
-      drawSolidRect(270, 420, 140, 28, "#1d1d24");
-      drawSolidRect(720, 340, 160, 28, "#1d1d24");
+    if (isJungle) {
+      // 🌴 DEDIZIERTE KOPFÜBER-WELT FÜR DSCHUNGEL (Mario Maker Deckenlauf)
+      if (choice === 0) {
+        // Dschungel-Layout 1: Baumkronen-Gipfel (Deckenlauf & Hängebrücke)
+        // Solide Decken-Äste ganz oben (hier steht Dino kopfüber)
+        drawSolidRect(30, 20, 360, 48, "#1d1d24");
+        drawSolidRect(470, 20, 340, 48, "#1d1d24");
+        drawSolidRect(890, 20, 360, 48, "#1d1d24");
 
-      drawSolidRect(330, 670, 90, 40, "#d6453d"); // Lava
-      drawSolidRect(220, 540, 90, 20, "#2fb457");  // Trampolin
-      drawSolidRect(460, 450, 50, 50, "#2a6df4");  // Physik-Box
-      drawSolidRect(720, 460, 150, 26, "#8b5a2b"); // Braun Lift
+        // Mittlere Äste zum Herunterhüpfen
+        drawSolidRect(200, 180, 190, 28, "#1d1d24");
+        drawSolidRect(520, 220, 240, 28, "#1d1d24");
+        drawSolidRect(840, 170, 190, 28, "#1d1d24");
 
-      drawCircle(580, 480, 18, "#e8590c");         // Gegner
-      drawPortal(70, 480, 40, 70);                 // Portal 1
-      drawPortal(1000, 360, 40, 70);               // Portal 2
+        // Untere Äste & Trampoline (federn Dino nach oben zurück an die Decke!)
+        drawSolidRect(360, 380, 160, 28, "#1d1d24");
+        drawSolidRect(320, 410, 90, 22, "#2fb457");
+        drawSolidRect(720, 390, 100, 22, "#2fb457");
 
-      drawEgg(340, 370);
-      drawEgg(540, 380);
-      drawEgg(800, 290);
-      drawEgg(1120, 390);
+        // Brauner Schwebelift zwischen den Baumkronen
+        drawSolidRect(390, 50, 140, 24, "#8b5a2b");
 
-      setStartPos({ x: 120, y: 520 });
-      setGoalPos({ x: 1160, y: 380 });
-    } else if (choice === 1) {
-      // Layout 2: Stepping Platforms & Double Springs
-      drawSolidRect(40, 620, 400, 90, "#1d1d24");
-      drawSolidRect(880, 620, 360, 90, "#1d1d24");
-      drawSolidRect(450, 680, 420, 35, "#d6453d");
+        // Physikbox & Gegner auf den Ästen
+        drawSolidRect(560, 170, 48, 48, "#2a6df4");
+        drawCircle(650, 205, 18, "#e8590c");
 
-      drawSolidRect(280, 490, 150, 28, "#1d1d24");
-      drawSolidRect(100, 360, 180, 28, "#1d1d24");
-      drawSolidRect(380, 270, 240, 28, "#1d1d24");
-      drawSolidRect(700, 230, 200, 28, "#1d1d24");
-      drawSolidRect(980, 320, 240, 28, "#1d1d24");
+        // Portale für Abkürzung
+        drawPortal(80, 80, 38, 70);
+        drawPortal(1060, 80, 38, 70);
 
-      drawSolidRect(320, 600, 110, 20, "#2fb457");
-      drawSolidRect(540, 250, 70, 20, "#2fb457");
+        // Stacheln / Dornen ganz unten im Tal
+        drawSolidRect(400, 680, 480, 35, "#d6453d");
 
-      drawSolidRect(160, 310, 48, 48, "#2a6df4");
-      drawSolidRect(480, 460, 160, 26, "#8b5a2b");
+        // Hängende Dino-Eier
+        drawEgg(280, 220);
+        drawEgg(620, 260);
+        drawEgg(920, 210);
+        drawEgg(450, 85);
 
-      drawCircle(440, 250, 18, "#e8590c");
-      drawCircle(1050, 295, 18, "#e8590c");
+        // Start & Ziel kopfüber an der Decke platziert
+        setStartPos({ x: 100, y: 85 });
+        setGoalPos({ x: 1140, y: 85 });
+      } else if (choice === 1) {
+        // Dschungel-Layout 2: Im hohlen Riesenbaum (Kopfüber-Abstieg)
+        drawSolidRect(30, 20, 420, 48, "#1d1d24");
+        drawSolidRect(830, 20, 420, 48, "#1d1d24");
 
-      drawPortal(70, 280, 38, 70);
-      drawPortal(1140, 540, 38, 70);
+        drawSolidRect(140, 160, 220, 28, "#1d1d24");
+        drawSolidRect(440, 140, 200, 28, "#1d1d24");
+        drawSolidRect(720, 180, 220, 28, "#1d1d24");
 
-      drawEgg(160, 440);
-      drawEgg(480, 220);
-      drawEgg(780, 180);
-      drawEgg(1080, 570);
+        drawSolidRect(280, 320, 260, 28, "#1d1d24");
+        drawSolidRect(620, 300, 260, 28, "#1d1d24");
 
-      setStartPos({ x: 120, y: 580 });
-      setGoalPos({ x: 1040, y: 260 });
+        // Trampoline
+        drawSolidRect(210, 350, 90, 22, "#2fb457");
+        drawSolidRect(780, 330, 90, 22, "#2fb457");
+
+        // Lifte
+        drawSolidRect(460, 50, 130, 24, "#8b5a2b");
+        drawSolidRect(540, 260, 120, 24, "#8b5a2b");
+
+        // Gefahren & Gegner
+        drawSolidRect(480, 680, 320, 35, "#d6453d");
+        drawCircle(340, 305, 18, "#e8590c");
+
+        drawPortal(90, 80, 38, 70);
+        drawPortal(1140, 80, 38, 70);
+
+        drawEgg(240, 200);
+        drawEgg(520, 180);
+        drawEgg(820, 220);
+        drawEgg(580, 340);
+
+        setStartPos({ x: 120, y: 85 });
+        setGoalPos({ x: 1120, y: 85 });
+      } else {
+        // Dschungel-Layout 3: Lianen-Brücken & Doppel-Schwebelift
+        drawSolidRect(30, 20, 320, 48, "#1d1d24");
+        drawSolidRect(500, 20, 280, 48, "#1d1d24");
+        drawSolidRect(940, 20, 310, 48, "#1d1d24");
+
+        drawSolidRect(160, 180, 180, 28, "#1d1d24");
+        drawSolidRect(480, 220, 220, 28, "#1d1d24");
+        drawSolidRect(820, 190, 180, 28, "#1d1d24");
+
+        drawSolidRect(340, 360, 150, 28, "#1d1d24");
+        drawSolidRect(680, 360, 160, 28, "#1d1d24");
+
+        // Trampoline
+        drawSolidRect(290, 390, 80, 22, "#2fb457");
+        drawSolidRect(790, 390, 80, 22, "#2fb457");
+
+        // 2 Schwebelifte
+        drawSolidRect(360, 50, 130, 24, "#8b5a2b");
+        drawSolidRect(790, 50, 140, 24, "#8b5a2b");
+
+        drawSolidRect(500, 680, 280, 35, "#d6453d");
+        drawCircle(580, 205, 18, "#e8590c");
+
+        drawPortal(80, 80, 38, 70);
+        drawPortal(1120, 80, 38, 70);
+
+        drawEgg(220, 220);
+        drawEgg(580, 260);
+        drawEgg(900, 230);
+        drawEgg(640, 50);
+
+        setStartPos({ x: 110, y: 85 });
+        setGoalPos({ x: 1130, y: 85 });
+      }
     } else {
-      // Layout 3: Cavern Valley & Double Lift
-      drawSolidRect(40, 520, 320, 180, "#1d1d24");
-      drawSolidRect(460, 600, 340, 110, "#1d1d24");
-      drawSolidRect(920, 500, 320, 200, "#1d1d24");
+      // 📜 KLASSISCHE DYNAMISCHE PLATFORMER-WELTEN (Notizheft / Kosmos)
+      if (choice === 0) {
+        // Layout 1: Canyons & Himmelsinseln (Ausgewogene Stepping-Pfade)
+        drawSolidRect(30, 580, 320, 120, "#1d1d24");
+        drawSolidRect(940, 520, 310, 180, "#1d1d24");
 
-      drawSolidRect(370, 680, 80, 35, "#d6453d");
-      drawSolidRect(810, 680, 100, 35, "#d6453d");
+        // Schwebende Stufen ins Himmelsreich
+        drawSolidRect(260, 440, 180, 28, "#1d1d24");
+        drawSolidRect(480, 340, 200, 28, "#1d1d24");
+        drawSolidRect(740, 260, 180, 28, "#1d1d24");
+        drawSolidRect(620, 480, 180, 28, "#1d1d24");
 
-      drawSolidRect(200, 380, 180, 28, "#1d1d24");
-      drawSolidRect(550, 340, 200, 28, "#1d1d24");
-      drawSolidRect(880, 320, 160, 28, "#1d1d24");
+        // Schwebelift über den Canyon
+        drawSolidRect(360, 560, 140, 25, "#8b5a2b");
 
-      drawSolidRect(280, 500, 75, 20, "#2fb457");
-      drawSolidRect(720, 580, 75, 20, "#2fb457");
+        // Trampolin für den Riesensprung
+        drawSolidRect(220, 560, 90, 20, "#2fb457");
+        drawSolidRect(680, 460, 80, 20, "#2fb457");
 
-      drawSolidRect(370, 440, 110, 25, "#8b5a2b");
-      drawSolidRect(800, 420, 110, 25, "#8b5a2b");
+        // Lava im Tal
+        drawSolidRect(360, 680, 560, 35, "#d6453d");
 
-      drawSolidRect(500, 550, 45, 45, "#2a6df4");
-      drawCircle(640, 575, 18, "#e8590c");
+        // Physik-Box & Gegner
+        drawSolidRect(510, 290, 48, 48, "#2a6df4");
+        drawCircle(820, 245, 18, "#e8590c");
 
-      drawPortal(90, 440, 40, 70);
-      drawPortal(1160, 420, 40, 70);
+        // Portale
+        drawPortal(70, 500, 38, 70);
+        drawPortal(1080, 440, 38, 70);
 
-      drawEgg(290, 330);
-      drawEgg(650, 290);
-      drawEgg(950, 270);
-      drawEgg(600, 550);
+        // Dino-Eier entlang des Sprungbogens
+        drawEgg(340, 390);
+        drawEgg(570, 290);
+        drawEgg(830, 210);
+        drawEgg(720, 430);
 
-      setStartPos({ x: 120, y: 470 });
-      setGoalPos({ x: 1080, y: 440 });
+        setStartPos({ x: 120, y: 540 });
+        setGoalPos({ x: 1120, y: 470 });
+      } else if (choice === 1) {
+        // Layout 2: Stufen-Pyramide & Doppel-Trampolin
+        drawSolidRect(30, 620, 360, 90, "#1d1d24");
+        drawSolidRect(880, 620, 370, 90, "#1d1d24");
+        drawSolidRect(400, 680, 470, 35, "#d6453d"); // Lava
+
+        drawSolidRect(260, 490, 180, 28, "#1d1d24");
+        drawSolidRect(100, 360, 200, 28, "#1d1d24");
+        drawSolidRect(360, 280, 240, 28, "#1d1d24");
+        drawSolidRect(680, 220, 220, 28, "#1d1d24");
+        drawSolidRect(960, 340, 240, 28, "#1d1d24");
+
+        drawSolidRect(300, 600, 100, 20, "#2fb457");
+        drawSolidRect(520, 260, 80, 20, "#2fb457");
+
+        drawSolidRect(160, 310, 48, 48, "#2a6df4");
+        drawSolidRect(480, 460, 160, 26, "#8b5a2b");
+
+        drawCircle(440, 260, 18, "#e8590c");
+        drawCircle(1050, 315, 18, "#e8590c");
+
+        drawPortal(70, 280, 38, 70);
+        drawPortal(1140, 540, 38, 70);
+
+        drawEgg(160, 440);
+        drawEgg(470, 230);
+        drawEgg(780, 170);
+        drawEgg(1080, 570);
+
+        setStartPos({ x: 120, y: 580 });
+        setGoalPos({ x: 1040, y: 290 });
+      } else {
+        // Layout 3: Tal der Brücken & Schwebelifte
+        drawSolidRect(30, 540, 300, 160, "#1d1d24");
+        drawSolidRect(460, 580, 340, 120, "#1d1d24");
+        drawSolidRect(920, 520, 330, 180, "#1d1d24");
+
+        drawSolidRect(340, 680, 110, 35, "#d6453d");
+        drawSolidRect(810, 680, 100, 35, "#d6453d");
+
+        drawSolidRect(180, 390, 190, 28, "#1d1d24");
+        drawSolidRect(520, 330, 220, 28, "#1d1d24");
+        drawSolidRect(860, 340, 180, 28, "#1d1d24");
+
+        drawSolidRect(260, 520, 80, 20, "#2fb457");
+        drawSolidRect(720, 560, 80, 20, "#2fb457");
+
+        drawSolidRect(350, 440, 120, 25, "#8b5a2b");
+        drawSolidRect(790, 430, 120, 25, "#8b5a2b");
+
+        drawSolidRect(500, 530, 46, 46, "#2a6df4");
+        drawCircle(640, 555, 18, "#e8590c");
+
+        drawPortal(90, 460, 38, 70);
+        drawPortal(1160, 440, 38, 70);
+
+        drawEgg(270, 340);
+        drawEgg(630, 280);
+        drawEgg(940, 290);
+        drawEgg(600, 530);
+
+        setStartPos({ x: 110, y: 490 });
+        setGoalPos({ x: 1080, y: 470 });
+      }
     }
 
     saveHistory();
-    setSaveToast("🎲 Neues Zufalls-Level gezeichnet!");
+    setSaveToast(
+      isJungle
+        ? "🌴 Kopfüber-Dschungel-Level gezeichnet! (Dino läuft an der Decke)"
+        : "🎲 Neues Zufalls-Level gezeichnet!"
+    );
     setTimeout(() => setSaveToast(null), 3000);
   };
 

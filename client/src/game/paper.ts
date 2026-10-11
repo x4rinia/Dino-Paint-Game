@@ -139,88 +139,193 @@ function drawPaperTexture(ctx: CanvasRenderingContext2D, rng: () => number) {
   ctx.fillRect(0, 0, WORLD_W, WORLD_H);
 }
 
-/** 2. Urzeit-Dschungel (Prähistorische Naturwelt) */
+/** 2. Urzeit-Dschungel (Baumkronen- & Blätterwelt / Im Urwaldbaum) */
 function drawJungleTexture(ctx: CanvasRenderingContext2D, rng: () => number) {
-  // Himmel / Dunst: weicher Farbverlauf von Mint zu sonnigem Hellgrün
-  const skyGrad = ctx.createLinearGradient(0, 0, 0, WORLD_H);
-  skyGrad.addColorStop(0, "#d8ece0");
-  skyGrad.addColorStop(0.5, "#e7f3e8");
-  skyGrad.addColorStop(1, "#f3f8eb");
-  ctx.fillStyle = skyGrad;
+  // 1. Dichter Urwald-Baldachin: Tiefgrüner, stimmungsvoller Farbverlauf
+  const canopyGrad = ctx.createLinearGradient(0, 0, 0, WORLD_H);
+  canopyGrad.addColorStop(0, "#16341d");   // Oben: Dichtes, schattiges Blätterdach
+  canopyGrad.addColorStop(0.35, "#224b2a"); // Mittlerer Baldachin
+  canopyGrad.addColorStop(0.7, "#1b3c22");  // Tiefes Moosgrün
+  canopyGrad.addColorStop(1, "#122616");    // Unten: Urwald-Dickicht
+  ctx.fillStyle = canopyGrad;
   ctx.fillRect(0, 0, WORLD_W, WORLD_H);
 
-  // Sonnenschein / Sonnenkegel von oben rechts
-  const sunGrad = ctx.createRadialGradient(WORLD_W * 0.82, WORLD_H * 0.15, 0, WORLD_W * 0.82, WORLD_H * 0.15, 600);
-  sunGrad.addColorStop(0, "rgba(255, 245, 175, 0.35)");
-  sunGrad.addColorStop(0.5, "rgba(255, 245, 175, 0.12)");
-  sunGrad.addColorStop(1, "rgba(255, 245, 175, 0)");
-  ctx.fillStyle = sunGrad;
-  ctx.fillRect(0, 0, WORLD_W, WORLD_H);
-
-  // Entfernte Urzeit-Berg- & Vulkansilhouetten im Hintergrund
-  ctx.fillStyle = "rgba(110, 165, 130, 0.16)";
-  ctx.beginPath();
-  ctx.moveTo(0, WORLD_H * 0.72);
-  ctx.quadraticCurveTo(WORLD_W * 0.25, WORLD_H * 0.52, WORLD_W * 0.45, WORLD_H * 0.74);
-  ctx.quadraticCurveTo(WORLD_W * 0.7, WORLD_H * 0.48, WORLD_W, WORLD_H * 0.7);
-  ctx.lineTo(WORLD_W, WORLD_H);
-  ctx.lineTo(0, WORLD_H);
-  ctx.closePath();
-  ctx.fill();
-
-  // Nähere sanfte Dschungelhügel
-  ctx.fillStyle = "rgba(75, 145, 95, 0.14)";
-  ctx.beginPath();
-  ctx.moveTo(0, WORLD_H * 0.84);
-  ctx.quadraticCurveTo(WORLD_W * 0.35, WORLD_H * 0.68, WORLD_W * 0.6, WORLD_H * 0.86);
-  ctx.quadraticCurveTo(WORLD_W * 0.85, WORLD_H * 0.72, WORLD_W, WORLD_H * 0.82);
-  ctx.lineTo(WORLD_W, WORLD_H);
-  ctx.lineTo(0, WORLD_H);
-  ctx.closePath();
-  ctx.fill();
-
-  // Feine stilisierte Palmen- und Farnblätter an den oberen Rändern
-  ctx.strokeStyle = "rgba(46, 125, 50, 0.28)";
-  ctx.lineWidth = 3;
-  ctx.lineCap = "round";
-
-  // Farn links oben
+  // 2. Weiche Sonnenstrahlen (Komorebi / Licht durchs Blätterdach)
+  ctx.save();
   for (let i = 0; i < 4; i++) {
-    const angle = 0.2 + i * 0.25;
-    const len = 180 + i * 40;
+    const rx = 180 + i * 260;
+    const ray = ctx.createLinearGradient(rx, 0, rx + 140, WORLD_H);
+    ray.addColorStop(0, "rgba(255, 248, 175, 0.16)");
+    ray.addColorStop(0.6, "rgba(220, 255, 190, 0.06)");
+    ray.addColorStop(1, "rgba(255, 248, 175, 0)");
+    ctx.fillStyle = ray;
+    ctx.beginPath();
+    ctx.moveTo(rx - 30, 0);
+    ctx.lineTo(rx + 70, 0);
+    ctx.lineTo(rx + 240, WORLD_H);
+    ctx.lineTo(rx + 90, WORLD_H);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // 3. Mächtige Baumstämme an den Flanken (wie im Inneren eines Urwaldbaums)
+  // Linker gigantischer Baumstamm
+  const leftTrunk = ctx.createLinearGradient(0, 0, 240, 0);
+  leftTrunk.addColorStop(0, "#1c120a");
+  leftTrunk.addColorStop(0.6, "#2b1c11");
+  leftTrunk.addColorStop(0.85, "#3d2a1c");
+  leftTrunk.addColorStop(1, "rgba(61, 42, 28, 0)");
+  ctx.fillStyle = leftTrunk;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.quadraticCurveTo(140, WORLD_H * 0.4, 90, WORLD_H);
+  ctx.lineTo(0, WORLD_H);
+  ctx.closePath();
+  ctx.fill();
+
+  // Rinde & Moos auf linkem Stamm
+  ctx.strokeStyle = "rgba(75, 140, 70, 0.35)";
+  ctx.lineWidth = 14;
+  ctx.beginPath();
+  ctx.moveTo(30, 0);
+  ctx.quadraticCurveTo(110, WORLD_H * 0.45, 65, WORLD_H);
+  ctx.stroke();
+
+  // Rechter Baumstamm
+  const rightTrunk = ctx.createLinearGradient(WORLD_W - 220, 0, WORLD_W, 0);
+  rightTrunk.addColorStop(0, "rgba(61, 42, 28, 0)");
+  rightTrunk.addColorStop(0.25, "#3d2a1c");
+  rightTrunk.addColorStop(0.6, "#2b1c11");
+  rightTrunk.addColorStop(1, "#1c120a");
+  ctx.fillStyle = rightTrunk;
+  ctx.beginPath();
+  ctx.moveTo(WORLD_W, 0);
+  ctx.quadraticCurveTo(WORLD_W - 130, WORLD_H * 0.45, WORLD_W - 80, WORLD_H);
+  ctx.lineTo(WORLD_W, WORLD_H);
+  ctx.closePath();
+  ctx.fill();
+
+  // Rinde & Moos auf rechtem Stamm
+  ctx.strokeStyle = "rgba(75, 140, 70, 0.35)";
+  ctx.lineWidth = 12;
+  ctx.beginPath();
+  ctx.moveTo(WORLD_W - 25, 0);
+  ctx.quadraticCurveTo(WORLD_W - 95, WORLD_H * 0.4, WORLD_W - 55, WORLD_H);
+  ctx.stroke();
+
+  // 4. Quer verlaufende dicke Äste im Kronenbereich
+  ctx.fillStyle = "#27190f";
+  // Oberer Hauptast (ideal für Kopfüber-Deckenlauf)
+  ctx.beginPath();
+  ctx.moveTo(0, 60);
+  ctx.bezierCurveTo(WORLD_W * 0.3, 110, WORLD_W * 0.7, 45, WORLD_W, 95);
+  ctx.lineTo(WORLD_W, 130);
+  ctx.bezierCurveTo(WORLD_W * 0.7, 75, WORLD_W * 0.3, 145, 0, 95);
+  ctx.closePath();
+  ctx.fill();
+
+  // Ast-Moosauflage
+  ctx.fillStyle = "rgba(60, 130, 60, 0.45)";
+  ctx.beginPath();
+  ctx.moveTo(0, 85);
+  ctx.bezierCurveTo(WORLD_W * 0.3, 135, WORLD_W * 0.7, 65, WORLD_W, 115);
+  ctx.lineTo(WORLD_W, 125);
+  ctx.bezierCurveTo(WORLD_W * 0.7, 75, WORLD_W * 0.3, 145, 0, 95);
+  ctx.closePath();
+  ctx.fill();
+
+  // Mittlerer Nebenast rechts
+  ctx.fillStyle = "#27190f";
+  ctx.beginPath();
+  ctx.moveTo(WORLD_W, 460);
+  ctx.quadraticCurveTo(WORLD_W * 0.65, 430, WORLD_W * 0.5, 480);
+  ctx.quadraticCurveTo(WORLD_W * 0.65, 460, WORLD_W, 510);
+  ctx.closePath();
+  ctx.fill();
+
+  // 5. Tropische Riesenblätter & Monstera / Palmwedel an den Rändern
+  const drawTropicalLeaf = (cx: number, cy: number, len: number, angle: number, col: string) => {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
+    ctx.fillStyle = col;
     ctx.beginPath();
     ctx.moveTo(0, 0);
-    const endX = Math.cos(angle) * len;
-    const endY = Math.sin(angle) * len;
-    ctx.quadraticCurveTo(endX * 0.6, endY * 0.2, endX, endY);
+    ctx.quadraticCurveTo(len * 0.45, -len * 0.38, len, 0);
+    ctx.quadraticCurveTo(len * 0.45, len * 0.38, 0, 0);
+    ctx.fill();
+
+    // Blattader
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.22)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(len * 0.92, 0);
     ctx.stroke();
 
-    // Kleine Blättchen
-    for (let f = 30; f < len; f += 25) {
-      const px = Math.cos(angle) * f;
-      const py = Math.sin(angle) * f;
+    // Einkerbungen / Blattrippen
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.14)";
+    ctx.lineWidth = 1.2;
+    for (let s = len * 0.25; s < len * 0.85; s += len * 0.18) {
       ctx.beginPath();
-      ctx.moveTo(px, py);
-      ctx.lineTo(px + 12, py - 10);
+      ctx.moveTo(s, 0);
+      ctx.lineTo(s + 18, -len * 0.22);
+      ctx.moveTo(s, 0);
+      ctx.lineTo(s + 18, len * 0.22);
       ctx.stroke();
     }
+    ctx.restore();
+  };
+
+  // Blätterkrone entlang des oberen Rands (Deckenblätter)
+  const leafColors = ["#1e532b", "#2a6937", "#327b41", "#194724"];
+  for (let i = 0; i < 18; i++) {
+    const lx = (i / 17) * WORLD_W;
+    const ly = 15 + (rng() - 0.5) * 35;
+    const rot = 0.5 + (rng() - 0.5) * 0.8;
+    const size = 110 + rng() * 80;
+    const col = leafColors[i % leafColors.length];
+    drawTropicalLeaf(lx, ly, size, rot, col);
   }
 
-  // Farn rechts oben
-  for (let i = 0; i < 3; i++) {
-    const angle = Math.PI - (0.2 + i * 0.3);
-    const len = 160 + i * 35;
+  // Farnbüschel links oben & rechts oben
+  for (let i = 0; i < 6; i++) {
+    drawTropicalLeaf(15 + i * 22, 10 + i * 18, 140 - i * 10, 0.3 + i * 0.18, "#286835");
+    drawTropicalLeaf(WORLD_W - (15 + i * 22), 10 + i * 18, 140 - i * 10, Math.PI - (0.3 + i * 0.18), "#22592d");
+  }
+
+  // 6. Herabhängende Lianen mit kleinen Blättern
+  const drawVine = (vx: number, vy: number, vlen: number, sway: number) => {
+    ctx.save();
+    ctx.strokeStyle = "#436a38";
+    ctx.lineWidth = 3.5;
     ctx.beginPath();
-    ctx.moveTo(WORLD_W, 0);
-    const endX = WORLD_W + Math.cos(angle) * len;
-    const endY = Math.sin(angle) * len;
-    ctx.quadraticCurveTo(WORLD_W + (endX - WORLD_W) * 0.6, endY * 0.2, endX, endY);
+    ctx.moveTo(vx, vy);
+    const midY = vy + vlen * 0.5;
+    const endY = vy + vlen;
+    ctx.bezierCurveTo(vx + sway, midY, vx - sway, midY + 40, vx, endY);
     ctx.stroke();
-  }
 
-  // Zarte Orientierungs-Rasterlinien im handgemalten Stil
-  ctx.lineWidth = 1.2;
-  ctx.strokeStyle = "rgba(70, 140, 90, 0.18)";
+    // Kleine herabhängende Herz-/Blättchen
+    for (let step = vy + 30; step < endY - 15; step += 38) {
+      const frac = (step - vy) / vlen;
+      const curX = vx + Math.sin(frac * Math.PI) * sway;
+      drawTropicalLeaf(curX, step, 26, (frac % 2 === 0 ? 0.6 : -0.6), "#4e823f");
+    }
+    ctx.restore();
+  };
+
+  drawVine(160, 90, 240, 28);
+  drawVine(290, 110, 190, -22);
+  drawVine(480, 75, 270, 32);
+  drawVine(720, 85, 220, -25);
+  drawVine(880, 115, 260, 30);
+  drawVine(1040, 95, 210, -20);
+
+  // 7. Zarte Skizzen-Notizlinien im handgemalten Dschungelton (erhält den Doodle-Charme)
+  ctx.lineWidth = 1.0;
+  ctx.strokeStyle = "rgba(140, 210, 150, 0.12)";
   for (let y = FIRST_LINE_Y; y < WORLD_H; y += LINE_GAP) {
     ctx.beginPath();
     ctx.moveTo(0, y);
@@ -228,12 +333,13 @@ function drawJungleTexture(ctx: CanvasRenderingContext2D, rng: () => number) {
     ctx.stroke();
   }
 
-  // Dschungel-Vignette
+  // 8. Dschungel-Atmosphäre Vignette (Fokus in der Mitte der Baumkrone)
   const cx = WORLD_W / 2;
   const cy = WORLD_H / 2;
-  const vig = ctx.createRadialGradient(cx, cy, WORLD_H * 0.45, cx, cy, WORLD_W * 0.65);
-  vig.addColorStop(0, "rgba(40, 90, 50, 0)");
-  vig.addColorStop(1, "rgba(25, 75, 40, 0.18)");
+  const vig = ctx.createRadialGradient(cx, cy, WORLD_H * 0.42, cx, cy, WORLD_W * 0.68);
+  vig.addColorStop(0, "rgba(20, 50, 25, 0)");
+  vig.addColorStop(0.7, "rgba(15, 35, 18, 0.18)");
+  vig.addColorStop(1, "rgba(8, 20, 10, 0.42)");
   ctx.fillStyle = vig;
   ctx.fillRect(0, 0, WORLD_W, WORLD_H);
 }

@@ -259,6 +259,7 @@ export function App() {
           setScreen("menu");
         }}
         initialImage={initialDrawingForStudio}
+        backgroundTheme={selectedBackground}
       />
     );
   }
@@ -269,6 +270,7 @@ export function App() {
       <PhotoCapture
         onPlayLevel={handleStartPlaying}
         onBackToMenu={() => setScreen("menu")}
+        backgroundTheme={selectedBackground}
       />
     );
   }

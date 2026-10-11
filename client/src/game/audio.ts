@@ -81,7 +81,7 @@ export function getBgMusic(): HTMLAudioElement | null {
 
     const base = import.meta.env.BASE_URL || "/";
     const cleanBase = base.endsWith("/") ? base : `${base}/`;
-    audio.src = `${cleanBase}dino.mp3`;
+    audio.src = `${cleanBase}dino1.mp3`;
     audio.volume = muted ? 0 : 0.45;
 
     bgAudio = audio;

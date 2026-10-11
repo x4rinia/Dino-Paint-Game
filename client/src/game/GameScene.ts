@@ -243,6 +243,11 @@ export class GameScene extends Phaser.Scene {
     for (const p of level.platforms) {
       this.platforms.add(this.rectTopLeft(p, COLORS.platform));
     }
+    if (bgTheme === "jungle") {
+      // Oberes Blätterdach als durchgehende Deckenplattform für die Kopfüber-Welt
+      const canopy = this.rectTopLeft({ id: "jungle-canopy-top", x: 0, y: 0, w: 1000, h: 26 }, COLORS.platform);
+      this.platforms.add(canopy);
+    }
 
     // 2. GRÜN: Sprungflächen / Trampoline
     this.bouncers = this.physics.add.staticGroup();
@@ -477,7 +482,14 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Spieler (Dino)
-    this.player = new Player(this, sx(level.start.x), sy(level.start.y));
+    let startX = sx(level.start.x);
+    let startY = sy(level.start.y);
+    if (bgTheme === "jungle" && level.start.y > 600) {
+      // Falls ein klassisches Level ohne Kopfüber-Spiegelung geladen wird,
+      // starte Dino sicher oben am Blätterdach statt im leeren Himmel
+      startY = Math.min(startY, 80);
+    }
+    this.player = new Player(this, startX, startY);
     this.player.setGravityMode(bgTheme === "jungle" ? "inverted" : bgTheme === "space" ? "low" : "normal");
     this.player.onJump = () => this.recorder.addJump(this.time.now);
 
