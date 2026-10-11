@@ -15,8 +15,7 @@ const HUD_DEPTH = 1000;
 /** Top-left marker-written coin counter (with a doodled coin and underline), fixed to the camera. */
 export class Hud {
   private readonly collectibleText: Phaser.GameObjects.Text;
-  private readonly mutedText: Phaser.GameObjects.Text;
-  private readonly narratorText: Phaser.GameObjects.Text;
+  private readonly musicText: Phaser.GameObjects.Text;
 
   constructor(scene: Phaser.Scene) {
     // Static doodles: drawn once, never redrawn.
@@ -34,34 +33,16 @@ export class Hud {
       .setDepth(HUD_DEPTH)
       .setRotation(-0.015);
 
-    this.narratorText = scene.add
-      .text(20, 76, "Narrator: ON", { ...STYLE, fontSize: "22px", color: INK_CSS.green })
+    this.musicText = scene.add
+      .text(20, 76, "🎵 Dino-Musik: AN (M)", { ...STYLE, fontSize: "22px", color: INK_CSS.green })
       .setScrollFactor(0)
       .setDepth(HUD_DEPTH)
       .setRotation(-0.02);
-    this.mutedText = scene.add
-      .text(0, 76, "Muted (M)", { ...STYLE, fontSize: "22px", color: INK_CSS.red })
-      .setScrollFactor(0)
-      .setDepth(HUD_DEPTH)
-      .setRotation(0.03)
-      .setVisible(false);
-    this.placeMuted();
-  }
-
-  /** ON = the narrator's voice is speaking; OFF = captions only (muted, or the browser has no speech). */
-  setNarrator(voiceOn: boolean) {
-    this.narratorText.setText(voiceOn ? "Narrator: ON" : "Narrator: OFF (captions)");
-    this.narratorText.setColor(voiceOn ? INK_CSS.green : INK_CSS.red);
-    this.placeMuted();
-  }
-
-  /** The muted label sits right after the narrator label. */
-  private placeMuted() {
-    this.mutedText.setX(this.narratorText.x + this.narratorText.width + 22);
   }
 
   setMuted(muted: boolean) {
-    this.mutedText.setVisible(muted);
+    this.musicText.setText(muted ? "🔇 Ton: Stumm (M)" : "🎵 Dino-Musik: AN (M)");
+    this.musicText.setColor(muted ? INK_CSS.red : INK_CSS.green);
   }
 
   setCoins(_coins: number) {
@@ -87,13 +68,10 @@ export class Hud {
   setTvMode(tvMode: boolean) {
     if (tvMode) {
       this.collectibleText.setFontSize("44px").setStroke(INK_CSS.paper, 8);
-      this.narratorText.setFontSize("28px").setY(86);
-      this.mutedText.setFontSize("28px").setY(86);
+      this.musicText.setFontSize("28px").setY(86);
     } else {
       this.collectibleText.setFontSize("32px").setStroke(INK_CSS.paper, 6);
-      this.narratorText.setFontSize("22px").setY(76);
-      this.mutedText.setFontSize("22px").setY(76);
+      this.musicText.setFontSize("22px").setY(76);
     }
-    this.placeMuted();
   }
 }

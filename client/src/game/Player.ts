@@ -29,6 +29,7 @@ export class Player {
   private lastJumpPressedAt = -Infinity;
   private wasJumpDown = false;
   private wasGrounded = true;
+  private canDoubleJump = true;
   private readonly art: Phaser.GameObjects.Graphics;
   private facing: 1 | -1 = 1;
   private artKey = "";
@@ -69,7 +70,10 @@ export class Player {
   handleInput(input: MoveInput, locked: boolean) {
     const now = this.scene.time.now;
     const grounded = this.grounded;
-    if (grounded) this.lastGroundedAt = now;
+    if (grounded) {
+      this.lastGroundedAt = now;
+      this.canDoubleJump = true;
+    }
 
     if (!this.wasGrounded && grounded) this.playLandSquash();
 
@@ -91,15 +95,24 @@ export class Player {
     const withinBuffer = now - this.lastJumpPressedAt <= JUMP_BUFFER_MS;
 
     if (withinBuffer && withinCoyote) {
-      // Consume both so this single press can't trigger a jump twice.
+      // Normaler Sprung vom Boden oder Kante (Coyote-Time)
       this.lastJumpPressedAt = -Infinity;
       this.lastGroundedAt = -Infinity;
+      this.canDoubleJump = true;
       this.body.setVelocityY(-JUMP_VELOCITY);
       this.playJumpSquash();
       playJump();
       this.onJump?.();
+    } else if (jumpJustPressed && !withinCoyote && this.canDoubleJump) {
+      // 🦖 DINO DOPPELSPRUNG: Macht knifflige Sprünge kinderleicht!
+      this.canDoubleJump = false;
+      this.lastJumpPressedAt = -Infinity;
+      this.body.setVelocityY(-JUMP_VELOCITY);
+      this.playDoubleJumpSquash();
+      playJump();
+      this.onJump?.();
     } else if (!jumpDown && this.body.velocity.y < -JUMP_VELOCITY * JUMP_CUTOFF_FACTOR) {
-      // Released early: cut the ascent short for a shorter jump.
+      // Vorzeitiges Loslassen für kontrollierte Mini-Hüpfer
       this.body.setVelocityY(-JUMP_VELOCITY * JUMP_CUTOFF_FACTOR);
     }
 
@@ -111,6 +124,7 @@ export class Player {
   bounce(velocity: number) {
     this.body.setVelocityY(-velocity);
     this.lastGroundedAt = -Infinity;
+    this.canDoubleJump = true;
     this.playJumpSquash();
   }
 
@@ -128,6 +142,7 @@ export class Player {
     this.scene.time.delayedCall(55, () => {
       this.body.setVelocityY(-velocity);
       this.lastGroundedAt = -Infinity;
+      this.canDoubleJump = true;
       this.rect.setScale(0.8, 1.3);
       this.scene.tweens.add({
         targets: this.rect,
@@ -246,6 +261,18 @@ export class Player {
       scaleY: 1,
       duration: SQUASH_STRETCH_MS,
       ease: "Quad.easeOut",
+    });
+  }
+
+  private playDoubleJumpSquash() {
+    this.scene.tweens.killTweensOf(this.rect);
+    this.rect.setScale(0.72, 1.35);
+    this.scene.tweens.add({
+      targets: this.rect,
+      scaleX: 1,
+      scaleY: 1,
+      duration: SQUASH_STRETCH_MS + 40,
+      ease: "Back.easeOut",
     });
   }
 

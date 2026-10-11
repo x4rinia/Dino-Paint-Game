@@ -1,5 +1,11 @@
 # Dino Paint Game 🦖
 
+🎮 **Live im Browser spielen:**  
+👉 **[https://x4rinia.github.io/Dino-Paint-Game/](https://x4rinia.github.io/Dino-Paint-Game/)** 👈
+
+[![Online spielen](https://img.shields.io/badge/▶_Jetzt_Spielen-x4rinia.github.io%2FDino--Paint--Game-brightgreen?style=for-the-badge&logo=google-chrome&logoColor=white)](https://x4rinia.github.io/Dino-Paint-Game/)
+[![GitHub Pages](https://img.shields.io/badge/GitHub_Pages-Online-blue?style=for-the-badge&logo=github)](https://x4rinia.github.io/Dino-Paint-Game/)
+
 Eine vollständig lokal und offline betriebene Progressive Web App (PWA) für das Erschaffen und Spielen eigener 2D-Plattformwelten – optimiert für **Tablets (iPad / Android)**, **Smartphones**, **Desktop-PCs** und den **Fernseher (TV-Modus)**.
 
 > **Prinzip:** Zeichnen → Farben erkennen → Physikwelt erzeugen → Sofort spielen!  

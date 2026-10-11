@@ -23,6 +23,9 @@ type Tone = {
   volume?: number;
 };
 
+let bgMusic: HTMLAudioElement | null = null;
+let musicStarted = false;
+
 /**
  * Call once at startup. The first key/pointer/touch input creates and
  * resumes the AudioContext (iOS only unlocks it on pointerup/touchend, so
@@ -36,6 +39,9 @@ export function installAudioUnlock() {
 
 function unlock() {
   const context = ensureContext();
+  if (bgMusic && musicStarted && !muted && bgMusic.paused) {
+    bgMusic.play().catch(() => {});
+  }
   if (!context) return removeUnlockListeners();
   void context.resume().then(() => {
     if (context.state === "running") removeUnlockListeners();
@@ -69,7 +75,59 @@ export function isMuted() {
 export function toggleMute(): boolean {
   muted = !muted;
   if (master) master.gain.value = muted ? 0 : MASTER_VOLUME;
+  if (bgMusic) {
+    bgMusic.volume = muted ? 0 : 0.45;
+    if (muted) {
+      bgMusic.pause();
+    } else if (musicStarted) {
+      bgMusic.play().catch(() => {});
+    }
+  }
   return muted;
+}
+
+export function startBgMusic() {
+  if (typeof window === "undefined") return;
+  musicStarted = true;
+  if (!bgMusic) {
+    bgMusic = new Audio();
+    const base = import.meta.env.BASE_URL || "/";
+    const cleanBase = base.endsWith("/") ? base : `${base}/`;
+    bgMusic.src = `${cleanBase}dino.mp4`;
+    bgMusic.loop = true;
+    bgMusic.volume = muted ? 0 : 0.45;
+    bgMusic.onerror = () => {
+      if (bgMusic && !bgMusic.src.endsWith(".mp3")) {
+        bgMusic.src = `${cleanBase}dino.mp3`;
+        if (musicStarted && !muted) {
+          bgMusic.play().catch(() => {});
+        }
+      }
+    };
+  }
+  if (!muted) {
+    bgMusic.play().catch(() => {});
+  }
+}
+
+export function pauseBgMusic() {
+  if (bgMusic) {
+    bgMusic.pause();
+  }
+}
+
+export function resumeBgMusic() {
+  if (bgMusic && musicStarted && !muted) {
+    bgMusic.play().catch(() => {});
+  }
+}
+
+export function stopBgMusic() {
+  musicStarted = false;
+  if (bgMusic) {
+    bgMusic.pause();
+    bgMusic.currentTime = 0;
+  }
 }
 
 function tone({ freq, endFreq, type = "square", delay = 0, duration, volume = 0.6 }: Tone) {

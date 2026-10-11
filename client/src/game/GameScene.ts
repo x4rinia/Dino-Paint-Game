@@ -25,7 +25,7 @@ import { ReplayController } from "./Replay";
 import { LevelIntro } from "./LevelIntro";
 import { TouchControls, touchControlsEnabled } from "./TouchControls";
 import { RotateBanner } from "./RotateBanner";
-import { isMuted, playCoin, playDeath, playHelper, playJump, playStomp, playWin, toggleMute } from "./audio";
+import { isMuted, playCoin, playDeath, playHelper, playJump, playStomp, playWin, toggleMute, startBgMusic, pauseBgMusic, resumeBgMusic, stopBgMusic } from "./audio";
 import { DebugOverlay } from "./DebugOverlay";
 import { DEBUG } from "./debug";
 import { prepareLevel } from "./prepareLevel";
@@ -34,7 +34,6 @@ import { addPaper } from "./paper";
 import { renderStaticLevel } from "./staticArt";
 import { LevelDoodles, boilTick } from "./animatedArt";
 import { DEPTH, INK, INK_CSS } from "./palette";
-import { narrator } from "./narrator";
 import { countAssists, drawAssistPlatform, isAssist, showAssistTag } from "./assistArt";
 import { findHelperRect } from "./helperPlatform";
 import { StuckHelper, STUCK_DEATHS, STUCK_RADIUS } from "./StuckHelper";
@@ -578,7 +577,6 @@ export class GameScene extends Phaser.Scene {
     this.editKey = kb.addKey("E");
 
     this.hud.setMuted(isMuted());
-    this.hud.setNarrator(narrator.voiceActive());
 
     if (DEBUG) {
       this.debugOverlay = new DebugOverlay(this);
@@ -587,7 +585,11 @@ export class GameScene extends Phaser.Scene {
       });
     }
 
-    narrator.bind(this, level, () => ({ x: this.player.x, y: this.player.y }));
+    startBgMusic();
+    const stopAudio = () => stopBgMusic();
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, stopAudio);
+    this.events.once(Phaser.Scenes.Events.DESTROY, stopAudio);
+
     this.startIntro();
   }
 
@@ -619,10 +621,7 @@ export class GameScene extends Phaser.Scene {
 
     if (Phaser.Input.Keyboard.JustDown(this.muteKey)) {
       this.hud.setMuted(toggleMute());
-      narrator.onMuteChanged();
-      this.hud.setNarrator(narrator.voiceActive());
     }
-    narrator.update();
     this.stuck.suppress(this.won || this.intro);
 
     // Neustart per R oder Gamepad Y
@@ -742,9 +741,11 @@ export class GameScene extends Phaser.Scene {
   private togglePause() {
     this.isPaused = !this.isPaused;
     if (this.isPaused) {
+      pauseBgMusic();
       this.physics.world.pause();
       this.showPauseOverlay();
     } else {
+      resumeBgMusic();
       if (this.pauseContainer) {
         this.pauseContainer.destroy();
         this.pauseContainer = undefined;
@@ -1199,7 +1200,6 @@ export class GameScene extends Phaser.Scene {
   private startIntro() {
     this.intro = true;
     this.physics.world.pause();
-    narrator.onLevelIntro();
     new LevelIntro(this, this.level.name, () => {
       this.intro = false;
       this.physics.world.resume();
@@ -1228,7 +1228,6 @@ export class GameScene extends Phaser.Scene {
     coin.setVisible(false);
     (coin.body as Phaser.Physics.Arcade.Body).enable = false;
     this.attemptState.collectCoin();
-    narrator.onCoin(this.attemptState.coins, this.coins.length);
     this.recorder.addCoin(this.time.now, this.coins.indexOf(coin));
     playCoin();
     coinBurst(this, coin.x, coin.y);
