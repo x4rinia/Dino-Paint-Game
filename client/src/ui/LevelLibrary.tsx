@@ -112,11 +112,93 @@ export function LevelLibrary({
     exportLevelFile(item);
   };
 
+  const handleExportPng = (item: SavedLevelItem) => {
+    const dataUrl = item.originalImage || item.thumbnail;
+    if (!dataUrl) {
+      alert("Dieses Level besitzt kein gespeichertes Bild.");
+      return;
+    }
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = `${item.name.replace(/[^a-zA-Z0-9_-]/g, "_")}.png`;
+    a.click();
+  };
+
+  const handleExportWorld = async (worldToExport: World) => {
+    try {
+      const resolvedList = await Promise.all(
+        worldToExport.levelIds.map(async (id) => (id ? await resolveLevelById(id) : null))
+      );
+      const bundle = {
+        type: "dino_world_bundle",
+        version: 1,
+        world: worldToExport,
+        levels: resolvedList,
+        exportedAt: Date.now(),
+      };
+      const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${worldToExport.name.replace(/[^a-zA-Z0-9_-]/g, "_")}.world.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert("Fehler beim Exportieren der Welt: " + (err instanceof Error ? err.message : String(err)));
+    }
+  };
+
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
+      if (file.name.endsWith(".json") || file.type === "application/json") {
+        const text = await file.text();
+        try {
+          const parsed = JSON.parse(text);
+          if (parsed.type === "dino_world_bundle" && parsed.world) {
+            // Importiere alle enthaltenen Level in die Datenbank
+            const newLevelIds: (string | null)[] = [];
+            for (let i = 0; i < (parsed.levels || []).length; i++) {
+              const lvl = parsed.levels[i];
+              if (lvl) {
+                const saved = await saveLevel({
+                  name: lvl.name || `Welt-Level ${i + 1}`,
+                  level: lvl,
+                  thumbnail: (lvl as any).originalImage,
+                  originalImage: (lvl as any).originalImage,
+                });
+                newLevelIds.push(saved.id);
+              } else {
+                newLevelIds.push(null);
+              }
+            }
+            while (newLevelIds.length < 8) newLevelIds.push(null);
+            const importedWorld: World = {
+              id: `world-custom-${Date.now()}`,
+              name: parsed.world.name || "Importierte Welt",
+              theme: parsed.world.theme || "jungle",
+              description: parsed.world.description || "Importierte 8-Level-Welt",
+              icon: parsed.world.icon || "🌍",
+              levelIds: newLevelIds.slice(0, 8),
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+            };
+            const allW = await getAllWorlds();
+            await saveAllWorlds([...allW, importedWorld]);
+            await fetchAllData();
+            setSelectedWorldId(importedWorld.id);
+            setActiveTab("worlds");
+            setImportSuccessMsg(`✓ Welt "${importedWorld.name}" mit 8 Leveln importiert!`);
+            setTimeout(() => setImportSuccessMsg(null), 3500);
+            return;
+          }
+        } catch {
+          // Kein Bundle, fahre mit normalem Level-Import fort
+        }
+      }
+
       const item = await importLevelFile(file);
       await fetchAllData();
       setImportSuccessMsg(`✓ "${item.name}" erfolgreich importiert!`);
@@ -325,19 +407,29 @@ export function LevelLibrary({
                   </p>
                 </div>
 
-                <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
                   <button
                     type="button"
                     className="button button-primary"
                     onClick={() => playWorldAtSlot(0)}
                     style={{
-                      fontSize: "1.15rem",
-                      padding: "12px 28px",
+                      fontSize: "1.1rem",
+                      padding: "10px 22px",
                       fontWeight: "bold",
                       boxShadow: "0 6px 14px rgba(16, 185, 129, 0.4)",
                     }}
                   >
-                    ▶️ Welt spielen (von Level 1 bis 8)
+                    ▶️ Welt spielen (ab Level 1)
+                  </button>
+
+                  <button
+                    type="button"
+                    className="button button-secondary"
+                    onClick={() => handleExportWorld(activeWorld)}
+                    title="Diese komplette Welt mit allen 8 Leveln als .world.json exportieren"
+                    style={{ fontSize: "0.92rem", padding: "10px 16px" }}
+                  >
+                    💾 Welt als JSON sichern
                   </button>
 
                   <button
@@ -574,8 +666,16 @@ export function LevelLibrary({
                       <button
                         className="button button-secondary-small"
                         type="button"
+                        onClick={() => handleExportPng(item)}
+                        title="Als PNG-Bild herunterladen"
+                      >
+                        🖼️
+                      </button>
+                      <button
+                        className="button button-secondary-small"
+                        type="button"
                         onClick={() => handleExport(item)}
-                        title="Exportieren"
+                        title="Als Level-JSON exportieren"
                       >
                         💾
                       </button>

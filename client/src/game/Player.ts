@@ -225,6 +225,9 @@ export class Player {
     }
 
     const { left, right, jump: jumpDown } = input;
+    if (left && !right) this.facing = -1;
+    else if (right && !left) this.facing = 1;
+
     const jumpJustPressed = jumpDown && !this.wasJumpDown;
 
     this.body.setVelocityX((Number(right) - Number(left)) * RUN_SPEED);
@@ -294,23 +297,18 @@ export class Player {
    */
   trampolineBounce(velocity: number, onSpring?: () => void) {
     this.scene.tweens.killTweensOf(this.rect);
-    this.rect.setScale(1.35, 0.65);
-    this.body.setVelocityY(0);
-
-    this.scene.time.delayedCall(55, () => {
-      this.body.setVelocityY(-velocity);
-      this.lastGroundedAt = -Infinity;
-      this.canDoubleJump = true;
-      this.rect.setScale(0.8, 1.3);
-      this.scene.tweens.add({
-        targets: this.rect,
-        scaleX: 1,
-        scaleY: 1,
-        duration: 250,
-        ease: "Quad.easeOut",
-      });
-      onSpring?.();
+    this.body.setVelocityY(-velocity);
+    this.lastGroundedAt = -Infinity;
+    this.canDoubleJump = true;
+    this.rect.setScale(0.8, 1.35);
+    this.scene.tweens.add({
+      targets: this.rect,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 260,
+      ease: "Back.easeOut",
     });
+    onSpring?.();
   }
 
   teleport(x: number, y: number) {
@@ -363,7 +361,9 @@ export class Player {
    */
   draw(tick: number) {
     const { body, rect } = this;
-    this.facing = this.facingFor(body.velocity.x);
+    if (Math.abs(body.velocity.x) > 35) {
+      this.facing = body.velocity.x > 0 ? 1 : -1;
+    }
     const hasTexture = this.scene.textures.exists("dino_idle");
     if (hasTexture) {
       this.sprite.setVisible(true);

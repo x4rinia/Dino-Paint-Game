@@ -34,6 +34,19 @@ const COLORS: Record<ColorTool, { hex: string; label: string; desc: string }> = 
   eraser: { hex: "#ffffff", label: "Radierer", desc: "Linien entfernen" },
 };
 
+const COLOR_TOOLTIPS: Record<ColorTool, string> = {
+  black: "Schwarz: 🧱 Feste Plattformen, Mauern & Böden",
+  red: "Rot: ⚠️ Tödliche Gefahren (Stacheln & Lava)",
+  green: "Grün: 🍄 Federndes Pilz-Trampolin / Bumper",
+  blue: "Blau: 📦 Schiebbare Kiste mit echter Physik",
+  yellow: "Gelb: 🥚 Dino-Ei-Münzen zum Einsammeln",
+  purple: "Lila: 🌀 Magische Portale & Teleporter",
+  brown: "Braun: 🪵 Beweglicher Lift (fährt waagerecht/senkrecht)",
+  pink: "Pink: 🦟 Fliegende Gegner (Patrouille)",
+  gray: "Grau: 🏁 1 Punkt = Start, 2 Punkte = Start (links) & Ziel (rechts)",
+  eraser: "Radiergummi: Löscht gezeichnete Linien",
+};
+
 const BRUSH_SIZES = [
   { size: 5, label: "Fein" },
   { size: 14, label: "Mittel" },
@@ -76,6 +89,11 @@ export function DrawingCanvas({
   const [isSaving, setIsSaving] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [levelNameInput, setLevelNameInput] = useState("Mein Dino-Level");
+  const [tooltipsEnabled, setTooltipsEnabled] = useState(true);
+
+  useEffect(() => {
+    getSetting<boolean>("tooltips_enabled", true).then(setTooltipsEnabled);
+  }, []);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Undo/Redo Stacks (speichert ImageData Snapshot-Strings oder ImageData)
@@ -860,7 +878,7 @@ export function DrawingCanvas({
         </button>
         <div className="studio-title">
           <h2>Level-Editor</h2>
-          <span className="studio-subtitle">Zeichne mit allen 8 Spielfarben deine Welt</span>
+          <span className="studio-subtitle">Zeichne mit allen 9 Spielfarben deine Welt</span>
         </div>
         <div className="studio-header-actions">
           {onOpenGameMode && (
@@ -908,42 +926,6 @@ export function DrawingCanvas({
             </button>
           )}
 
-          {onOpenLibrary && (
-            <button
-              className="button button-secondary"
-              type="button"
-              onClick={onOpenLibrary}
-              title="Gespeicherte Spiele und Level öffnen"
-              style={{
-                backgroundColor: "#2e3b56",
-                color: "#e2e8f0",
-                border: "1px solid rgba(255, 255, 255, 0.25)",
-                fontSize: "0.88rem",
-                fontWeight: 600,
-              }}
-            >
-              📁 Meine Spiele
-            </button>
-          )}
-
-          {onOpenSettings && (
-            <button
-              className="button button-secondary"
-              type="button"
-              onClick={onOpenSettings}
-              title="Audio, Soundeffekte, Controller & Offline-Speicher"
-              style={{
-                backgroundColor: "#253048",
-                color: "#e2e8f0",
-                border: "1px solid rgba(255, 255, 255, 0.25)",
-                fontSize: "0.88rem",
-                fontWeight: 600,
-              }}
-            >
-              ⚙️ Einstellungen
-            </button>
-          )}
-
           <button
             className="button button-secondary"
             type="button"
@@ -956,7 +938,7 @@ export function DrawingCanvas({
               fontWeight: 600,
             }}
           >
-            🎲 Zufalls-Level
+            🎲 Zufall
           </button>
 
           <button
@@ -983,21 +965,13 @@ export function DrawingCanvas({
           </label>
 
           <button
-            className="button button-secondary"
-            type="button"
-            onClick={exportPng}
-            title="Zeichnung als PNG-Bild herunterladen"
-          >
-            ⬇️ Bild herunterladen
-          </button>
-
-          <button
             className="button button-save"
             type="button"
-            onClick={() => setShowSaveModal(true)}
-            title="Level dauerhaft in lokaler Bibliothek sichern"
+            onClick={() => handleSaveToLibrary()}
+            disabled={isSaving}
+            title="Level direkt in der Bibliothek sichern"
           >
-            {saveToast ? saveToast : "💾 In Bibliothek speichern"}
+            {saveToast ? saveToast : "💾 Level speichern"}
           </button>
 
           <button
@@ -1023,7 +997,7 @@ export function DrawingCanvas({
                 setTool(t);
                 setIsPanMode(false);
               }}
-              title={`${COLORS[t].label}: ${COLORS[t].desc}`}
+              title={tooltipsEnabled ? COLOR_TOOLTIPS[t] : undefined}
             >
               <span
                 className="color-swatch"
@@ -1239,44 +1213,6 @@ export function DrawingCanvas({
         </div>
       </div>
 
-      <footer className="studio-legend">
-        <div className="legend-item">
-          <span className="legend-pill" style={{ backgroundColor: COLORS.black.hex }} />
-          <strong>Schwarz:</strong> 🧱 Wände & Böden
-        </div>
-        <div className="legend-item">
-          <span className="legend-pill" style={{ backgroundColor: COLORS.red.hex }} />
-          <strong>Rot:</strong> ⚠️ Stacheln & Gefahren
-        </div>
-        <div className="legend-item">
-          <span className="legend-pill" style={{ backgroundColor: COLORS.green.hex }} />
-          <strong>Grün:</strong> 🍄 Pilz-Trampolin / Bumper
-        </div>
-        <div className="legend-item">
-          <span className="legend-pill" style={{ backgroundColor: COLORS.blue.hex }} />
-          <strong>Blau:</strong> 📦 Holz-Kiste (Schiebbar)
-        </div>
-        <div className="legend-item">
-          <span className="legend-pill" style={{ backgroundColor: COLORS.yellow.hex }} />
-          <strong>Gelb:</strong> 🪙 Dino-Ei-Münzen (Sammeln)
-        </div>
-        <div className="legend-item">
-          <span className="legend-pill" style={{ backgroundColor: COLORS.purple.hex }} />
-          <strong>Lila:</strong> 🌀 Portale & Vortex
-        </div>
-        <div className="legend-item">
-          <span className="legend-pill" style={{ backgroundColor: COLORS.brown.hex }} />
-          <strong>Braun:</strong> 🪵 Bewegliche Lifte
-        </div>
-        <div className="legend-item">
-          <span className="legend-pill" style={{ backgroundColor: COLORS.pink.hex }} />
-          <strong>Pink:</strong> 🪰 Fliegende Gegner (Patrouille)
-        </div>
-        <div className="legend-item">
-          <span className="legend-pill" style={{ backgroundColor: COLORS.gray.hex }} />
-          <strong>Grau:</strong> 🚩 Start (1 Punkt) & Ziel (2 Punkte)
-        </div>
-      </footer>
 
       {showClearConfirm && (
         <div className="modal-backdrop">

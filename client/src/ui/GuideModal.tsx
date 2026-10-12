@@ -145,18 +145,6 @@ export function GuideModal({ onClose }: GuideModalProps) {
             </p>
           </div>
 
-          {/* DOPPELSPRUNG & MUSIK */}
-          <div style={{ background: "#eff6ff", borderLeft: "6px solid #3b82f6", padding: "12px 16px", borderRadius: "8px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
-              <span style={{ fontSize: "20px" }}>🦖🎵</span>
-              <strong style={{ fontSize: "18px", color: "#1d4ed8" }}>Dino Doppelsprung & Musik</strong>
-            </div>
-            <p style={{ margin: "4px 0 0", color: "#333", fontSize: "15px" }}>
-              • <strong>Doppelsprung:</strong> Drücke in der Luft einfach noch einmal auf Springen (W / Pfeil nach oben / Space / A-Knopf),
-              damit Dino einen zweiten Luftsprung ausführt! Ideal für weite Schluchten.<br />
-              • <strong>Musik:</strong> Im Spiel läuft echte Dino-Hintergrundmusik. Mit der Taste <strong>M</strong> kannst du den Ton jederzeit stummschalten.
-            </p>
-          </div>
 
         </div>
 

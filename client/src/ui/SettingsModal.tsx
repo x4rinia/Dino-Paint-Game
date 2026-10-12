@@ -29,6 +29,8 @@ export function SettingsModal({
   }>({ usedBytes: 0, quotaBytes: 0, percentage: 0, persisted: false });
   const [persisting, setPersisting] = useState(false);
 
+  const [tooltipsOn, setTooltipsOn] = useState(true);
+
   useEffect(() => {
     // Einstellungen aus Speicher laden
     getSetting<boolean>("music_enabled", true).then((enabled) => {
@@ -39,6 +41,7 @@ export function SettingsModal({
       setNarratorOn(enabled);
       narrator.setEnabled(enabled);
     });
+    getSetting<boolean>("tooltips_enabled", true).then(setTooltipsOn);
 
     const updateGamepads = () => {
       if (typeof navigator.getGamepads !== "function") return;
@@ -89,6 +92,12 @@ export function SettingsModal({
     setNarratorOn(next);
     narrator.setEnabled(next);
     void setSetting("narrator_enabled", next);
+  };
+
+  const handleToggleTooltips = () => {
+    const next = !tooltipsOn;
+    setTooltipsOn(next);
+    void setSetting("tooltips_enabled", next);
   };
 
   const handleToggleTv = async () => {
@@ -200,6 +209,22 @@ export function SettingsModal({
               onClick={handleToggleNarrator}
             >
               {narratorOn ? "🗣️ Sprache: AN" : "🔇 Sprache: AUS"}
+            </button>
+          </div>
+
+          <div className="setting-row">
+            <div>
+              <strong>Farb-Tooltips im Zeichenstudio</strong>
+              <small style={{ display: "block", color: "#a0a5b5" }}>
+                Erklärungs-Texte beim Bewegen der Maus über die Spielfarben
+              </small>
+            </div>
+            <button
+              className={`button ${tooltipsOn ? "button-primary" : "button-secondary"}`}
+              type="button"
+              onClick={handleToggleTooltips}
+            >
+              {tooltipsOn ? "✓ Tooltips: AN" : "✕ Tooltips: AUS"}
             </button>
           </div>
         </div>

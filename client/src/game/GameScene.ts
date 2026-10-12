@@ -349,9 +349,9 @@ export class GameScene extends Phaser.Scene {
 
       let art: Phaser.GameObjects.Graphics | Phaser.GameObjects.Image;
       if (this.textures.exists("trampoline_mushroom")) {
-        // Natürliche Proportionen des Pilzes mit Feder erhalten (Höhe ~46px, nicht plattgedrückt)
-        const mH = Math.max(42, Math.min(52, bw * 0.75));
-        const mW = mH * 1.05;
+        // Natürliche, wohlproportionierte Maße für den neuen symmetrischen Pilz
+        const mH = Math.max(46, Math.min(56, bw * 0.85));
+        const mW = mH * (174 / 256);
         art = this.add.image(bx, by - (mH - bh) / 2, "trampoline_mushroom").setDisplaySize(mW, mH).setDepth(DEPTH.staticLevel + 2);
       } else {
         const g = this.add.graphics().setDepth(DEPTH.staticLevel + 2);
@@ -588,8 +588,27 @@ export class GameScene extends Phaser.Scene {
     this.player.setAllowDoubleJump(bgTheme === "volcano");
     this.player.onJump = () => this.recorder.addJump(this.time.now);
 
-    // Kollisionen: Spieler mit Plattformen
-    this.physics.add.collider(this.player.rect, this.platforms);
+    // Kollisionen: Spieler mit Plattformen (erlaubt Durchspringen von unten im Jump 'n' Run)
+    this.physics.add.collider(
+      this.player.rect,
+      this.platforms,
+      undefined,
+      (playerObj, platformObj) => {
+        if (this.gameMode !== "jump_n_run") return true;
+        const pBody = (playerObj as Phaser.GameObjects.Rectangle).body as Phaser.Physics.Arcade.Body;
+        const platRect = platformObj as Phaser.GameObjects.Rectangle;
+        const platTop = platRect.y - platRect.displayHeight / 2;
+        // Wenn Dino nach oben springt, kann er komplett durch Plattformen/Wände nach oben hindurchspringen!
+        if (pBody.velocity.y < -5) {
+          return false;
+        }
+        // Erst fest kollidieren, wenn seine Füße oberhalb der Plattform-Oberkante sind
+        if (pBody.bottom > platTop + 14) {
+          return false;
+        }
+        return true;
+      }
+    );
 
     // Kollisionen: Spieler mit grünen Trampolinen (im Labyrinth als Bumper-Rückstoß)
     this.physics.add.collider(this.player.rect, this.bouncers, (_p, bouncerRect) => {
@@ -1265,15 +1284,30 @@ export class GameScene extends Phaser.Scene {
     const isHardImpact = prevVy > 200 || this.cursors?.up.isDown || this.keys?.W.isDown;
     const bounceVelocity = isHardImpact ? BOUNCE_VELOCITY * 1.18 : BOUNCE_VELOCITY * 0.95;
 
+    // Federnde Sprunganimation auf dem Trampolin-Pilz
+    const bouncerId = (bouncerRect as any)?.getData?.("id");
+    const bouncerItem = this.bouncersList.find((b) => b.id === bouncerId);
+    if (bouncerItem?.art) {
+      this.tweens.killTweensOf(bouncerItem.art);
+      this.tweens.add({
+        targets: bouncerItem.art,
+        scaleY: 0.65,
+        scaleX: 1.25,
+        duration: 90,
+        yoyo: true,
+        ease: "Quad.easeOut",
+      });
+    }
+
     const burstY = this.player.bottom;
     this.player.trampolineBounce(bounceVelocity, () => {
       playJump();
       burstParticles(this, this.player.x, burstY, {
         color: INK.green,
-        count: 24,
-        speed: [100, 320],
-        size: 10,
-        duration: 480,
+        count: 18,
+        speed: [80, 240],
+        size: 7,
+        duration: 380,
       });
     });
   }
@@ -1785,20 +1819,7 @@ export class GameScene extends Phaser.Scene {
     const lerp = Math.min(1, dt * 2.2);
     this.windSpeed += (this.targetWindSpeed - this.windSpeed) * lerp;
 
-    // Physikalische Wirkung auf den Dino:
-    // Schiebt Dino je nach Windrichtung sanft nach vorn oder bremst/wirft ihn zurück
-    if (this.player && !this.locked) {
-      const body = this.player.body;
-      const airborne = !this.player.grounded;
-      // Im Jump 'n' Run in der Luft stärker, im Labyrinth stetige feine Brise
-      const windForce =
-        this.gameMode === "rpg_labyrinth"
-          ? this.windSpeed * 0.42
-          : airborne
-          ? this.windSpeed * 0.95
-          : this.windSpeed * 0.55;
-      body.velocity.x += windForce;
-    }
+    // Dschungelwind wirkt als rein visuelles, stimmungsvolles Blätter-Wirbeln (kein Zappeln/Verschieben des Spielers)
 
     // Partikel-Darstellung: Dschungelblätter wirbeln dynamisch mit dem Wind
     if (this.windLeavesGraphics && this.windLeaves.length > 0) {

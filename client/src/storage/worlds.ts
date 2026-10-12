@@ -216,6 +216,25 @@ export const DEFAULT_WORLDS: World[] = [
     createdAt: 1700000000000,
     updatedAt: 1700000000000,
   },
+  {
+    id: "world-paper-4",
+    name: "Welt 4: Klassischer Zeichenblock",
+    theme: "paper",
+    description: "8 liebevoll gezeichnete Doodle-Level mit allen 9 Spielfarben, Rätseln und Action.",
+    icon: "📝",
+    levelIds: [
+      "starter_tutorial",
+      "starter_crates",
+      "starter_spikepath",
+      "starter_vines",
+      "starter_portals",
+      "starter_lifts",
+      "starter_insects",
+      "starter_allcolors",
+    ],
+    createdAt: 1700000000000,
+    updatedAt: 1700000000000,
+  },
 ];
 
 export const BUILTIN_STARTER_MAP: Record<string, Level> = {
