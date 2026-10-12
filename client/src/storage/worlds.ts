@@ -12,6 +12,7 @@ export interface World {
   levelIds: (string | null)[]; // Genau 8 Level-Slots (Index 0 bis 7)
   createdAt: number;
   updatedAt: number;
+  bestTime?: number; // Schnellste Zeit in Millisekunden für den Komplettdurchlauf
 }
 
 // 8 ausgefeilte Standard-Level für Welt 1 (Urzeit-Dschungel)
@@ -323,6 +324,35 @@ export async function deleteWorld(worldId: string): Promise<void> {
   const worlds = await getAllWorlds();
   const filtered = worlds.filter((w) => w.id !== worldId);
   await saveAllWorlds(filtered);
+}
+
+/** Speichert die Bestzeit (Speedrun-Rekord) einer Welt und gibt zurück, ob es ein neuer Rekord ist */
+export async function saveWorldBestTime(
+  worldId: string,
+  timeMs: number
+): Promise<{ isNewRecord: boolean; previousBest?: number }> {
+  const worlds = await getAllWorlds();
+  const w = worlds.find((item) => item.id === worldId);
+  if (!w) return { isNewRecord: false };
+
+  const previousBest = w.bestTime;
+  const isNewRecord = previousBest === undefined || timeMs < previousBest;
+  if (isNewRecord) {
+    w.bestTime = timeMs;
+    w.updatedAt = Date.now();
+    await saveAllWorlds(worlds);
+  }
+  return { isNewRecord, previousBest };
+}
+
+/** Formatiert Millisekunden in ein schönes Zeitformat (MM:SS.s) */
+export function formatWorldTime(ms: number): string {
+  if (!ms || ms <= 0) return "--:--";
+  const totalSecs = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSecs / 60);
+  const seconds = totalSecs % 60;
+  const tenths = Math.floor((ms % 1000) / 100);
+  return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}.${tenths}`;
 }
 
 /** Findet ein Level anhand seiner ID aus Built-in Map oder IndexedDB */

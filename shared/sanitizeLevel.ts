@@ -182,7 +182,8 @@ function sanitizeTeleporter(raw: unknown): Teleporter | null {
 function sanitizeMovingPlatform(raw: unknown): MovingPlatform | null {
   const rect = sanitizeRect<MovingPlatform>(raw);
   if (!rect || !isRecord(raw)) return null;
-  const axis = raw.axis === "vertical" ? "vertical" : "horizontal";
+  const axis =
+    raw.axis === "vertical" ? "vertical" : raw.axis === "alternating" ? "alternating" : "horizontal";
   const distance = typeof raw.distance === "number" ? Math.max(30, clampCoord(raw.distance)) : 180;
   const speed = typeof raw.speed === "number" ? Math.max(20, Math.min(300, raw.speed)) : 80;
   return {

@@ -58,7 +58,7 @@ export const MovingPlatformSchema = z.object({
   y: coord,
   w: coord,
   h: coord,
-  axis: z.enum(["horizontal", "vertical"]).default("horizontal"),
+  axis: z.enum(["horizontal", "vertical", "alternating"]).default("horizontal"),
   distance: z.number().optional().default(180),
   speed: z.number().optional().default(80),
 });

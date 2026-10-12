@@ -33,6 +33,8 @@ export class Player {
   private gameMode: GameMode = "jump_n_run";
   private allowDoubleJump = false;
   private lastGroundedAt = -Infinity;
+  private airborneSince = -Infinity;
+  private wasInAir = false;
   private lastJumpPressedAt = -Infinity;
   private wasJumpDown = false;
   private wasGrounded = true;
@@ -211,11 +213,21 @@ export class Player {
     // 🏃‍♂️ KLASSISCHER JUMP 'N' RUN MODUS (MIT SCHWERKRAFT)
     const grounded = this.grounded;
     if (grounded) {
+      if (this.wasInAir && now - this.airborneSince > 130) {
+        this.playLandSquash();
+      }
       this.lastGroundedAt = now;
       this.canDoubleJump = true;
+      this.wasInAir = false;
+      this.airborneSince = -Infinity;
+    } else {
+      if (this.airborneSince === -Infinity) {
+        this.airborneSince = now;
+      }
+      if (now - this.lastGroundedAt > 85) {
+        this.wasInAir = true;
+      }
     }
-
-    if (!this.wasGrounded && grounded) this.playLandSquash();
 
     if (locked) {
       this.body.setVelocityX(0);
@@ -361,25 +373,27 @@ export class Player {
    */
   draw(tick: number) {
     const { body, rect } = this;
-    if (Math.abs(body.velocity.x) > 35) {
+    if (Math.abs(body.velocity.x) > 65) {
       this.facing = body.velocity.x > 0 ? 1 : -1;
     }
     const hasTexture = this.scene.textures.exists("dino_idle");
     if (hasTexture) {
       this.sprite.setVisible(true);
       this.art.setVisible(false);
-      this.sprite.setPosition(body.center.x, body.center.y - 2);
+      const pose = this.pose();
+      let tex = "dino_idle";
+      let bobY = 0;
+      if (pose.airborne) {
+        tex = "dino_jump";
+      } else if (pose.running) {
+        tex = Math.abs(body.velocity.x) > 220 ? "dino_run" : "dino_walk";
+        bobY = Math.sin(this.scene.time.now * 0.016) * 1.2;
+      }
+      this.sprite.setPosition(body.center.x, body.center.y - 2 + bobY);
       this.sprite.setScale(
         (rect.scaleX * this.facing * 50) / (this.sprite.width || 200),
         (rect.scaleY * 42) / (this.sprite.height || 200)
       );
-      const pose = this.pose();
-      let tex = "dino_idle";
-      if (pose.airborne) {
-        tex = "dino_jump";
-      } else if (pose.running) {
-        tex = Math.floor(tick / 5) % 2 === 0 ? "dino_walk" : "dino_run";
-      }
       if (this.sprite.texture.key !== tex && this.scene.textures.exists(tex)) {
         this.sprite.setTexture(tex);
       }
@@ -406,7 +420,7 @@ export class Player {
       const isRunning = (f.flags & PF_RUNNING) !== 0;
       let tex = "dino_idle";
       if (isAirborne) tex = "dino_jump";
-      else if (isRunning) tex = Math.floor(tick / 5) % 2 === 0 ? "dino_walk" : "dino_run";
+      else if (isRunning) tex = "dino_walk";
       if (this.sprite.texture.key !== tex && this.scene.textures.exists(tex)) {
         this.sprite.setTexture(tex);
       }
@@ -437,10 +451,15 @@ export class Player {
         rising: false,
       };
     }
-    const airborne = !this.grounded;
+    const now = this.scene.time.now;
+    // Grounded-Hysterese: Erst nach 85ms ohne Bodenkontakt oder bei deutlicher Vertikalbewegung als airborne werten
+    const airborne =
+      !this.grounded &&
+      (body.velocity.y < -35 || (now - this.lastGroundedAt > 85 && Math.abs(body.velocity.y) > 25));
     const rising = airborne && body.velocity.y < 0;
+    const running = !airborne && Math.abs(body.velocity.x) > 15;
     return {
-      running: !airborne && Math.abs(body.velocity.x) > 10,
+      running,
       airborne,
       rising,
     };
@@ -467,7 +486,7 @@ export class Player {
 
   private playJumpSquash() {
     this.scene.tweens.killTweensOf(this.rect);
-    this.rect.setScale(0.8, 1.25);
+    this.rect.setScale(0.92, 1.12);
     this.scene.tweens.add({
       targets: this.rect,
       scaleX: 1,
@@ -479,7 +498,7 @@ export class Player {
 
   private playDoubleJumpSquash() {
     this.scene.tweens.killTweensOf(this.rect);
-    this.rect.setScale(0.72, 1.35);
+    this.rect.setScale(0.88, 1.18);
     this.scene.tweens.add({
       targets: this.rect,
       scaleX: 1,
@@ -491,7 +510,7 @@ export class Player {
 
   private playLandSquash() {
     this.scene.tweens.killTweensOf(this.rect);
-    this.rect.setScale(1.25, 0.75);
+    this.rect.setScale(1.1, 0.92);
     this.scene.tweens.add({
       targets: this.rect,
       scaleX: 1,

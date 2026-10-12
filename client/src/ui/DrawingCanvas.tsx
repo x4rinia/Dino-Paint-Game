@@ -68,7 +68,6 @@ export function DrawingCanvas({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  const [activeMode, setActiveMode] = useState<"jump_n_run" | "rpg_labyrinth">(gameMode);
   const [tool, setTool] = useState<Tool>("black");
   const [brushSize, setBrushSize] = useState<number>(14);
   const [canUndo, setCanUndo] = useState(false);
@@ -408,7 +407,7 @@ export function DrawingCanvas({
     const isJungle = backgroundTheme === "jungle";
     const choice = Math.floor(Math.random() * 3);
 
-    if (activeMode === "rpg_labyrinth") {
+    if (gameMode === "rpg_labyrinth") {
       // 🧭 RPG MAKER / TOP-DOWN LABYRINTH MODUS
       // Stabile dicke Außenmauern
       drawSolidRect(20, 20, 1240, 24, "#1d1d24"); // Oben
@@ -637,7 +636,7 @@ export function DrawingCanvas({
 
     saveHistory();
     setSaveToast(
-      activeMode === "rpg_labyrinth"
+      gameMode === "rpg_labyrinth"
         ? "🧭 Neues RPG-Labyrinth gezeichnet! (4-Wege-Steuerung)"
         : isJungle
         ? "🌴 Dschungel-Level gezeichnet! (Wind & Lianen)"

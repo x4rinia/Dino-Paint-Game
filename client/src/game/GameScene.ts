@@ -92,7 +92,7 @@ type MovingPlatformEntity = {
   startY: number;
   w: number;
   h: number;
-  axis: "horizontal" | "vertical";
+  axis: "horizontal" | "vertical" | "alternating";
   distance: number;
   speed: number;
   id: string;
@@ -491,7 +491,7 @@ export class GameScene extends Phaser.Scene {
 
       this.movingPlatformsGroup.add(rect);
 
-      const distPx = mp.axis === "horizontal" ? sx(mp.distance ?? 140) : sy(mp.distance ?? 140);
+      const distPx = mp.axis === "vertical" ? sy(mp.distance ?? 140) : sx(mp.distance ?? 140);
 
       this.movingPlatformsList.push({
         rect,
@@ -501,7 +501,7 @@ export class GameScene extends Phaser.Scene {
         startY: my,
         w: mw,
         h: mh,
-        axis: mp.axis ?? (mw >= mh ? "horizontal" : "vertical"),
+        axis: mp.axis ?? (Math.abs(mw - mh) / Math.max(mw, mh) <= 0.28 ? "alternating" : mw >= mh ? "horizontal" : "vertical"),
         distance: Math.max(50, distPx),
         speed: mp.speed ? mp.speed / 50 : 1.4,
         id: mp.id,
@@ -918,8 +918,25 @@ export class GameScene extends Phaser.Scene {
       const phase = ((time / 1000) % cycleDuration) / cycleDuration;
       const offset = Math.sin(phase * Math.PI * 2) * (travelDist * 0.5);
 
-      const targetX = mp.axis === "horizontal" ? mp.startX + offset : mp.startX;
-      const targetY = mp.axis === "vertical" ? mp.startY + offset : mp.startY;
+      let targetX = mp.startX;
+      let targetY = mp.startY;
+
+      if (mp.axis === "horizontal") {
+        targetX = mp.startX + offset;
+      } else if (mp.axis === "vertical") {
+        targetY = mp.startY + offset;
+      } else {
+        // Quadratischer Lift: Fährt beides im Wechsel (horizontal und vertikal)!
+        if (phase < 0.5) {
+          const subPhase = phase * 2;
+          targetX = mp.startX + Math.sin(subPhase * Math.PI * 2) * (travelDist * 0.5);
+          targetY = mp.startY;
+        } else {
+          const subPhase = (phase - 0.5) * 2;
+          targetX = mp.startX;
+          targetY = mp.startY + Math.sin(subPhase * Math.PI * 2) * (travelDist * 0.5);
+        }
+      }
 
       const prevX = mp.rect.x;
       const prevY = mp.rect.y;
@@ -1214,7 +1231,7 @@ export class GameScene extends Phaser.Scene {
     w: number,
     h: number,
     id: string,
-    axis: "horizontal" | "vertical"
+    axis: "horizontal" | "vertical" | "alternating"
   ) {
     const rng = seededFor(id || "lift");
     const halfW = w / 2;
@@ -1258,7 +1275,7 @@ export class GameScene extends Phaser.Scene {
       g.moveTo(-span + arrowSize, 0);
       g.lineTo(span - arrowSize, 0);
       g.strokePath();
-    } else {
+    } else if (axis === "vertical") {
       // Pfeile nach oben und unten (▲ ▼)
       const span = Math.min(halfH * 0.6, 24);
       // Pfeil oben
@@ -1283,6 +1300,50 @@ export class GameScene extends Phaser.Scene {
       g.beginPath();
       g.moveTo(0, -span + arrowSize);
       g.lineTo(0, span - arrowSize);
+      g.strokePath();
+    } else {
+      // Quadratischer Lift (Alternierend): 4-Wege-Kreuzpfeil (◄ ▲ ▼ ►)
+      const spanX = Math.min(halfW * 0.6, 18);
+      const spanY = Math.min(halfH * 0.6, 18);
+      g.fillStyle(arrowColor, 0.9);
+
+      // Links & Rechts
+      g.beginPath();
+      g.moveTo(-spanX, 0);
+      g.lineTo(-spanX + arrowSize * 0.6, -arrowSize * 0.5);
+      g.lineTo(-spanX + arrowSize * 0.6, arrowSize * 0.5);
+      g.closePath();
+      g.fillPath();
+
+      g.beginPath();
+      g.moveTo(spanX, 0);
+      g.lineTo(spanX - arrowSize * 0.6, -arrowSize * 0.5);
+      g.lineTo(spanX - arrowSize * 0.6, arrowSize * 0.5);
+      g.closePath();
+      g.fillPath();
+
+      // Oben & Unten
+      g.beginPath();
+      g.moveTo(0, -spanY);
+      g.lineTo(-arrowSize * 0.5, -spanY + arrowSize * 0.6);
+      g.lineTo(arrowSize * 0.5, -spanY + arrowSize * 0.6);
+      g.closePath();
+      g.fillPath();
+
+      g.beginPath();
+      g.moveTo(0, spanY);
+      g.lineTo(-arrowSize * 0.5, spanY - arrowSize * 0.6);
+      g.lineTo(arrowSize * 0.5, spanY - arrowSize * 0.6);
+      g.closePath();
+      g.fillPath();
+
+      // Kreuz
+      g.lineStyle(2, arrowColor, 0.85);
+      g.beginPath();
+      g.moveTo(-spanX + arrowSize * 0.5, 0);
+      g.lineTo(spanX - arrowSize * 0.5, 0);
+      g.moveTo(0, -spanY + arrowSize * 0.5);
+      g.lineTo(0, spanY - arrowSize * 0.5);
       g.strokePath();
     }
 

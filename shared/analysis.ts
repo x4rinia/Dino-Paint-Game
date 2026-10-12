@@ -760,13 +760,28 @@ export function analyzeDrawing(
         });
       } else if (comp.color === 7) {
         // Braun -> Bewegliche Plattform / Lift:
-        // Breiter als hoch: fährt links <-> rechts
-        // Höher als breit: fährt hoch <-> runter
+        // - Breiter als hoch (Rechteck): fährt links <-> rechts
+        // - Höher als breit (Rechteck): fährt hoch <-> runter
+        // - Quadratisch: fährt beides im Wechsel!
         const rw = Math.round(r.w);
         const rh = Math.round(r.h);
-        const isHorizontal = rw >= rh;
-        const axis = isHorizontal ? "horizontal" : "vertical";
-        const distance = Math.min(260, Math.max(120, Math.round((isHorizontal ? rw : rh) * 1.5)));
+        const maxDim = Math.max(rw, rh);
+        const minDim = Math.max(1, Math.min(rw, rh));
+        const aspect = maxDim / minDim;
+
+        let axis: "horizontal" | "vertical" | "alternating" = "horizontal";
+        if (aspect <= 1.28) {
+          // Quadrat -> Fährt beides im Wechsel!
+          axis = "alternating";
+        } else if (rw > rh) {
+          // Breites Rechteck -> Fährt horizontal
+          axis = "horizontal";
+        } else {
+          // Hohes Rechteck -> Fährt vertikal
+          axis = "vertical";
+        }
+
+        const distance = Math.min(280, Math.max(120, Math.round(maxDim * 1.5)));
         movingPlatforms.push({
           id: `lift-${liftId++}`,
           x: Math.round(r.x),

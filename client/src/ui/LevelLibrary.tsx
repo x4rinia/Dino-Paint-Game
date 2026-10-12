@@ -14,11 +14,13 @@ import {
   setWorldLevelSlot,
   deleteWorld,
   resolveLevelById,
+  formatWorldTime,
   type World,
 } from "../storage/worlds";
 
 interface LevelLibraryProps {
-  onPlayLevel: (level: Level, drawingDataUrl?: string, worldContext?: { world: World; levelIndex: number }) => void;
+  onPlayLevel: (level: Level, drawingDataUrl?: string) => void;
+  onStartWorldCampaign: (world: World, sequenceOrder: number[]) => void;
   onEditDrawing: (dataUrl: string) => void;
   onBackToMenu: () => void;
   initialTab?: "worlds" | "levels";
@@ -26,6 +28,7 @@ interface LevelLibraryProps {
 
 export function LevelLibrary({
   onPlayLevel,
+  onStartWorldCampaign,
   onEditDrawing,
   onBackToMenu,
   initialTab = "worlds",
@@ -218,18 +221,26 @@ export function LevelLibrary({
     onPlayLevel(fullLevel, fullImage);
   };
 
-  // Starte das Spielen einer Welt ab einem bestimmten Slot (0 bis 7)
-  const playWorldAtSlot = async (slotIndex: number) => {
+  // Startet die Kampagne der aktiven Welt: Zufällige Reihenfolge durch alle belegten Level!
+  const handleStartCampaign = () => {
     if (!activeWorld) return;
-    const levelToPlay = worldResolvedLevels[slotIndex];
-    if (!levelToPlay) {
-      alert(`Level ${slotIndex + 1} ist in dieser Welt noch nicht belegt! Bitte verbinde erst ein Level mit diesem Slot.`);
+    const occupiedSlots: number[] = [];
+    for (let i = 0; i < 8; i++) {
+      if (activeWorld.levelIds[i]) {
+        occupiedSlots.push(i);
+      }
+    }
+    if (occupiedSlots.length === 0) {
+      alert("Diese Welt hat noch keine verbundenen Level! Bitte weise zuerst mindestens ein Level zu.");
       return;
     }
-    onPlayLevel(levelToPlay, (levelToPlay as any).originalImage, {
-      world: activeWorld,
-      levelIndex: slotIndex,
-    });
+    // Zufälliges Mischen der Level (Startet mit einem random Level und spielt alle durch!)
+    const shuffled = [...occupiedSlots];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    onStartWorldCampaign(activeWorld, shuffled);
   };
 
   const handleAssignLevelToSlot = async (lvl: SavedLevelItem) => {
@@ -404,21 +415,39 @@ export function LevelLibrary({
                   <p style={{ margin: 0, color: "#475569", fontSize: "0.95rem" }}>
                     {activeWorld.description}
                   </p>
+                  <div style={{ marginTop: "8px", display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
+                    <span
+                      style={{
+                        fontSize: "0.88rem",
+                        color: "#047857",
+                        background: "#d1fae5",
+                        border: "1px solid #a7f3d0",
+                        padding: "3px 10px",
+                        borderRadius: "20px",
+                        fontWeight: 700,
+                      }}
+                    >
+                      🏆 Rekordzeit: {formatWorldTime(activeWorld.bestTime || 0)}
+                    </span>
+                    <span style={{ fontSize: "0.85rem", color: "#64748b" }}>
+                      {activeWorld.levelIds.filter(Boolean).length} von 8 Leveln zugewiesen
+                    </span>
+                  </div>
                 </div>
 
                 <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
                   <button
                     type="button"
                     className="button button-primary"
-                    onClick={() => playWorldAtSlot(0)}
+                    onClick={handleStartCampaign}
                     style={{
                       fontSize: "1.1rem",
-                      padding: "10px 22px",
+                      padding: "12px 24px",
                       fontWeight: "bold",
                       boxShadow: "0 6px 14px rgba(16, 185, 129, 0.4)",
                     }}
                   >
-                    ▶️ Welt spielen (ab Level 1)
+                    ▶️ Welt spielen (Zufällige Reihenfolge)
                   </button>
 
                   <button
@@ -539,7 +568,7 @@ export function LevelLibrary({
                         </strong>
                         <span style={{ fontSize: "0.82rem", color: "#64748b" }}>
                           {resolved
-                            ? `${resolved.platforms?.length ?? 0} Plattformen, ${resolved.collectibles?.length ?? 0} Eier`
+                            ? `${resolved.platforms?.length ?? 0} Plattformen, ${resolved.collectibles?.length ?? 0} Münzen`
                             : "Slot ist noch frei"}
                         </span>
                       </div>
@@ -549,27 +578,19 @@ export function LevelLibrary({
                           <>
                             <button
                               type="button"
-                              className="button button-primary"
-                              onClick={() => playWorldAtSlot(index)}
-                              style={{ flex: 1, padding: "6px 10px", fontSize: "0.88rem" }}
-                            >
-                              ▶ Spielen
-                            </button>
-                            <button
-                              type="button"
                               className="button button-secondary"
                               onClick={() => setAssigningSlot(index)}
-                              title="Anderes Level mit diesem Slot verbinden"
-                              style={{ padding: "6px 10px", fontSize: "0.88rem" }}
+                              title="Anderes Level für diesen Slot auswählen"
+                              style={{ flex: 1, padding: "8px 12px", fontSize: "0.88rem", fontWeight: 600 }}
                             >
-                              🔗
+                              🔗 Level ändern
                             </button>
                             <button
                               type="button"
-                              className="button button-secondary"
+                              className="button button-danger-small"
                               onClick={() => handleClearSlot(index)}
-                              title="Slot leeren"
-                              style={{ padding: "6px 10px", fontSize: "0.88rem", color: "#dc2626" }}
+                              title="Level aus diesem Slot entfernen"
+                              style={{ width: "36px", height: "36px", padding: 0 }}
                             >
                               ✕
                             </button>
@@ -579,9 +600,9 @@ export function LevelLibrary({
                             type="button"
                             className="button button-secondary"
                             onClick={() => setAssigningSlot(index)}
-                            style={{ width: "100%", padding: "8px", fontSize: "0.9rem", fontWeight: "bold" }}
+                            style={{ width: "100%", padding: "9px", fontSize: "0.9rem", fontWeight: "bold" }}
                           >
-                            ➕ Level verbinden
+                            ➕ Level zuweisen
                           </button>
                         )}
                       </div>

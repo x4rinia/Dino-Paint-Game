@@ -16,7 +16,7 @@ import { setMusicEnabled, installAudioUnlock, startBgMusic, pauseBgMusic, isMusi
 import { narrator } from "../game/narrator";
 import { BACKGROUND_THEMES, type BackgroundTheme } from "../game/paper";
 import type { GameMode } from "../game/Player";
-import { resolveLevelById, type World } from "../storage/worlds";
+import { resolveLevelById, saveWorldBestTime, formatWorldTime, type World } from "../storage/worlds";
 import "./App.css";
 
 type Screen = "menu" | "draw" | "camera" | "library" | "playing";
@@ -116,14 +116,35 @@ export function App() {
   const [gameMode, setGameModeState] = useState<GameMode>("jump_n_run");
   const [gamepadSwapAB, setGamepadSwapAB] = useState(false);
 
-  // 8-Level-Welten-System
-  const [activeWorldContext, setActiveWorldContext] = useState<{ world: World; levelIndex: number } | null>(null);
-  const [worldWinStatus, setWorldWinStatus] = useState<{
+  // Kampagnen-System für Welten (Zufälliger Start, Zeiterfassung & Anfangs-/Endsequenzen)
+  const [worldCampaign, setWorldCampaign] = useState<{
     world: World;
-    completedSlot: number;
-    nextSlot: number;
-    isComplete: boolean;
+    sequenceOrder: number[];
+    currentStep: number;
+    startTime: number;
   } | null>(null);
+  const [worldIntroCampaign, setWorldIntroCampaign] = useState<{
+    world: World;
+    sequenceOrder: number[];
+  } | null>(null);
+  const [worldOutroStatus, setWorldOutroStatus] = useState<{
+    world: World;
+    totalTimeMs: number;
+    isNewRecord: boolean;
+    previousBest?: number;
+  } | null>(null);
+  const [campaignTimerMs, setCampaignTimerMs] = useState(0);
+
+  useEffect(() => {
+    if (!worldCampaign || screen !== "playing") {
+      setCampaignTimerMs(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setCampaignTimerMs(Date.now() - worldCampaign.startTime);
+    }, 100);
+    return () => clearInterval(interval);
+  }, [worldCampaign, screen]);
 
   const gameContainerRef = useRef<HTMLDivElement | null>(null);
   const gameHandleRef = useRef<ReturnType<typeof mountGame> | null>(null);
@@ -266,48 +287,72 @@ export function App() {
     return unsub;
   }, [currentLevel, currentDrawingUrl]);
 
-  // Sieg in einem Level: Prüfe ob wir uns in einer 8-Level-Welt befinden
+  // Sieg in einem Level: Kampagnen-Fortschritt oder Welt-Vollendung
   useEffect(() => {
-    const unsub = gameEvents.on("win", () => {
-      if (activeWorldContext) {
-        const nextSlot = activeWorldContext.levelIndex + 1;
-        const isComplete = nextSlot >= 8;
-        setWorldWinStatus({
-          world: activeWorldContext.world,
-          completedSlot: activeWorldContext.levelIndex,
-          nextSlot,
-          isComplete,
-        });
+    const unsub = gameEvents.on("win", async () => {
+      if (worldCampaign) {
+        const nextStep = worldCampaign.currentStep + 1;
+        if (nextStep < worldCampaign.sequenceOrder.length) {
+          // Nächstes zufälliges Level in der Welt laden
+          const nextSlot = worldCampaign.sequenceOrder[nextStep];
+          const nextLevelId = worldCampaign.world.levelIds[nextSlot];
+          const nextLevel = nextLevelId ? await resolveLevelById(nextLevelId) : null;
+          if (nextLevel) {
+            setWorldCampaign((prev) => (prev ? { ...prev, currentStep: nextStep } : null));
+            handleStartPlaying(nextLevel, (nextLevel as any).originalImage);
+          } else {
+            setScreen("library");
+            setWorldCampaign(null);
+          }
+        } else {
+          // 🎉 WELT VOLLENDET! Triumph-Endsequenz & Rekord-Speicherung
+          const totalTimeMs = Date.now() - worldCampaign.startTime;
+          const result = await saveWorldBestTime(worldCampaign.world.id, totalTimeMs);
+          setWorldOutroStatus({
+            world: worldCampaign.world,
+            totalTimeMs,
+            isNewRecord: result.isNewRecord,
+            previousBest: result.previousBest,
+          });
+          setWorldCampaign(null);
+        }
       }
     });
     return unsub;
-  }, [activeWorldContext]);
+  }, [worldCampaign]);
 
-  const handlePlayNextWorldLevel = async () => {
-    if (!worldWinStatus) return;
-    const { world, nextSlot } = worldWinStatus;
-    if (nextSlot < 8) {
-      const nextLevelId = world.levelIds[nextSlot];
-      const nextLevel = nextLevelId ? await resolveLevelById(nextLevelId) : null;
-      if (nextLevel) {
-        handleStartPlaying(nextLevel, (nextLevel as any).originalImage, {
-          world,
-          levelIndex: nextSlot,
-        });
-      } else {
-        alert(`Slot ${nextSlot + 1} ist noch nicht belegt! Öffne die Bibliothek, um ein Level zuzuweisen.`);
-        setScreen("library");
-      }
-    } else {
-      setScreen("library");
+  const handleStartWorldCampaign = (world: World, sequenceOrder: number[]) => {
+    setWorldIntroCampaign({ world, sequenceOrder });
+  };
+
+  const handleConfirmStartCampaign = async () => {
+    if (!worldIntroCampaign) return;
+    const { world, sequenceOrder } = worldIntroCampaign;
+    setWorldIntroCampaign(null);
+    setWorldOutroStatus(null);
+    // Erzwungenes Jump 'n' Run beim Spielen der Welten!
+    setGameModeState("jump_n_run");
+    setSelectedBackground(world.theme);
+
+    const firstSlot = sequenceOrder[0];
+    const firstLevelId = world.levelIds[firstSlot];
+    const firstLevel = firstLevelId ? await resolveLevelById(firstLevelId) : null;
+    if (!firstLevel) {
+      alert("Fehler beim Laden des Levels!");
+      return;
     }
-    setWorldWinStatus(null);
+    setWorldCampaign({
+      world,
+      sequenceOrder,
+      currentStep: 0,
+      startTime: Date.now(),
+    });
+    handleStartPlaying(firstLevel, (firstLevel as any).originalImage);
   };
 
   const handleStartPlaying = (
     level: Level,
-    drawingDataUrl?: string,
-    worldContext?: { world: World; levelIndex: number }
+    drawingDataUrl?: string
   ) => {
     setCurrentLevel(level);
     const imgUrl = drawingDataUrl || (level as any).originalImage;
@@ -315,12 +360,6 @@ export function App() {
     if (imgUrl) {
       setInitialDrawingForStudio(imgUrl);
     }
-    if (worldContext) {
-      setActiveWorldContext(worldContext);
-    } else {
-      setActiveWorldContext(null);
-    }
-    setWorldWinStatus(null);
     setScreen("playing");
   };
 
@@ -341,6 +380,163 @@ export function App() {
     });
     setSaveSuccessMsg(true);
     setTimeout(() => setSaveSuccessMsg(false), 2500);
+  };
+
+  const renderWorldIntroModal = () => {
+    if (!worldIntroCampaign) return null;
+    const { world, sequenceOrder } = worldIntroCampaign;
+    return (
+      <div className="modal-backdrop" style={{ zIndex: 10000 }}>
+        <div className="modal-box" style={{ maxWidth: "520px", textAlign: "center", padding: "32px 28px" }}>
+          <div style={{ fontSize: "3.6rem", marginBottom: "8px" }}>{world.icon}🦖🚀</div>
+          <h2 style={{ color: "#2563eb", fontSize: "1.9rem", marginBottom: "8px" }}>
+            Welt: {world.name}
+          </h2>
+          <p style={{ fontSize: "1.05rem", color: "#4b5563", marginBottom: "16px" }}>
+            {world.description}
+          </p>
+          <div
+            style={{
+              background: "linear-gradient(135deg, rgba(37,99,235,0.08), rgba(245,158,11,0.08))",
+              border: "1px solid rgba(37,99,235,0.2)",
+              borderRadius: "16px",
+              padding: "16px 20px",
+              marginBottom: "22px",
+              textAlign: "left",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                fontWeight: "bold",
+                color: "#1e3a8a",
+                marginBottom: "6px",
+              }}
+            >
+              <span>🎯 Kampagnen-Ziel:</span>
+              <span>Alle {sequenceOrder.length} Level durchspielen!</span>
+            </div>
+            <div style={{ fontSize: "0.92rem", color: "#374151", marginBottom: "10px" }}>
+              🎲 <strong>Zufälliger Start:</strong> Die Level-Reihenfolge wird für diesen Durchlauf zufällig gemischt!
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.95rem", color: "#92400e" }}>
+              <span>⏱️ Aktuelle Bestzeit:</span>
+              <strong>{world.bestTime ? formatWorldTime(world.bestTime) : "Noch kein Rekord – sei der Erste!"}</strong>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+            <button
+              className="button button-primary"
+              type="button"
+              onClick={handleConfirmStartCampaign}
+              style={{ fontSize: "1.15rem", padding: "14px 28px", fontWeight: "bold" }}
+            >
+              🚀 Welt jetzt starten!
+            </button>
+            <button
+              className="button button-secondary"
+              type="button"
+              onClick={() => setWorldIntroCampaign(null)}
+            >
+              ✕ Abbrechen
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderWorldOutroModal = () => {
+    if (!worldOutroStatus) return null;
+    const { world, totalTimeMs, isNewRecord, previousBest } = worldOutroStatus;
+    return (
+      <div className="modal-backdrop" style={{ zIndex: 10000 }}>
+        <div className="modal-box" style={{ maxWidth: "520px", textAlign: "center", padding: "36px 30px" }}>
+          <div style={{ fontSize: "4.2rem", marginBottom: "8px" }}>
+            🏆🎉🦖👑
+          </div>
+          <h2 style={{ color: "#16a34a", fontSize: "2rem", marginBottom: "10px" }}>
+            Welt gemeistert!
+          </h2>
+          <p style={{ fontSize: "1.1rem", color: "#374151", marginBottom: "20px" }}>
+            Herzlichen Glückwunsch! Du hast die gesamte Welt <strong>„{world.name}“</strong> bezwungen!
+          </p>
+
+          <div
+            style={{
+              background: isNewRecord
+                ? "linear-gradient(135deg, rgba(234, 179, 8, 0.2), rgba(245, 158, 11, 0.1))"
+                : "rgba(243, 244, 246, 0.8)",
+              border: isNewRecord ? "2px solid #f59e0b" : "1px solid #d1d5db",
+              borderRadius: "16px",
+              padding: "20px",
+              marginBottom: "24px",
+            }}
+          >
+            {isNewRecord && (
+              <div style={{ color: "#b45309", fontWeight: "bold", fontSize: "1.2rem", marginBottom: "8px" }}>
+                👑 NEUER WELTREKORD! 👑
+              </div>
+            )}
+            <div
+              style={{
+                fontSize: "2.2rem",
+                fontWeight: "900",
+                color: "#1f2937",
+                fontFamily: "monospace",
+                letterSpacing: "1px",
+              }}
+            >
+              ⏱️ {formatWorldTime(totalTimeMs)}
+            </div>
+            {previousBest && isNewRecord && (
+              <div style={{ fontSize: "0.95rem", color: "#059669", marginTop: "4px" }}>
+                Vorherige Bestzeit: {formatWorldTime(previousBest)}
+              </div>
+            )}
+            {!isNewRecord && world.bestTime && (
+              <div style={{ fontSize: "0.95rem", color: "#6b7280", marginTop: "4px" }}>
+                Aktuelle Bestzeit: {formatWorldTime(world.bestTime)}
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
+            <button
+              className="button button-primary"
+              type="button"
+              onClick={() => {
+                setWorldOutroStatus(null);
+                const occupied: number[] = [];
+                world.levelIds.forEach((id, idx) => {
+                  if (id) occupied.push(idx);
+                });
+                for (let i = occupied.length - 1; i > 0; i--) {
+                  const j = Math.floor(Math.random() * (i + 1));
+                  [occupied[i], occupied[j]] = [occupied[j], occupied[i]];
+                }
+                handleStartWorldCampaign(world, occupied);
+              }}
+              style={{ fontSize: "1.1rem", padding: "12px 24px" }}
+            >
+              🔄 Nochmal versuchen (Rekord jagen)
+            </button>
+            <button
+              className="button button-secondary"
+              type="button"
+              onClick={() => {
+                setWorldOutroStatus(null);
+                setScreen("library");
+              }}
+            >
+              📚 Zurück zur Welten-Auswahl
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   // 1. DIGITALES ZEICHENSTUDIO
@@ -408,11 +604,16 @@ export function App() {
   // 3. MEINE SPIELE (BIBLIOTHEK)
   if (screen === "library") {
     return (
-      <LevelLibrary
-        onPlayLevel={handleStartPlaying}
-        onEditDrawing={handleEditDrawing}
-        onBackToMenu={() => setScreen("menu")}
-      />
+      <>
+        <LevelLibrary
+          onPlayLevel={handleStartPlaying}
+          onEditDrawing={handleEditDrawing}
+          onBackToMenu={() => setScreen("menu")}
+          onStartWorldCampaign={handleStartWorldCampaign}
+        />
+        {worldIntroCampaign && renderWorldIntroModal()}
+        {worldOutroStatus && renderWorldOutroModal()}
+      </>
     );
   }
 
@@ -423,11 +624,36 @@ export function App() {
         <header className="game-play-nav">
           <div className="nav-level-info">
             <span className="eyebrow">
-              {activeWorldContext
-                ? `🌍 Welt: ${activeWorldContext.world.name} (Level ${activeWorldContext.levelIndex + 1}/8)`
+              {worldCampaign
+                ? `🌍 Welt: ${worldCampaign.world.name} (Level ${worldCampaign.currentStep + 1}/${worldCampaign.sequenceOrder.length})`
                 : "Dino spielt:"}
             </span>
-            <h1 className="nav-level-name">{currentLevel?.name || "Level"}</h1>
+            <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
+              <h1 className="nav-level-name">{currentLevel?.name || "Level"}</h1>
+              {worldCampaign && (
+                <div
+                  style={{
+                    background: "rgba(245, 158, 11, 0.15)",
+                    border: "2px solid #f59e0b",
+                    color: "#b45309",
+                    fontWeight: 800,
+                    borderRadius: "20px",
+                    padding: "3px 12px",
+                    fontSize: "1.05rem",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <span>⏱️ {formatWorldTime(campaignTimerMs)}</span>
+                  {worldCampaign.world.bestTime && (
+                    <span style={{ fontSize: "0.82rem", opacity: 0.85, fontWeight: "normal" }}>
+                      (Rekord: {formatWorldTime(worldCampaign.world.bestTime)})
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
           <div className="nav-play-buttons">
             <button
@@ -486,65 +712,8 @@ export function App() {
 
         <div className={`game-stage-container bg-stage-${selectedBackground}`} ref={gameContainerRef} />
 
-        {/* 8-Level-Welt: Fortschritts-Dialog bei Level-Sieg */}
-        {worldWinStatus && (
-          <div className="modal-backdrop" style={{ zIndex: 10000 }}>
-            <div className="modal-box" style={{ maxWidth: "480px", textAlign: "center", padding: "32px 28px" }}>
-              {worldWinStatus.isComplete ? (
-                <>
-                  <div style={{ fontSize: "3.8rem", marginBottom: "8px" }}>🏆🎉🦖</div>
-                  <h2 style={{ color: "#2563eb", fontSize: "1.8rem", marginBottom: "10px" }}>Welt gemeistert!</h2>
-                  <p style={{ fontSize: "1.1rem", color: "#374151", marginBottom: "24px" }}>
-                    Fantastisch! Du hast alle <strong>8 Level</strong> der Welt <strong>„{worldWinStatus.world.name}“</strong> erfolgreich abgeschlossen!
-                  </p>
-                  <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
-                    <button
-                      className="button button-primary"
-                      type="button"
-                      onClick={() => {
-                        setWorldWinStatus(null);
-                        setScreen("library");
-                      }}
-                      style={{ fontSize: "1.1rem", padding: "12px 24px" }}
-                    >
-                      🌍 Zurück zur Welten-Auswahl
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div style={{ fontSize: "3.6rem", marginBottom: "8px" }}>🌟⭐🦖</div>
-                  <h2 style={{ color: "#16a34a", fontSize: "1.8rem", marginBottom: "10px" }}>
-                    Level {worldWinStatus.completedSlot + 1} von 8 geschafft!
-                  </h2>
-                  <p style={{ fontSize: "1.05rem", color: "#374151", marginBottom: "24px" }}>
-                    Großartig gemeistert! Bereit für das nächste Abenteuer in <strong>„{worldWinStatus.world.name}“</strong>?
-                  </p>
-                  <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
-                    <button
-                      className="button button-primary"
-                      type="button"
-                      onClick={handlePlayNextWorldLevel}
-                      style={{ fontSize: "1.15rem", padding: "14px 28px", fontWeight: "bold" }}
-                    >
-                      ▶ Nächstes Level ({worldWinStatus.nextSlot + 1}/8) spielen
-                    </button>
-                    <button
-                      className="button button-secondary"
-                      type="button"
-                      onClick={() => {
-                        setWorldWinStatus(null);
-                        setScreen("library");
-                      }}
-                    >
-                      🌍 Welten-Übersicht
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        )}
+        {worldIntroCampaign && renderWorldIntroModal()}
+        {worldOutroStatus && renderWorldOutroModal()}
       </main>
     );
   }
