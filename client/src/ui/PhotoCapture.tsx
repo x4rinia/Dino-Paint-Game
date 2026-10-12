@@ -6,10 +6,11 @@ import type { BackgroundTheme } from "../game/paper";
 interface PhotoCaptureProps {
   onPlayLevel: (level: Level, drawingDataUrl: string) => void;
   onBackToMenu: () => void;
+  onCancel?: () => void;
   backgroundTheme?: BackgroundTheme;
 }
 
-export function PhotoCapture({ onPlayLevel, onBackToMenu, backgroundTheme }: PhotoCaptureProps) {
+export function PhotoCapture({ onPlayLevel, onBackToMenu, onCancel, backgroundTheme }: PhotoCaptureProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
@@ -269,8 +270,14 @@ export function PhotoCapture({ onPlayLevel, onBackToMenu, backgroundTheme }: Pho
   return (
     <div className="photo-capture-page">
       <header className="studio-header">
-        <button className="button button-secondary" type="button" onClick={onBackToMenu}>
-          ◀ Menü
+        <button
+          className="button button-secondary"
+          type="button"
+          onClick={onCancel || onBackToMenu}
+          title="Foto-Scan abbrechen und zum Editor zurückkehren"
+          style={{ fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "6px" }}
+        >
+          ✖ Abbrechen
         </button>
         <div className="studio-title">
           <h2>Foto aufnehmen & importieren</h2>
@@ -385,6 +392,20 @@ export function PhotoCapture({ onPlayLevel, onBackToMenu, backgroundTheme }: Pho
                 onClick={startCamera}
               >
                 📹 Live-Kamera im Browser öffnen
+              </button>
+
+              <button
+                className="button button-secondary"
+                type="button"
+                onClick={onCancel || onBackToMenu}
+                style={{
+                  marginTop: "8px",
+                  borderColor: "rgba(239, 68, 68, 0.4)",
+                  color: "#fca5a5",
+                  fontWeight: 600,
+                }}
+              >
+                ✖ Abbrechen & zurück zum Editor
               </button>
             </div>
           </div>

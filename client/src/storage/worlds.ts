@@ -275,8 +275,8 @@ export async function createNewWorld(name: string, theme: BackgroundTheme = "pap
     id: `world-custom-${Date.now()}`,
     name: name.trim() || `Eigene Welt ${worlds.length + 1}`,
     theme,
-    description: "Deine persönliche 8-Level-Welt mit selbst gezeichneten Leveln.",
-    icon: theme === "jungle" ? "🌴" : theme === "volcano" ? "🌋" : theme === "space" ? "🚀" : "🎨",
+    description: "8 zusammenhängende Level für dein persönliches Dino-Abenteuer.",
+    icon: "🌍",
     levelIds: [
       "starter_tutorial",
       "starter_spikepath",

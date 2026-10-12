@@ -310,9 +310,6 @@ export function App() {
     }
     if (worldContext) {
       setActiveWorldContext(worldContext);
-      if (worldContext.world.theme) {
-        setSelectedBackground(worldContext.world.theme);
-      }
     } else {
       setActiveWorldContext(null);
     }
@@ -392,7 +389,8 @@ export function App() {
     return (
       <PhotoCapture
         onPlayLevel={handleStartPlaying}
-        onBackToMenu={() => setScreen("menu")}
+        onBackToMenu={() => setScreen("draw")}
+        onCancel={() => setScreen("draw")}
         backgroundTheme={selectedBackground}
       />
     );

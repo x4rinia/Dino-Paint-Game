@@ -41,7 +41,6 @@ export function LevelLibrary({
   const [assigningSlot, setAssigningSlot] = useState<number | null>(null);
   const [showCreateWorldModal, setShowCreateWorldModal] = useState(false);
   const [newWorldName, setNewWorldName] = useState("");
-  const [newWorldTheme, setNewWorldTheme] = useState<"jungle" | "volcano" | "space" | "paper">("jungle");
   const [worldResolvedLevels, setWorldResolvedLevels] = useState<Record<number, Level | null>>({});
   const [importSuccessMsg, setImportSuccessMsg] = useState<string | null>(null);
 
@@ -249,7 +248,7 @@ export function LevelLibrary({
   const handleCreateWorldSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newWorldName.trim()) return;
-    const created = await createNewWorld(newWorldName, newWorldTheme);
+    const created = await createNewWorld(newWorldName);
     setShowCreateWorldModal(false);
     setNewWorldName("");
     await fetchAllData();
@@ -403,7 +402,7 @@ export function LevelLibrary({
                     <h3 style={{ margin: 0, fontSize: "1.6rem", color: "#0f172a" }}>{activeWorld.name}</h3>
                   </div>
                   <p style={{ margin: 0, color: "#475569", fontSize: "0.95rem" }}>
-                    {activeWorld.description} (Thema: <strong>{activeWorld.theme}</strong>)
+                    {activeWorld.description}
                   </p>
                 </div>
 
@@ -781,19 +780,9 @@ export function LevelLibrary({
                 />
               </div>
 
-              <div>
-                <label style={{ display: "block", fontWeight: "bold", marginBottom: "6px" }}>Thema & Umgebung:</label>
-                <select
-                  value={newWorldTheme}
-                  onChange={(e) => setNewWorldTheme(e.target.value as any)}
-                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
-                >
-                  <option value="jungle">🌴 Dschungel (Wind & Lianen)</option>
-                  <option value="volcano">🌋 Vulkan (Funken & Lava)</option>
-                  <option value="space">🚀 Kosmos (Schwerelosigkeit)</option>
-                  <option value="paper">📝 Notizheft (Klassischer Papier-Look)</option>
-                </select>
-              </div>
+              <p style={{ margin: 0, fontSize: "0.9rem", color: "#64748b", lineHeight: 1.5 }}>
+                🌍 <strong>8-Level-Kampagne:</strong> Fasse 8 beliebige Level zu einer zusammenhängenden Welt zusammen. In der Bibliothek kannst du die 8 Slots frei belegen.
+              </p>
 
               <div className="modal-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "10px" }}>
                 <button type="button" className="button button-secondary" onClick={() => setShowCreateWorldModal(false)}>

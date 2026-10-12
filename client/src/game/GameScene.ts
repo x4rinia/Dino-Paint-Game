@@ -588,25 +588,36 @@ export class GameScene extends Phaser.Scene {
     this.player.setAllowDoubleJump(bgTheme === "volcano");
     this.player.onJump = () => this.recorder.addJump(this.time.now);
 
-    // Kollisionen: Spieler mit Plattformen (erlaubt Durchspringen von unten im Jump 'n' Run)
+    // Kollisionen: Spieler mit Plattformen (Dino steht fest auf Plattformen; im Jump 'n' Run Durchspringen von unten beim Sprung)
     this.physics.add.collider(
       this.player.rect,
       this.platforms,
       undefined,
       (playerObj, platformObj) => {
+        // 1. Im 4-Wege Labyrinth (RPG) immer feste, solide Kollision in alle Richtungen (kein Durchgehen von unten):
         if (this.gameMode !== "jump_n_run") return true;
+
         const pBody = (playerObj as Phaser.GameObjects.Rectangle).body as Phaser.Physics.Arcade.Body;
         const platRect = platformObj as Phaser.GameObjects.Rectangle;
-        const platTop = platRect.y - platRect.displayHeight / 2;
-        // Wenn Dino nach oben springt, kann er komplett durch Plattformen/Wände nach oben hindurchspringen!
-        if (pBody.velocity.y < -5) {
+        // Da Origin (0, 0) ist, ist platRect.y exakt die Oberkante der Plattform
+        const platTop = platRect.y;
+
+        // 2. Nur beim aktiven Aufwärtssprung kann Dino von unten durch Plattformen hindurchspringen:
+        if (pBody.velocity.y < 0) {
           return false;
         }
-        // Erst fest kollidieren, wenn seine Füße oberhalb der Plattform-Oberkante sind
-        if (pBody.bottom > platTop + 14) {
-          return false;
+
+        // 3. Beim Fallen oder Stehen: Dino landet fest auf der Plattform und bleibt sicher stehen:
+        if (pBody.bottom <= platTop + 14) {
+          return true;
         }
-        return true;
+
+        // Wenn er im vorherigen Frame bereits auf der Plattformoberkante stand, niemals durchfallen lassen:
+        if (pBody.prev && pBody.prev.y + pBody.height <= platTop + 8) {
+          return true;
+        }
+
+        return false;
       }
     );
 
