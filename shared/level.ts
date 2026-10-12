@@ -87,6 +87,10 @@ export const LevelSchema = z.object({
   /** Optional extras (not produced by the color detection). */
   coins: z.array(z.object({ id: z.string(), ...point })).optional().default([]),
   enemies: z.array(z.object({ id: z.string(), ...point, patrol: coord })).optional().default([]),
+  /** Spielmodus: Jump 'n' Run oder 4-Wege RPG Labyrinth */
+  gameMode: z.enum(["jump_n_run", "rpg_labyrinth"]).optional(),
+  /** Hintergrund-Thema */
+  theme: z.enum(["paper", "jungle", "space", "volcano"]).optional(),
 });
 
 export type Level = z.infer<typeof LevelSchema>;

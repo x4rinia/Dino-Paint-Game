@@ -39,6 +39,8 @@ export function sanitizeLevel(input: unknown): Level {
     movingPlatforms: sanitizeList((raw as any).movingPlatforms, sanitizeMovingPlatform),
     coins: sanitizeList(raw.coins, sanitizeCoin),
     enemies: sanitizeList(raw.enemies, sanitizeEnemy),
+    gameMode: raw.gameMode === "rpg_labyrinth" ? "rpg_labyrinth" : raw.gameMode === "jump_n_run" ? "jump_n_run" : undefined,
+    theme: ["paper", "jungle", "space", "volcano"].includes(raw.theme as any) ? (raw.theme as any) : undefined,
   };
 
   return dedupeIds(level);

@@ -697,9 +697,15 @@ export function DrawingCanvas({
         thumbUrl = thumbCanvas.toDataURL("image/jpeg", 0.7);
       }
 
+      const levelToSave: Level = {
+        ...result.level,
+        gameMode: (gameMode as any) || "jump_n_run",
+        theme: (backgroundTheme as any) || "paper",
+      };
+
       await saveLevel({
         name: nameToUse,
-        level: result.level,
+        level: levelToSave,
         thumbnail: thumbUrl,
         originalImage: dataUrl,
       });
@@ -851,6 +857,8 @@ export function DrawingCanvas({
 
         const levelWithImage: Level = {
           ...result.level,
+          gameMode: (gameMode as any) || "jump_n_run",
+          theme: (backgroundTheme as any) || "paper",
         };
         (levelWithImage as any).originalImage = dataUrl;
 

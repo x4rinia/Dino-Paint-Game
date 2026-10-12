@@ -330,9 +330,6 @@ export function App() {
     const { world, sequenceOrder } = worldIntroCampaign;
     setWorldIntroCampaign(null);
     setWorldOutroStatus(null);
-    // Erzwungenes Jump 'n' Run beim Spielen der Welten!
-    setGameModeState("jump_n_run");
-    setSelectedBackground(world.theme);
 
     const firstSlot = sequenceOrder[0];
     const firstLevelId = world.levelIds[firstSlot];
@@ -341,6 +338,11 @@ export function App() {
       alert("Fehler beim Laden des Levels!");
       return;
     }
+    const levelMode = (firstLevel as any).gameMode || "jump_n_run";
+    const levelTheme = (firstLevel as any).theme || world.theme || "jungle";
+    setGameModeState(levelMode);
+    setSelectedBackground(levelTheme);
+
     setWorldCampaign({
       world,
       sequenceOrder,
@@ -354,6 +356,12 @@ export function App() {
     level: Level,
     drawingDataUrl?: string
   ) => {
+    if ((level as any).gameMode) {
+      setGameModeState((level as any).gameMode);
+    }
+    if ((level as any).theme) {
+      setSelectedBackground((level as any).theme);
+    }
     setCurrentLevel(level);
     const imgUrl = drawingDataUrl || (level as any).originalImage;
     setCurrentDrawingUrl(imgUrl);

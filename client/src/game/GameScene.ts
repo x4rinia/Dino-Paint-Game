@@ -293,10 +293,12 @@ export class GameScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, WORLD_W, WORLD_H + FALL_MARGIN + 50);
 
     // Visuelle Ebenen: Gewählter Hintergrund (Notizheft, Dschungel, Kosmos, Vulkan)
-    const bgTheme = (this.game.registry.get("backgroundTheme") as BackgroundTheme) || "paper";
-    const gameMode = (this.game.registry.get("gameMode") as GameMode) || "jump_n_run";
+    const bgTheme = (this.level as any).theme || (this.game.registry.get("backgroundTheme") as BackgroundTheme) || "paper";
+    const gameMode = (this.level as any).gameMode || (this.game.registry.get("gameMode") as GameMode) || "jump_n_run";
     this.bgTheme = bgTheme;
     this.gameMode = gameMode;
+    this.game.registry.set("backgroundTheme", bgTheme);
+    this.game.registry.set("gameMode", gameMode);
     addBackground(this, bgTheme);
 
     // Welt-Gravitation basierend auf Spielmodus & Hintergrund:
@@ -591,38 +593,8 @@ export class GameScene extends Phaser.Scene {
     this.player.setAllowDoubleJump(bgTheme === "volcano");
     this.player.onJump = () => this.recorder.addJump(this.time.now);
 
-    // Kollisionen: Spieler mit Plattformen (Dino steht fest auf Plattformen; im Jump 'n' Run Durchspringen von unten beim Sprung)
-    this.physics.add.collider(
-      this.player.rect,
-      this.platforms,
-      undefined,
-      (playerObj, platformObj) => {
-        // 1. Im 4-Wege Labyrinth (RPG) immer feste, solide Kollision in alle Richtungen (kein Durchgehen von unten):
-        if (this.gameMode !== "jump_n_run") return true;
-
-        const pBody = (playerObj as Phaser.GameObjects.Rectangle).body as Phaser.Physics.Arcade.Body;
-        const platRect = platformObj as Phaser.GameObjects.Rectangle;
-        // Da Origin (0, 0) ist, ist platRect.y exakt die Oberkante der Plattform
-        const platTop = platRect.y;
-
-        // 2. Nur beim aktiven Aufwärtssprung kann Dino von unten durch Plattformen hindurchspringen:
-        if (pBody.velocity.y < 0) {
-          return false;
-        }
-
-        // 3. Beim Fallen oder Stehen: Dino landet fest auf der Plattform und bleibt sicher stehen:
-        if (pBody.bottom <= platTop + 14) {
-          return true;
-        }
-
-        // Wenn er im vorherigen Frame bereits auf der Plattformoberkante stand, niemals durchfallen lassen:
-        if (pBody.prev && pBody.prev.y + pBody.height <= platTop + 8) {
-          return true;
-        }
-
-        return false;
-      }
-    );
+    // Kollisionen: Spieler mit Plattformen (Feste, solide Barrieren in alle 4 Richtungen – kein Durchspringen von unten oder seitliches Hineinspringen!)
+    this.physics.add.collider(this.player.rect, this.platforms);
 
     // Kollisionen: Spieler mit grünen Trampolinen (im Labyrinth als Bumper-Rückstoß)
     this.physics.add.collider(this.player.rect, this.bouncers, (_p, bouncerRect) => {
@@ -2002,7 +1974,13 @@ export class GameScene extends Phaser.Scene {
     const lerp = Math.min(1, dt * 2.2);
     this.windSpeed += (this.targetWindSpeed - this.windSpeed) * lerp;
 
-    // Dschungelwind wirkt als rein visuelles, stimmungsvolles Blätter-Wirbeln (kein Zappeln/Verschieben des Spielers)
+    // Physikalische Windkraft auf Dino im Dschungel:
+    // Schiebt Dino je nach Windrichtung sanft mit den Blättern (in der Luft spürbar, am Boden sanfter)
+    if (this.player && !this.locked) {
+      const airborne = !this.player.grounded;
+      const windForce = airborne ? this.windSpeed * 0.75 : this.windSpeed * 0.4;
+      this.player.body.velocity.x += windForce * dt * 40;
+    }
 
     // Partikel-Darstellung: Dschungelblätter wirbeln dynamisch mit dem Wind
     if (this.windLeavesGraphics && this.windLeaves.length > 0) {

@@ -161,74 +161,17 @@ const JUNGLE_LEVELS: Level[] = [
 
 export const DEFAULT_WORLDS: World[] = [
   {
-    id: "world-jungle-1",
-    name: "Welt 1: Urzeit-Dschungel",
+    id: "world-adventure-1",
+    name: "Welt 1: Dinos Abenteuer-Reise",
     theme: "jungle",
-    description: "8 abenteuerliche Dschungel-Level mit Palmen, Lianen, Trampolinen und Schwebeliften.",
-    icon: "🌴",
+    description: "Die ultimative Beispielwelt! 8 abwechslungsreiche Level mit allen Mechaniken: Dschungel-Wind, Stachelpfade, Portale, Kisten-Rätsel, Schwebelifte, Trampoline & Gegner.",
+    icon: "🌍",
     levelIds: [
       "starter_tutorial",
       "starter_spikepath",
       "starter_portals",
       "starter_crates",
       "starter_vines",
-      "starter_lifts",
-      "starter_insects",
-      "starter_allcolors",
-    ],
-    createdAt: 1700000000000,
-    updatedAt: 1700000000000,
-  },
-  {
-    id: "world-volcano-2",
-    name: "Welt 2: Vulkan-Tal",
-    theme: "volcano",
-    description: "8 feurige Herausforderungen zwischen Magmaströmen, scharfen Stacheln und Flammen.",
-    icon: "🌋",
-    levelIds: [
-      "starter_tutorial",
-      "starter_spikepath",
-      "starter_crates",
-      "starter_portals",
-      "starter_lifts",
-      "starter_vines",
-      "starter_insects",
-      "starter_allcolors",
-    ],
-    createdAt: 1700000000000,
-    updatedAt: 1700000000000,
-  },
-  {
-    id: "world-space-3",
-    name: "Welt 3: Sternen-Kosmos",
-    theme: "space",
-    description: "8 kosmische Level mit sanfter Schwerkraft, weiten Sprüngen und Vortex-Katapulten.",
-    icon: "🚀",
-    levelIds: [
-      "starter_portals",
-      "starter_tutorial",
-      "starter_vines",
-      "starter_lifts",
-      "starter_crates",
-      "starter_insects",
-      "starter_spikepath",
-      "starter_allcolors",
-    ],
-    createdAt: 1700000000000,
-    updatedAt: 1700000000000,
-  },
-  {
-    id: "world-paper-4",
-    name: "Welt 4: Klassischer Zeichenblock",
-    theme: "paper",
-    description: "8 liebevoll gezeichnete Doodle-Level mit allen 9 Spielfarben, Rätseln und Action.",
-    icon: "📝",
-    levelIds: [
-      "starter_tutorial",
-      "starter_crates",
-      "starter_spikepath",
-      "starter_vines",
-      "starter_portals",
       "starter_lifts",
       "starter_insects",
       "starter_allcolors",
@@ -249,7 +192,7 @@ export const BUILTIN_STARTER_MAP: Record<string, Level> = {
   starter_allcolors: JUNGLE_LEVELS[7],
 };
 
-const WORLDS_STORAGE_KEY = "dino_worlds_v1";
+const WORLDS_STORAGE_KEY = "dino_worlds_v2";
 
 /** Lädt alle Welten aus dem lokalen Speicher */
 export async function getAllWorlds(): Promise<World[]> {
