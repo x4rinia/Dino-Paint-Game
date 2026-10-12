@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { isMuted, toggleMute, isMusicEnabled, setMusicEnabled } from "../game/audio";
-import { narrator } from "../game/narrator";
 import { getStorageQuota, requestPersistentStorage, getSetting, setSetting } from "../storage/db";
 
 interface SettingsModalProps {
@@ -8,16 +7,20 @@ interface SettingsModalProps {
   tvMode?: boolean;
   onToggleTvMode?: () => void;
   onOpenStreamModal?: () => void;
+  gamepadSwapAB?: boolean;
+  onToggleGamepadSwapAB?: (swapped: boolean) => void;
 }
 
 export function SettingsModal({
   onClose,
   tvMode = false,
   onToggleTvMode,
+  gamepadSwapAB = false,
+  onToggleGamepadSwapAB,
 }: SettingsModalProps) {
   const [muted, setMuted] = useState(isMuted());
   const [musicOn, setMusicOn] = useState(isMusicEnabled());
-  const [narratorOn, setNarratorOn] = useState(narrator.isEnabled());
+  const [swapAB, setSwapAB] = useState(gamepadSwapAB);
   const [gamepads, setGamepads] = useState<string[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(Boolean(document.fullscreenElement));
   const [showStreamingHelp, setShowStreamingHelp] = useState(false);
@@ -37,9 +40,8 @@ export function SettingsModal({
       setMusicOn(enabled);
       setMusicEnabled(enabled);
     });
-    getSetting<boolean>("narrator_enabled", false).then((enabled) => {
-      setNarratorOn(enabled);
-      narrator.setEnabled(enabled);
+    getSetting<boolean>("gamepad_swap_ab", false).then((swapped) => {
+      setSwapAB(swapped);
     });
     getSetting<boolean>("tooltips_enabled", true).then(setTooltipsOn);
 
@@ -87,11 +89,11 @@ export function SettingsModal({
     void setSetting("music_enabled", next);
   };
 
-  const handleToggleNarrator = () => {
-    const next = !narratorOn;
-    setNarratorOn(next);
-    narrator.setEnabled(next);
-    void setSetting("narrator_enabled", next);
+  const handleToggleSwapAB = () => {
+    const next = !swapAB;
+    setSwapAB(next);
+    void setSetting("gamepad_swap_ab", next);
+    onToggleGamepadSwapAB?.(next);
   };
 
   const handleToggleTooltips = () => {
@@ -198,19 +200,6 @@ export function SettingsModal({
             </button>
           </div>
 
-          <div className="setting-row">
-            <div>
-              <strong>Audio-Vorleser / Erzähler</strong>
-              <small style={{ display: "block", color: "#a0a5b5" }}>Liest Spieltipps & Aktionen vor</small>
-            </div>
-            <button
-              className={`button ${narratorOn ? "button-primary" : "button-secondary"}`}
-              type="button"
-              onClick={handleToggleNarrator}
-            >
-              {narratorOn ? "🗣️ Sprache: AN" : "🔇 Sprache: AUS"}
-            </button>
-          </div>
 
           <div className="setting-row">
             <div>
@@ -352,6 +341,25 @@ export function SettingsModal({
             </p>
           )}
 
+          {/* A & B Tasten-Tausch Option */}
+          <div className="setting-row" style={{ marginBottom: "12px", background: "rgba(255,255,255,0.04)", padding: "10px", borderRadius: "8px" }}>
+            <div>
+              <strong>A- & B-Tastenbelegung (Layout)</strong>
+              <small style={{ display: "block", color: "#a0a5b5" }}>
+                {swapAB
+                  ? "🔄 Nintendo-Layout: B = Springen/Bestätigen, A = Zurück"
+                  : "🎮 Xbox / PlayStation: A = Springen/Bestätigen, B = Zurück"}
+              </small>
+            </div>
+            <button
+              className={`button ${swapAB ? "button-primary" : "button-secondary"}`}
+              type="button"
+              onClick={handleToggleSwapAB}
+            >
+              {swapAB ? "🔄 A & B getauscht (Nintendo)" : "🎮 Standard (Xbox / PS)"}
+            </button>
+          </div>
+
           {/* Tastenbelegungs-Tabelle */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "8px", fontSize: "0.88rem" }}>
             <div style={{ background: "rgba(255,255,255,0.06)", padding: "8px 12px", borderRadius: "6px" }}>
@@ -359,29 +367,18 @@ export function SettingsModal({
               <div style={{ color: "#94a3b8" }}>Laufen & Menü-Navigation</div>
             </div>
             <div style={{ background: "rgba(255,255,255,0.06)", padding: "8px 12px", borderRadius: "6px" }}>
-              <strong>🅰️ / ✖️ A-Taste / Kreuz:</strong>
-              <div style={{ color: "#94a3b8" }}>Springen / Auswählen</div>
+              <strong>{swapAB ? "🅱️ / ⭕ B-Taste / Kreis:" : "🅰️ / ✖️ A-Taste / Kreuz:"}</strong>
+              <div style={{ color: "#4ade80", fontWeight: 600 }}>Springen / Bestätigen</div>
             </div>
             <div style={{ background: "rgba(255,255,255,0.06)", padding: "8px 12px", borderRadius: "6px" }}>
-              <strong>🅱️ / ⭕ B-Taste / Kreis:</strong>
-              <div style={{ color: "#94a3b8" }}>Zurück / Abbrechen</div>
+              <strong>{swapAB ? "🅰️ / ✖️ A-Taste / Kreuz:" : "🅱️ / ⭕ B-Taste / Kreis:"}</strong>
+              <div style={{ color: "#fca5a5" }}>Zurück / Abbrechen</div>
             </div>
             <div style={{ background: "rgba(255,255,255,0.06)", padding: "8px 12px", borderRadius: "6px" }}>
               <strong>⏸️ Start / Menü:</strong>
               <div style={{ color: "#94a3b8" }}>Pause & Einstellungen</div>
             </div>
           </div>
-        </div>
-
-        {/* START- & ZIEL-INFO */}
-        <div className="settings-section">
-          <h4>🚩 Start & Ziel im Zeichenstudio</h4>
-          <p style={{ margin: "0", fontSize: "0.9rem", color: "#cbd5e1", lineHeight: 1.4 }}>
-            Start und Ziel werden jetzt ganz einfach <strong>mit der Farbe Grau gezeichnet</strong> (genau wie bei den Portalen):<br />
-            • <strong>1 grauer Punkt</strong> = 🚩 Startpunkt<br />
-            • <strong>2 graue Punkte</strong> = 🚩 Start (links) und 🏁 Ziel (rechts)<br />
-            Wenn du keine grauen Punkte zeichnest, platziert das Spiel Dino automatisch am Anfang des Levels.
-          </p>
         </div>
 
         {/* SPEICHERPLATZ & OFFLINE-BETRIEB */}

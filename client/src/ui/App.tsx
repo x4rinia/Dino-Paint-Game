@@ -114,6 +114,7 @@ export function App() {
   const [isSmartphone, setIsSmartphone] = useState(false);
   const [selectedBackground, setSelectedBackground] = useState<BackgroundTheme>("paper");
   const [gameMode, setGameModeState] = useState<GameMode>("jump_n_run");
+  const [gamepadSwapAB, setGamepadSwapAB] = useState(false);
 
   // 8-Level-Welten-System
   const [activeWorldContext, setActiveWorldContext] = useState<{ world: World; levelIndex: number } | null>(null);
@@ -137,6 +138,10 @@ export function App() {
 
     getSetting<BackgroundTheme>("selected_background", "paper").then((bg) => {
       setSelectedBackground(bg);
+    });
+
+    getSetting<boolean>("gamepad_swap_ab", false).then((swapped) => {
+      setGamepadSwapAB(swapped);
     });
 
     getSetting<GameMode>("game_mode", "jump_n_run").then((mode) => {
@@ -211,6 +216,7 @@ export function App() {
   // Gamepad-Navigation in den Menüs
   useGamepadNav({
     enabled: screen === "menu" && !showSettings && !showTvModal && !showInstallModal,
+    swapAB: gamepadSwapAB,
     onBack: () => {
       if (showSettings) setShowSettings(false);
       else if (showTvModal) setShowTvModal(false);
@@ -229,6 +235,7 @@ export function App() {
         tvMode,
         background: selectedBackground,
         gameMode,
+        gamepadSwapAB,
       });
       gameHandleRef.current = handle;
       handle.loadLevel(currentLevel);
@@ -238,7 +245,7 @@ export function App() {
         gameHandleRef.current = null;
       };
     }
-  }, [screen, currentLevel, tvMode, selectedBackground, gameMode]);
+  }, [screen, currentLevel, tvMode, selectedBackground, gameMode, gamepadSwapAB]);
 
   const handleEditCurrentLevel = () => {
     if (!currentLevel) return;
@@ -362,6 +369,8 @@ export function App() {
             onClose={() => setShowSettings(false)}
             tvMode={tvMode}
             onToggleTvMode={toggleTvMode}
+            gamepadSwapAB={gamepadSwapAB}
+            onToggleGamepadSwapAB={setGamepadSwapAB}
             onOpenStreamModal={() => {
               setShowSettings(false);
               setShowTvModal(true);
@@ -726,6 +735,8 @@ export function App() {
           onClose={() => setShowSettings(false)}
           tvMode={tvMode}
           onToggleTvMode={toggleTvMode}
+          gamepadSwapAB={gamepadSwapAB}
+          onToggleGamepadSwapAB={setGamepadSwapAB}
           onOpenStreamModal={() => {
             setShowSettings(false);
             setShowTvModal(true);

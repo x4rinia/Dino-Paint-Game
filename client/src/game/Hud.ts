@@ -1,77 +1,75 @@
 import Phaser from "phaser";
 import { HAND_FONT } from "./fonts";
-import { INK, INK_CSS } from "./palette";
-import { seededFor, sketchCircle, sketchLine } from "./sketch";
+import { INK_CSS } from "./palette";
 
-const STYLE: Phaser.Types.GameObjects.Text.TextStyle = {
-  fontFamily: HAND_FONT,
-  fontSize: "32px",
-  color: INK_CSS.black,
-  stroke: INK_CSS.paper,
-  strokeThickness: 6,
-};
 const HUD_DEPTH = 1000;
 
-/** Top-left marker-written coin counter (with a doodled coin and underline), fixed to the camera. */
+/** Kompakte, unaufdringliche HUD-Anzeige für Dino-Münzen oben links */
 export class Hud {
   private readonly collectibleText: Phaser.GameObjects.Text;
-  private readonly musicText: Phaser.GameObjects.Text;
+  private readonly bgBadge: Phaser.GameObjects.Graphics;
 
   constructor(scene: Phaser.Scene) {
-    // Static doodles: drawn once, never redrawn.
-    const rng = seededFor("hud");
-    const doodle = scene.add.graphics().setScrollFactor(0).setDepth(HUD_DEPTH);
-    // Dino-Ei Doodle
-    doodle.fillStyle(0xffec80, 0.95).fillEllipse(36, 36, 12, 16);
-    sketchCircle(doodle, 36, 36, 13.5, { color: INK.yellowDark, width: 2.8, wobble: 1.2 }, rng);
-    sketchLine(doodle, { x: 18, y: 64 }, { x: 300, y: 63 }, { color: INK.blue, width: 2.6, alpha: 0.7, wobble: 1.6 }, rng);
+    // Dezentes, transparentes Hintergrund-Badge, das im Level nicht stört
+    this.bgBadge = scene.add.graphics().setScrollFactor(0).setDepth(HUD_DEPTH - 1);
 
-    // Sammelobjekte Text (Dino-Eier)
+    // Sammelobjekte-Text (Dino-Münzen, klein & klar)
     this.collectibleText = scene.add
-      .text(58, 20, "🥚 Dino-Eier", STYLE)
+      .text(20, 14, "🪙 0/0 Münzen", {
+        fontFamily: HAND_FONT,
+        fontSize: "18px",
+        color: "#ffffff",
+        stroke: "#18181b",
+        strokeThickness: 3.5,
+      })
       .setScrollFactor(0)
-      .setDepth(HUD_DEPTH)
-      .setRotation(-0.015);
+      .setDepth(HUD_DEPTH);
 
-    this.musicText = scene.add
-      .text(20, 76, "🎵 Dino-Musik: AN (M)", { ...STYLE, fontSize: "22px", color: INK_CSS.green })
-      .setScrollFactor(0)
-      .setDepth(HUD_DEPTH)
-      .setRotation(-0.02);
+    this.drawBadge(150);
   }
 
-  setMuted(muted: boolean) {
-    this.musicText.setText(muted ? "🔇 Ton: Stumm (M)" : "🎵 Dino-Musik: AN (M)");
-    this.musicText.setColor(muted ? INK_CSS.red : INK_CSS.green);
+  private drawBadge(width: number) {
+    this.bgBadge.clear();
+    this.bgBadge.fillStyle(0x0f172a, 0.45);
+    this.bgBadge.fillRoundedRect(12, 10, width, 30, 8);
+    this.bgBadge.lineStyle(1.5, 0xffffff, 0.25);
+    this.bgBadge.strokeRoundedRect(12, 10, width, 30, 8);
+  }
+
+  setMuted(_muted: boolean) {
+    // Sound/Musik-Status wird nicht mehr dauerhaft im Spielfeld eingeblendet
   }
 
   setCoins(_coins: number) {
-    // Nur Dino-Eier – keine separaten Münzen
+    // Einheitliche Dino-Münzen
   }
 
   setCollectibles(collected: number, total: number) {
     if (total <= 0) {
-      this.collectibleText.setText("🥚 Freie Bahn zum Ziel!");
-      this.collectibleText.setColor(INK_CSS.black);
+      this.collectibleText.setText("✨ Tor offen!");
+      this.collectibleText.setColor("#4ade80");
+      this.drawBadge(120);
       return;
     }
     if (collected >= total) {
-      this.collectibleText.setText(`🥚 ${collected}/${total} Eier (Ziel offen 🏆)`);
-      this.collectibleText.setColor(INK_CSS.green);
+      this.collectibleText.setText(`🪙 ${collected}/${total} Münzen (Tor offen 🏆)`);
+      this.collectibleText.setColor("#4ade80");
+      this.drawBadge(210);
     } else {
-      this.collectibleText.setText(`🥚 ${collected}/${total} Eier gesammelt 🔒`);
-      this.collectibleText.setColor(INK_CSS.yellow);
+      this.collectibleText.setText(`🪙 ${collected}/${total} Münzen 🔒`);
+      this.collectibleText.setColor("#facc15");
+      this.drawBadge(160);
     }
   }
 
   /** Schaltet zwischen normaler und extragroßer TV-HUD-Darstellung um */
   setTvMode(tvMode: boolean) {
     if (tvMode) {
-      this.collectibleText.setFontSize("44px").setStroke(INK_CSS.paper, 8);
-      this.musicText.setFontSize("28px").setY(86);
+      this.collectibleText.setFontSize("24px");
+      this.drawBadge(240);
     } else {
-      this.collectibleText.setFontSize("32px").setStroke(INK_CSS.paper, 6);
-      this.musicText.setFontSize("22px").setY(76);
+      this.collectibleText.setFontSize("18px");
+      this.drawBadge(170);
     }
   }
 }

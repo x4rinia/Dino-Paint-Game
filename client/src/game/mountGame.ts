@@ -24,7 +24,7 @@ let current: GameHandle | null = null;
 
 export function mountGame(
   el: HTMLElement,
-  options?: { tvMode?: boolean; background?: BackgroundTheme; gameMode?: GameMode }
+  options?: { tvMode?: boolean; background?: BackgroundTheme; gameMode?: GameMode; gamepadSwapAB?: boolean }
 ): GameHandle {
   installAudioUnlock();
   const bgTheme = options?.background || "paper";
@@ -54,6 +54,7 @@ export function mountGame(
   game.registry.set("tvMode", !!options?.tvMode);
   game.registry.set("backgroundTheme", bgTheme);
   game.registry.set("gameMode", gameMode);
+  game.registry.set("gamepadSwapAB", !!options?.gamepadSwapAB);
 
   // The canvas exists once Phaser has booted (immediately, if the DOM was already ready).
   const lockCanvas = () => lockTouchBehavior(game.canvas);

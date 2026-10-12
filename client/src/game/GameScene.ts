@@ -235,6 +235,7 @@ export class GameScene extends Phaser.Scene {
     this.load.image("dino_run", "./sprites/dino_run.png");
     this.load.image("block_crate", "./sprites/block_crate.png");
     this.load.image("trampoline_mushroom", "./sprites/trampoline_mushroom.png");
+    this.load.image("coin_dino", "./sprites/coin_dino.png");
     this.load.image("coin_egg", "./sprites/coin_egg.png");
     this.load.image("coin_footprint", "./sprites/coin_footprint.png");
     this.load.image("enemy_snail", "./sprites/enemy_snail.png");
@@ -421,22 +422,24 @@ export class GameScene extends Phaser.Scene {
     this.collectedCount = 0;
 
     for (const c of allEggs) {
-      // Kompakte, wohlproportionierte Dino-Eier (ca. 28-30px, blockieren keine Korridore)
-      const EGG_SIZE = 30;
+      // Schlanke, wohlproportionierte Dino-Münzen (ca. 26px, blockieren keine Korridore)
+      const COIN_SIZE = 26;
       const cx = sx(c.x) + sx(c.w ?? 24) / 2;
       const cy = sy(c.y) + sy(c.h ?? 24) / 2;
 
-      const rect = this.add.rectangle(cx, cy, EGG_SIZE, EGG_SIZE, COLORS.coin).setAlpha(0);
+      const rect = this.add.rectangle(cx, cy, COIN_SIZE, COIN_SIZE, COLORS.coin).setAlpha(0);
       rect.setData("id", c.id);
       this.physics.add.existing(rect, true);
       this.collectiblesGroup.add(rect);
 
       let art: Phaser.GameObjects.Graphics | Phaser.GameObjects.Image;
-      if (this.textures.exists("coin_egg")) {
-        art = this.add.image(cx, cy, "coin_egg").setDisplaySize(EGG_SIZE, EGG_SIZE).setDepth(DEPTH.collectible);
+      if (this.textures.exists("coin_dino")) {
+        art = this.add.image(cx, cy, "coin_dino").setDisplaySize(COIN_SIZE, COIN_SIZE).setDepth(DEPTH.collectible);
+      } else if (this.textures.exists("coin_egg")) {
+        art = this.add.image(cx, cy, "coin_egg").setDisplaySize(COIN_SIZE, COIN_SIZE).setDepth(DEPTH.collectible);
       } else {
         const g = this.add.graphics().setDepth(DEPTH.collectible);
-        this.drawEggArt(g, EGG_SIZE, EGG_SIZE, c.id);
+        this.drawEggArt(g, COIN_SIZE, COIN_SIZE, c.id);
         g.setPosition(cx, cy);
         art = g;
       }
@@ -1064,8 +1067,10 @@ export class GameScene extends Phaser.Scene {
       if (stickY < -0.28 || dpadUp) res.up = true;
       if (stickY > 0.28 || dpadDown) res.down = true;
 
-      // Button 0 (A) -> Springen / Dash
-      if (g.buttons[0]?.pressed || (this.gameMode !== "rpg_labyrinth" && dpadUp)) res.jump = true;
+      // Button 0 (A) bzw. Button 1 (B wenn swapAB aktiv) -> Springen / Dash
+      const swapAB = (this.game.registry.get("gamepadSwapAB") as boolean) || false;
+      const jumpPressed = swapAB ? (g.buttons[1]?.pressed ?? false) : (g.buttons[0]?.pressed ?? false);
+      if (jumpPressed || (this.gameMode !== "rpg_labyrinth" && dpadUp)) res.jump = true;
       // Button 3 (Y) -> Neustart
       if (g.buttons[3]?.pressed) res.restart = true;
       // Button 9 (Start) -> Pause

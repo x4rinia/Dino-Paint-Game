@@ -4,13 +4,14 @@ interface GamepadNavOptions {
   onBack?: () => void;
   onStart?: () => void;
   enabled?: boolean;
+  swapAB?: boolean;
 }
 
 /**
  * Hook zur vollständigen Steuerung der Menüs per Gamepad (Xbox, PlayStation, Bluetooth).
  * Unterstützt Steuerkreuz, linken Stick, A-Taste (Bestätigen), B-Taste (Zurück), Start (Einstellungen).
  */
-export function useGamepadNav({ onBack, onStart, enabled = true }: GamepadNavOptions = {}) {
+export function useGamepadNav({ onBack, onStart, enabled = true, swapAB = false }: GamepadNavOptions = {}) {
   const lastAxesRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const lastButtonsRef = useRef<boolean[]>([]);
   const lastMoveTimeRef = useRef<number>(0);
@@ -122,16 +123,19 @@ export function useGamepadNav({ onBack, onStart, enabled = true }: GamepadNavOpt
         const dpadLeft = gp.buttons[14]?.pressed ?? false;
         const dpadRight = gp.buttons[15]?.pressed ?? false;
 
-        const btnA = gp.buttons[0]?.pressed ?? false; // A / Kreuz
-        const btnB = gp.buttons[1]?.pressed ?? false; // B / Kreis
+        const btnConfirm = swapAB ? (gp.buttons[1]?.pressed ?? false) : (gp.buttons[0]?.pressed ?? false);
+        const btnCancel = swapAB ? (gp.buttons[0]?.pressed ?? false) : (gp.buttons[1]?.pressed ?? false);
         const btnStart = gp.buttons[9]?.pressed ?? false; // Start / Options
 
-        const prevA = lastButtonsRef.current[0] ?? false;
-        const prevB = lastButtonsRef.current[1] ?? false;
+        const confirmIdx = swapAB ? 1 : 0;
+        const cancelIdx = swapAB ? 0 : 1;
+
+        const prevConfirm = lastButtonsRef.current[confirmIdx] ?? false;
+        const prevCancel = lastButtonsRef.current[cancelIdx] ?? false;
         const prevStart = lastButtonsRef.current[9] ?? false;
 
-        // Bestätigen (A)
-        if (btnA && !prevA) {
+        // Bestätigen (A oder B bei Swap)
+        if (btnConfirm && !prevConfirm) {
           document.body.classList.add("gamepad-mode-active");
           const active = document.activeElement as HTMLElement | null;
           if (active && typeof active.click === "function") {
@@ -143,8 +147,8 @@ export function useGamepadNav({ onBack, onStart, enabled = true }: GamepadNavOpt
           }
         }
 
-        // Zurück (B)
-        if (btnB && !prevB && onBack) {
+        // Zurück (B oder A bei Swap)
+        if (btnCancel && !prevCancel && onBack) {
           onBack();
         }
 
@@ -170,8 +174,8 @@ export function useGamepadNav({ onBack, onStart, enabled = true }: GamepadNavOpt
           }
         }
 
-        lastButtonsRef.current[0] = btnA;
-        lastButtonsRef.current[1] = btnB;
+        lastButtonsRef.current[0] = gp.buttons[0]?.pressed ?? false;
+        lastButtonsRef.current[1] = gp.buttons[1]?.pressed ?? false;
         lastButtonsRef.current[9] = btnStart;
         lastAxesRef.current = { x: stickX, y: stickY };
       }
