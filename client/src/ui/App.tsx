@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { gameEvents, type Level } from "@sketchquest/shared";
+import { easyLevel } from "../game/testLevels";
 import { mountGame } from "../game";
 import { DrawingCanvas } from "./DrawingCanvas";
 import { PhotoCapture } from "./PhotoCapture";
@@ -278,6 +279,8 @@ export function App() {
           gameMode={gameMode}
           onOpenSettings={() => setShowSettings(true)}
           onOpenGameMode={() => setShowGameModeModal(true)}
+          onOpenPhotoScanner={() => setScreen("camera")}
+          onOpenLibrary={() => setScreen("library")}
         />
         {showSettings && (
           <SettingsModal
@@ -387,36 +390,16 @@ export function App() {
   return (
     <div className={`dino-app-home ${tvMode ? "tv-mode-layout" : ""}`}>
       <header className="home-topbar">
-        <div className="brand-logo">
-          <span className="brand-icon">🦖</span>
+        <div className="brand-logo" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <img
+            src="./sprites/dino_idle.png"
+            alt="Dino"
+            style={{ width: "36px", height: "auto" }}
+          />
           <span className="brand-text">Dino Paint Game</span>
           <span className="badge-pwa-offline">Offline PWA</span>
         </div>
         <div className="topbar-actions">
-          <button
-            className="button button-guide-pill"
-            type="button"
-            onClick={() => setShowGuide(true)}
-            title="Zeichen-Anleitung & Tipps"
-            style={{ backgroundColor: "#9b51e0", color: "#fff" }}
-          >
-            📖 Anleitung
-          </button>
-          <button
-            className="button"
-            type="button"
-            onClick={() => {
-              if (isMusicPlaying()) {
-                pauseBgMusic();
-              } else {
-                startBgMusic();
-              }
-            }}
-            title="Dino-Hintergrundmusik an- oder ausschalten"
-            style={{ backgroundColor: "#253048", color: "#4ade80", border: "1px solid rgba(74, 222, 128, 0.45)" }}
-          >
-            🎵 Musik
-          </button>
           {!isStandalone && (
             <button
               className="button button-install-pill"
@@ -436,19 +419,6 @@ export function App() {
             📡 Streamen & TV
           </button>
           <button
-            className="button"
-            type="button"
-            onClick={() => setShowGameModeModal(true)}
-            title="Spielmodus (Jump 'n' Run oder Labyrinth) und Spielwelt wählen"
-            style={{
-              backgroundColor: "#2e3b56",
-              color: "#e2e8f0",
-              border: "1px solid rgba(255, 255, 255, 0.25)",
-            }}
-          >
-            {gameMode === "rpg_labyrinth" ? "🧭 Labyrinth" : "🏃 Jump 'n' Run"}
-          </button>
-          <button
             className="button button-settings-icon"
             type="button"
             onClick={() => setShowSettings(true)}
@@ -461,59 +431,23 @@ export function App() {
 
       <main className="home-main">
         <section className="mascot-hero">
-          <div className="mascot-visual" style={{ gap: "24px" }}>
-            <div className="mascot-characters-showcase" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "20px", flexWrap: "wrap" }}>
-              {/* Hauptfigur Dino */}
-              <div style={{ textAlign: "center" }}>
-                <img
-                  src="./sprites/dino_idle.png"
-                  alt="Dino Ankylosaurus"
-                  style={{ width: "125px", height: "auto", filter: "drop-shadow(0 10px 20px rgba(0,0,0,0.4))", transform: "scaleX(-1)" }}
-                />
-              </div>
-
-              {/* Gegner & Spielelemente */}
-              <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
-                <div style={{ background: "rgba(138, 63, 252, 0.16)", borderRadius: "14px", padding: "10px 14px", border: "1px solid rgba(138, 63, 252, 0.35)", textAlign: "center" }}>
-                  <img
-                    src="./sprites/enemy_bug.png"
-                    alt="Flug-Gegner"
-                    style={{ width: "46px", height: "auto", filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.3))" }}
-                  />
-                  <div style={{ fontSize: "11px", color: "#c084fc", fontWeight: "bold", marginTop: "3px" }}>Flug-Gegner</div>
-                </div>
-
-                <div style={{ background: "rgba(255, 215, 0, 0.16)", borderRadius: "14px", padding: "10px 14px", border: "1px solid rgba(255, 215, 0, 0.35)", textAlign: "center" }}>
-                  <img
-                    src="./sprites/coin_egg.png"
-                    alt="Dino-Ei Münze"
-                    style={{ width: "36px", height: "auto" }}
-                  />
-                  <div style={{ fontSize: "11px", color: "#facc15", fontWeight: "bold", marginTop: "3px" }}>Dino-Ei</div>
-                </div>
-
-                <div style={{ background: "rgba(74, 222, 128, 0.16)", borderRadius: "14px", padding: "10px 14px", border: "1px solid rgba(74, 222, 128, 0.35)", textAlign: "center" }}>
-                  <img
-                    src="./sprites/trampoline_mushroom.png"
-                    alt="Trampolin Pilz"
-                    style={{ width: "38px", height: "auto" }}
-                  />
-                  <div style={{ fontSize: "11px", color: "#4ade80", fontWeight: "bold", marginTop: "3px" }}>Sprung-Pilz</div>
-                </div>
-
-                <div style={{ background: "rgba(59, 130, 246, 0.16)", borderRadius: "14px", padding: "10px 14px", border: "1px solid rgba(59, 130, 246, 0.35)", textAlign: "center" }}>
-                  <img
-                    src="./sprites/block_crate.png"
-                    alt="Schiebekiste"
-                    style={{ width: "36px", height: "auto" }}
-                  />
-                  <div style={{ fontSize: "11px", color: "#60a5fa", fontWeight: "bold", marginTop: "3px" }}>Kiste</div>
-                </div>
-              </div>
+          <div className="mascot-visual" style={{ gap: "28px", alignItems: "center", justifyContent: "center" }}>
+            {/* Nur Dino, groß und schön präsentiert */}
+            <div className="mascot-dino-wrap" style={{ textAlign: "center" }}>
+              <img
+                src="./sprites/dino_idle.png"
+                alt="Dino Ankylosaurus"
+                style={{
+                  width: "155px",
+                  height: "auto",
+                  filter: "drop-shadow(0 12px 24px rgba(0,0,0,0.35))",
+                  transform: "scaleX(-1)",
+                }}
+              />
             </div>
 
-            <div className="speech-bubble" style={{ maxWidth: "480px" }}>
-              <strong>Hallo! Ich bin Dino! 🦖</strong>
+            <div className="speech-bubble" style={{ maxWidth: "420px" }}>
+              <strong>Hallo! Ich bin Dino!</strong>
               <span>
                 Zeichne deine eigenen Level mit Stiften auf Papier oder male direkt im Zeichenstudio – mit 8 magischen Farben!
               </span>
@@ -554,36 +488,104 @@ export function App() {
           </section>
         )}
 
-        <section className="menu-cards-grid">
-          <div className="menu-card card-capture" tabIndex={0} onClick={() => setScreen("camera")}>
-            <div className="card-symbol">📸</div>
-            <h3>Foto aufnehmen</h3>
-            <p>Papierzeichnung mit dem Smartphone/Tablet fotografieren oder Bild hochladen.</p>
-            <span className="card-cta">Jetzt scannen ▶</span>
-          </div>
-
+        <section className="menu-cards-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", maxWidth: "860px", margin: "0 auto" }}>
+          {/* 1. SPIELEN */}
           <div
-            className="menu-card card-draw"
+            className="menu-card card-play-action"
             tabIndex={0}
             onClick={() => {
-              // Immer sauberes, neues Blatt öffnen
+              if (currentLevel) {
+                setScreen("playing");
+              } else {
+                handleStartPlaying(easyLevel);
+              }
+            }}
+            style={{
+              background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+              color: "#ffffff",
+              border: "3px solid #047857",
+              boxShadow: "0 10px 25px rgba(16, 185, 129, 0.35)",
+            }}
+          >
+            <div className="card-symbol" style={{ fontSize: "3.2rem" }}>▶️</div>
+            <h3 style={{ color: "#ffffff", fontSize: "1.8rem", margin: "6px 0" }}>Spielen</h3>
+            <p style={{ color: "#d1fae5", fontSize: "0.95rem" }}>
+              {currentLevel
+                ? `Weiter mit „${currentLevel.name || "Mein Level"}“`
+                : "Direkt ins Spiel starten und loshüpfen!"}
+            </p>
+            <span className="card-cta" style={{ background: "#ffffff", color: "#065f46", fontWeight: "bold" }}>
+              Jetzt spielen ▶
+            </span>
+            <div style={{ marginTop: "14px", borderTop: "1px solid rgba(255,255,255,0.25)", paddingTop: "10px", width: "100%" }}>
+              <button
+                className="button"
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setScreen("library");
+                }}
+                style={{
+                  backgroundColor: "rgba(0,0,0,0.25)",
+                  color: "#ffffff",
+                  fontSize: "0.85rem",
+                  padding: "6px 12px",
+                  borderRadius: "8px",
+                  border: "1px solid rgba(255,255,255,0.35)",
+                  width: "100%",
+                }}
+              >
+                📁 Meine Spiele & Bibliothek
+              </button>
+            </div>
+          </div>
+
+          {/* 2. LEVEL ZEICHNEN */}
+          <div
+            className="menu-card card-draw-action"
+            tabIndex={0}
+            onClick={() => {
               setInitialDrawingForStudio(undefined);
               setCurrentDrawingUrl(undefined);
               setCurrentLevel(null);
               setScreen("draw");
             }}
+            style={{
+              background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+              color: "#ffffff",
+              border: "3px solid #1d4ed8",
+              boxShadow: "0 10px 25px rgba(59, 130, 246, 0.35)",
+            }}
           >
-            <div className="card-symbol">🎨</div>
-            <h3>Level zeichnen</h3>
-            <p>Direkt mit Finger, Apple Pencil oder Stift auf einem leeren Blatt malen.</p>
-            <span className="card-cta">Studio öffnen ▶</span>
-          </div>
-
-          <div className="menu-card card-library" tabIndex={0} onClick={() => setScreen("library")}>
-            <div className="card-symbol">📁</div>
-            <h3>Meine Spiele</h3>
-            <p>Deine gespeicherten Welten öffnen, bearbeiten und spielen.</p>
-            <span className="card-cta">Bibliothek öffnen ▶</span>
+            <div className="card-symbol" style={{ fontSize: "3.2rem" }}>🎨</div>
+            <h3 style={{ color: "#ffffff", fontSize: "1.8rem", margin: "6px 0" }}>Level zeichnen</h3>
+            <p style={{ color: "#dbeafe", fontSize: "0.95rem" }}>
+              Erschaffe eigene Welten im Zeichenstudio mit 8 magischen Spielfarben, Stiften oder Foto-Scan.
+            </p>
+            <span className="card-cta" style={{ background: "#ffffff", color: "#1e40af", fontWeight: "bold" }}>
+              Studio öffnen ▶
+            </span>
+            <div style={{ marginTop: "14px", borderTop: "1px solid rgba(255,255,255,0.25)", paddingTop: "10px", width: "100%" }}>
+              <button
+                className="button"
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setScreen("camera");
+                }}
+                style={{
+                  backgroundColor: "rgba(0,0,0,0.25)",
+                  color: "#ffffff",
+                  fontSize: "0.85rem",
+                  padding: "6px 12px",
+                  borderRadius: "8px",
+                  border: "1px solid rgba(255,255,255,0.35)",
+                  width: "100%",
+                }}
+              >
+                📸 Foto aufnehmen & scannen
+              </button>
+            </div>
           </div>
         </section>
 

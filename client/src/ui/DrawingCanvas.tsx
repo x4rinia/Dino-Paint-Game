@@ -17,6 +17,8 @@ interface DrawingCanvasProps {
   onGameModeChange?: (mode: "jump_n_run" | "rpg_labyrinth") => void;
   onOpenSettings?: () => void;
   onOpenGameMode?: () => void;
+  onOpenPhotoScanner?: () => void;
+  onOpenLibrary?: () => void;
 }
 
 const COLORS: Record<ColorTool, { hex: string; label: string; desc: string }> = {
@@ -46,6 +48,8 @@ export function DrawingCanvas({
   onGameModeChange,
   onOpenSettings,
   onOpenGameMode,
+  onOpenPhotoScanner,
+  onOpenLibrary,
 }: DrawingCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -878,6 +882,42 @@ export function DrawingCanvas({
               <span style={{ fontSize: "0.92rem", fontWeight: 700, color: "#4ade80" }}>
                 {gameMode === "rpg_labyrinth" ? "🧭 4-Wege Labyrinth" : "🏃 Jump 'n' Run"}
               </span>
+            </button>
+          )}
+
+          {onOpenPhotoScanner && (
+            <button
+              className="button button-secondary"
+              type="button"
+              onClick={onOpenPhotoScanner}
+              title="Foto einer Papierzeichnung aufnehmen oder Bild scannen"
+              style={{
+                backgroundColor: "#2e3b56",
+                color: "#e2e8f0",
+                border: "1px solid rgba(255, 255, 255, 0.25)",
+                fontSize: "0.88rem",
+                fontWeight: 600,
+              }}
+            >
+              📸 Foto scannen
+            </button>
+          )}
+
+          {onOpenLibrary && (
+            <button
+              className="button button-secondary"
+              type="button"
+              onClick={onOpenLibrary}
+              title="Gespeicherte Spiele und Level öffnen"
+              style={{
+                backgroundColor: "#2e3b56",
+                color: "#e2e8f0",
+                border: "1px solid rgba(255, 255, 255, 0.25)",
+                fontSize: "0.88rem",
+                fontWeight: 600,
+              }}
+            >
+              📁 Meine Spiele
             </button>
           )}
 
