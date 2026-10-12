@@ -11,7 +11,11 @@ const EDGE_MARGIN_X = 160;
 const EDGE_MARGIN_Y = 90;
 
 /** A hand-lettered word that pops in at (x, y), rises and fades out in ~700ms. */
-export function floatText(scene: Phaser.Scene, message: string, x: number, y: number, color: string) {
+export function floatText(scene: Phaser.Scene, message: string, x: number, y: number, color: string, customSize?: string) {
+  const isLong = message.length > 20;
+  const fontSize = customSize || (message.length > 28 ? "24px" : message.length > 15 ? "28px" : "36px");
+  const strokeThickness = isLong ? 4 : 6;
+
   const text = scene.add
     .text(
       Phaser.Math.Clamp(x, EDGE_MARGIN_X, WORLD_W - EDGE_MARGIN_X),
@@ -19,16 +23,16 @@ export function floatText(scene: Phaser.Scene, message: string, x: number, y: nu
       message,
       {
         fontFamily: HAND_FONT,
-        fontSize: "60px",
+        fontSize,
         color,
         stroke: INK_CSS.paper,
-        strokeThickness: 9,
+        strokeThickness,
       }
     )
     .setOrigin(0.5)
     .setDepth(DEPTH)
-    .setRotation(Phaser.Math.FloatBetween(-0.1, 0.1))
-    .setScale(0.6);
+    .setRotation(Phaser.Math.FloatBetween(-0.04, 0.04))
+    .setScale(0.8);
 
   scene.tweens.add({ targets: text, scale: 1, duration: 120, ease: "Back.easeOut" });
   scene.tweens.add({

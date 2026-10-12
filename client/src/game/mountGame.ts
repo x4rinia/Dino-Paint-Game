@@ -17,6 +17,9 @@ export type GameHandle = {
    * fixLevel() moves the spawn/goal/coins somewhere playable.
    */
   loadLevel(level: unknown): void;
+  restartLevel(): void;
+  togglePause(): void;
+  setTvMode(tv: boolean): void;
   destroy(): void;
 };
 
@@ -71,6 +74,21 @@ export function mountGame(
       const start = () => game.scene.start(GAME_SCENE_KEY, { level: parsed });
       if (game.isBooted) start();
       else game.events.once(Phaser.Core.Events.READY, start);
+    },
+    restartLevel() {
+      const scene = game.scene.getScene(GAME_SCENE_KEY) as GameScene;
+      if (scene && typeof (scene as any).restartLevel === "function") {
+        (scene as any).restartLevel();
+      }
+    },
+    togglePause() {
+      const scene = game.scene.getScene(GAME_SCENE_KEY) as GameScene;
+      if (scene && typeof (scene as any).togglePause === "function") {
+        (scene as any).togglePause();
+      }
+    },
+    setTvMode(tv: boolean) {
+      game.registry.set("tvMode", tv);
     },
     destroy() {
       if (current === handle) current = null;

@@ -426,8 +426,20 @@ export class GameScene extends Phaser.Scene {
     for (const c of allEggs) {
       // Schlanke, wohlproportionierte Dino-Münzen (ca. 26px, blockieren keine Korridore)
       const COIN_SIZE = 26;
-      const cx = sx(c.x) + sx(c.w ?? 24) / 2;
-      const cy = sy(c.y) + sy(c.h ?? 24) / 2;
+      let cx = sx(c.x) + sx(c.w ?? 24) / 2;
+      let cy = sy(c.y) + sy(c.h ?? 24) / 2;
+
+      // 🪙 Münze darf niemals in einer schwarzen Plattform stecken:
+      for (const p of level.platforms) {
+        const px = sx(p.x);
+        const py = sy(p.y);
+        const pw = sx(p.w);
+        const ph = sy(p.h);
+        if (cx + COIN_SIZE / 2 > px && cx - COIN_SIZE / 2 < px + pw &&
+            cy + COIN_SIZE / 2 > py && cy - COIN_SIZE / 2 < py + ph) {
+          cy = py - COIN_SIZE / 2 - 4;
+        }
+      }
 
       const rect = this.add.rectangle(cx, cy, COIN_SIZE, COIN_SIZE, COLORS.coin).setAlpha(0);
       rect.setData("id", c.id);
@@ -614,28 +626,23 @@ export class GameScene extends Phaser.Scene {
         const platRight = platRect.x + platW;
         const platTop = platRect.y;
 
-        // 2. Vertikale Wände / Pfeiler / Linien: Immer vollkommen solide in alle Richtungen!
-        // Niemals durch eine senkrechte Linie springen (weder von unten noch seitlich).
-        const isVerticalWall = platH > platW * 1.05 || (platH > 40 && platW < 45);
+        // 2. Vertikale Wände / Pfeiler: Immer vollkommen solide in alle Richtungen!
+        const isVerticalWall = platH > platW * 1.35 && platH > 50;
         if (isVerticalWall) {
           return true;
         }
 
-        // 3. Nur wenn Dino aktiv AUFWÄRTS springt (velocity.y < -10),
-        // sich ECHTERWEISE UNTERHALB der Plattformoberkante befindet
-        // UND sich horizontal innerhalb der Plattformbreite befindet,
-        // darf er von unten nach oben hindurchspringen:
-        const isJumpingUpward = pBody.velocity.y < -10;
-        const isBeneathTop = pBody.bottom > platTop + 4;
-        const isHorizontallyUnder = pBody.right > platLeft + 6 && pBody.x < platRight - 6;
-
-        if (isJumpingUpward && isBeneathTop && isHorizontallyUnder) {
-          // Dino springt von unten durch die horizontale Plattform
+        // 3. Horizontale Plattformen:
+        // Wenn Dino aktiv nach oben springt (velocity.y < 0), springt er ungehindert von unten nach oben durch!
+        if (pBody.velocity.y < 0) {
           return false;
         }
 
-        // 4. In allen anderen Fällen (von oben landen, seitlich anstoßen, stehen):
-        // Feste solide Kollision!
+        // 4. Beim Fallen oder Landen: Feste Landung auf der Plattform!
+        if (pBody.bottom <= platTop + 14 || (pBody.prev && pBody.prev.y + pBody.height <= platTop + 8)) {
+          return true;
+        }
+
         return true;
       }
     );
@@ -779,12 +786,14 @@ export class GameScene extends Phaser.Scene {
       if (this.totalCollectibles > 0 && this.collectedCount < this.totalCollectibles) {
         if (this.time.now - this.lastGoalWarningTime > 1500) {
           this.lastGoalWarningTime = this.time.now;
+          const remaining = this.totalCollectibles - this.collectedCount;
           floatText(
             this,
-            `Sammle zuerst alle Dino-Münzen! (${this.collectedCount}/${this.totalCollectibles}) 🪙`,
+            `🔒 Noch ${remaining} ${remaining === 1 ? "Münze" : "Münzen"} sammeln!`,
             this.goal.x + this.goal.width / 2,
-            this.goal.y - 30,
-            INK_CSS.orange
+            this.goal.y - 20,
+            INK_CSS.orange,
+            "20px"
           );
         }
         return;
@@ -869,7 +878,7 @@ export class GameScene extends Phaser.Scene {
     this.restartKey = kb.addKey("R");
     this.muteKey = kb.addKey("M");
     this.helperKey = kb.addKey("H");
-    this.pauseKey = kb.addKey("ESC");
+    this.pauseKey = kb.addKey("P");
     this.editKey = kb.addKey("E");
 
     this.hud.setMuted(isMuted());
@@ -1066,7 +1075,7 @@ export class GameScene extends Phaser.Scene {
     );
   }
 
-  private togglePause() {
+  public togglePause() {
     this.isPaused = !this.isPaused;
     if (this.isPaused) {
       pauseBgMusic();
@@ -1106,7 +1115,7 @@ export class GameScene extends Phaser.Scene {
       .setDepth(2402);
 
     const hint = this.add
-      .text(cx, cy - 8, "Tippen oder Start / ESC zum Fortsetzen\nR oder Y zum Neustarten • E zum Bearbeiten", {
+      .text(cx, cy - 8, "Tippen oder Taste P zum Fortsetzen\nR zum Neustarten • E zum Bearbeiten", {
         fontFamily: '"Comic Sans MS", "Marker Felt", cursive',
         fontSize: "22px",
         color: INK_CSS.blue,
@@ -1920,7 +1929,7 @@ export class GameScene extends Phaser.Scene {
     this.replayCtl = new ReplayController(this, this.recorder, this.player, this.enemies, this.coins);
   }
 
-  private restartLevel() {
+  public restartLevel() {
     if (this.winOverlay) {
       this.winOverlay.destroy();
       this.winOverlay = undefined;
@@ -2022,12 +2031,12 @@ export class GameScene extends Phaser.Scene {
         this.nextWindChangeAt = time + 2500 + Math.random() * 2500;
       } else if (roll < 0.62) {
         // Böe von links nach rechts (schiebt Dino nach vorne)
-        this.targetWindSpeed = 70 + Math.random() * 30; // +70 bis +100 px/s
-        this.nextWindChangeAt = time + 4000 + Math.random() * 3500;
+        this.targetWindSpeed = 130 + Math.random() * 45; // Kräftige tropische Böe
+        this.nextWindChangeAt = time + 3800 + Math.random() * 3200;
       } else {
         // Böe von rechts nach links (drückt Dino nach hinten)
-        this.targetWindSpeed = -(70 + Math.random() * 30); // -70 bis -100 px/s
-        this.nextWindChangeAt = time + 4000 + Math.random() * 3500;
+        this.targetWindSpeed = -(130 + Math.random() * 45); // Kräftige tropische Böe
+        this.nextWindChangeAt = time + 3800 + Math.random() * 3200;
       }
     }
 
@@ -2036,11 +2045,11 @@ export class GameScene extends Phaser.Scene {
     this.windSpeed += (this.targetWindSpeed - this.windSpeed) * lerp;
 
     // Physikalische Windkraft auf Dino im Dschungel:
-    // Schiebt Dino je nach Windrichtung sanft mit den Blättern (in der Luft spürbar, am Boden sanfter)
+    // Schiebt Dino je nach Windrichtung dynamisch mit den Blättern
     if (this.player && !this.locked) {
       const airborne = !this.player.grounded;
-      const windForce = airborne ? this.windSpeed * 0.75 : this.windSpeed * 0.4;
-      this.player.body.velocity.x += windForce * dt * 40;
+      const windForce = airborne ? this.windSpeed * 1.15 : this.windSpeed * 0.7;
+      this.player.body.velocity.x += windForce * dt * 55;
     }
 
     // Partikel-Darstellung: Dschungelblätter wirbeln dynamisch mit dem Wind

@@ -16,7 +16,9 @@ import {
   resolveLevelById,
   formatWorldTime,
   type World,
+  type WorldTheme,
 } from "../storage/worlds";
+import { LevelThumbnail } from "./levelPreview";
 
 interface LevelLibraryProps {
   onPlayLevel: (level: Level, drawingDataUrl?: string) => void;
@@ -44,6 +46,7 @@ export function LevelLibrary({
   const [assigningSlot, setAssigningSlot] = useState<number | null>(null);
   const [showCreateWorldModal, setShowCreateWorldModal] = useState(false);
   const [newWorldName, setNewWorldName] = useState("");
+  const [newWorldTheme, setNewWorldTheme] = useState<WorldTheme>("all");
   const [worldResolvedLevels, setWorldResolvedLevels] = useState<Record<number, Level | null>>({});
   const [importSuccessMsg, setImportSuccessMsg] = useState<string | null>(null);
 
@@ -212,6 +215,119 @@ export function LevelLibrary({
     }
   };
 
+  const handleImportWorldFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      let parsed: any;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        alert("Die ausgewählte Datei enthält kein gültiges JSON.");
+        return;
+      }
+
+      if (parsed.type === "dino_world_bundle" && parsed.world) {
+        const newLevelIds: (string | null)[] = [];
+        for (let i = 0; i < (parsed.levels || []).length; i++) {
+          const lvl = parsed.levels[i];
+          if (lvl) {
+            const saved = await saveLevel({
+              name: lvl.name || `Welt-Level ${i + 1}`,
+              level: lvl,
+              thumbnail: (lvl as any).originalImage,
+              originalImage: (lvl as any).originalImage,
+            });
+            newLevelIds.push(saved.id);
+          } else {
+            newLevelIds.push(null);
+          }
+        }
+        while (newLevelIds.length < 8) newLevelIds.push(null);
+        const importedWorld: World = {
+          id: `world-custom-${Date.now()}`,
+          name: parsed.world.name || "Importierte Welt",
+          theme: (parsed.world.theme as WorldTheme) || "all",
+          description: parsed.world.description || "Importierte 8-Level-Welt",
+          icon: parsed.world.icon || "🌍",
+          levelIds: newLevelIds.slice(0, 8),
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+        const allW = await getAllWorlds();
+        await saveAllWorlds([...allW, importedWorld]);
+        await fetchAllData();
+        setSelectedWorldId(importedWorld.id);
+        setActiveTab("worlds");
+        setImportSuccessMsg(`✓ Welt „${importedWorld.name}“ mit allen 8 Leveln importiert!`);
+        setTimeout(() => setImportSuccessMsg(null), 4000);
+      } else {
+        const item = await importLevelFile(file);
+        await fetchAllData();
+        setActiveTab("levels");
+        setImportSuccessMsg(`✓ Level „${item.name}“ importiert! (Tipp: Für ganze Welten nutze .world.json)`);
+        setTimeout(() => setImportSuccessMsg(null), 4000);
+      }
+    } catch (err) {
+      alert("Fehler beim Importieren der Welt: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      e.target.value = "";
+    }
+  };
+
+  const renderThemeBadge = (theme: string) => {
+    if (theme === "all") {
+      return (
+        <span
+          style={{
+            fontSize: "0.8rem",
+            fontWeight: 800,
+            background: "linear-gradient(135deg, #10b981 0%, #3b82f6 33%, #8b5cf6 66%, #ef4444 100%)",
+            color: "#ffffff",
+            padding: "3px 10px",
+            borderRadius: "12px",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "5px",
+            marginTop: "2px",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+            letterSpacing: "0.5px",
+          }}
+        >
+          🌈 ALLE THEMEN
+        </span>
+      );
+    }
+    const themeLabels: Record<string, { label: string; icon: string; bg: string; color: string }> = {
+      jungle: { label: "Dschungel", icon: "🌴", bg: "#dcfce7", color: "#166534" },
+      volcano: { label: "Vulkan", icon: "🌋", bg: "#fee2e2", color: "#991b1b" },
+      space: { label: "Kosmos", icon: "🚀", bg: "#e0e7ff", color: "#3730a3" },
+      paper: { label: "Papier", icon: "📝", bg: "#fef3c7", color: "#92400e" },
+    };
+    const info = themeLabels[theme] || { label: theme.toUpperCase(), icon: "🎮", bg: "#f1f5f9", color: "#475569" };
+    return (
+      <span
+        style={{
+          fontSize: "0.8rem",
+          fontWeight: 700,
+          textTransform: "uppercase",
+          color: info.color,
+          background: info.bg,
+          padding: "3px 9px",
+          borderRadius: "12px",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "4px",
+          marginTop: "2px",
+        }}
+      >
+        {info.icon} {info.label}
+      </span>
+    );
+  };
+
   const playLevelItem = (item: SavedLevelItem) => {
     const fullLevel = item.level;
     const fullImage = item.originalImage || item.thumbnail;
@@ -260,9 +376,10 @@ export function LevelLibrary({
   const handleCreateWorldSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newWorldName.trim()) return;
-    const created = await createNewWorld(newWorldName);
+    const created = await createNewWorld(newWorldName, newWorldTheme);
     setShowCreateWorldModal(false);
     setNewWorldName("");
+    setNewWorldTheme("all");
     await fetchAllData();
     setSelectedWorldId(created.id);
   };
@@ -292,7 +409,7 @@ export function LevelLibrary({
           <h2>🌍 Welten & Level-Bibliothek</h2>
           <span className="studio-subtitle">Verbinde deine gezeichneten Level zu kompletten Welten!</span>
         </div>
-        <div className="studio-header-actions">
+        <div className="studio-header-actions" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
           <label
             className="button button-secondary"
             style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
@@ -304,6 +421,20 @@ export function LevelLibrary({
               accept=".json,application/json,.dino.json,image/png,image/jpeg,image/webp"
               style={{ display: "none" }}
               onChange={handleImport}
+            />
+          </label>
+
+          <label
+            className="button button-secondary"
+            style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+            title="Komplette 8-Level-Welt (.world.json) importieren"
+          >
+            📥 Welt importieren
+            <input
+              type="file"
+              accept=".json,application/json,.world.json"
+              style={{ display: "none" }}
+              onChange={handleImportWorldFile}
             />
           </label>
         </div>
@@ -366,14 +497,29 @@ export function LevelLibrary({
                       Wähle eine Welt, um ihre 8 Level zu bearbeiten, oder starte direkt eine Kampagne!
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    className="button button-primary"
-                    onClick={() => setShowCreateWorldModal(true)}
-                    style={{ fontSize: "1rem", padding: "10px 20px", fontWeight: "bold" }}
-                  >
-                    ➕ Neue Welt erstellen
-                  </button>
+                  <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                    <label
+                      className="button button-secondary"
+                      style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px", padding: "10px 18px", fontSize: "0.95rem" }}
+                      title="Gespeicherte Welt (.world.json) importieren"
+                    >
+                      📥 Welt importieren
+                      <input
+                        type="file"
+                        accept=".json,application/json,.world.json"
+                        style={{ display: "none" }}
+                        onChange={handleImportWorldFile}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="button button-primary"
+                      onClick={() => setShowCreateWorldModal(true)}
+                      style={{ fontSize: "1rem", padding: "10px 20px", fontWeight: "bold" }}
+                    >
+                      ➕ Neue Welt erstellen
+                    </button>
+                  </div>
                 </div>
 
                 {/* KACHEL-GRID */}
@@ -407,21 +553,7 @@ export function LevelLibrary({
                             <span style={{ fontSize: "2.4rem" }}>{w.icon || "🌍"}</span>
                             <div>
                               <h4 style={{ margin: 0, fontSize: "1.35rem", color: "#0f172a" }}>{w.name}</h4>
-                              <span
-                                style={{
-                                  fontSize: "0.78rem",
-                                  fontWeight: 700,
-                                  textTransform: "uppercase",
-                                  color: "#64748b",
-                                  background: "#f1f5f9",
-                                  padding: "2px 8px",
-                                  borderRadius: "12px",
-                                  display: "inline-block",
-                                  marginTop: "2px",
-                                }}
-                              >
-                                {w.theme}
-                              </span>
+                              {renderThemeBadge(w.theme)}
                             </div>
                           </div>
 
@@ -550,9 +682,10 @@ export function LevelLibrary({
                   }}
                 >
                   <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px", flexWrap: "wrap" }}>
                       <span style={{ fontSize: "2rem" }}>{activeWorld.icon || "🌍"}</span>
                       <h3 style={{ margin: 0, fontSize: "1.6rem", color: "#0f172a" }}>{activeWorld.name}</h3>
+                      {renderThemeBadge(activeWorld.theme)}
                     </div>
                     <p style={{ margin: 0, color: "#475569", fontSize: "0.95rem" }}>
                       {activeWorld.description}
@@ -601,6 +734,20 @@ export function LevelLibrary({
                     >
                       💾 Welt als JSON sichern
                     </button>
+
+                    <label
+                      className="button button-secondary"
+                      style={{ fontSize: "0.92rem", padding: "10px 16px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}
+                      title="Eine gespeicherte Welt (.world.json) importieren"
+                    >
+                      📥 Welt importieren
+                      <input
+                        type="file"
+                        accept=".json,application/json,.world.json"
+                        style={{ display: "none" }}
+                        onChange={handleImportWorldFile}
+                      />
+                    </label>
 
                     <button
                       type="button"
@@ -689,15 +836,11 @@ export function LevelLibrary({
                         }}
                       >
                         {hasLevel ? (
-                          (resolved as any)?.originalImage ? (
-                            <img
-                              src={(resolved as any).originalImage}
-                              alt={resolved?.name}
-                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                            />
-                          ) : (
-                            <div style={{ fontSize: "2rem" }}>🦖</div>
-                          )
+                          <LevelThumbnail
+                            level={resolved}
+                            imageUrl={(resolved as any)?.originalImage}
+                            alt={resolved?.name}
+                          />
                         ) : (
                           <span style={{ color: "#94a3b8", fontSize: "0.9rem" }}>Leer</span>
                         )}
@@ -773,11 +916,11 @@ export function LevelLibrary({
                 {levels.map((item) => (
                   <div key={item.id} className="level-card">
                     <div className="card-thumb" onClick={() => playLevelItem(item)}>
-                      {item.thumbnail || item.originalImage ? (
-                        <img src={item.thumbnail || item.originalImage} alt={item.name} />
-                      ) : (
-                        <div className="thumb-placeholder">🎮</div>
-                      )}
+                      <LevelThumbnail
+                        level={item.level}
+                        imageUrl={item.thumbnail || item.originalImage}
+                        alt={item.name}
+                      />
                       <div className="play-overlay">
                         <span className="play-badge">▶ Spielen</span>
                       </div>
@@ -935,11 +1078,13 @@ export function LevelLibrary({
                     onMouseLeave={(e) => (e.currentTarget.style.background = "#f8fafc")}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      {lvl.thumbnail ? (
-                        <img src={lvl.thumbnail} alt={lvl.name} style={{ width: "45px", height: "30px", borderRadius: "4px", objectFit: "cover" }} />
-                      ) : (
-                        <span style={{ fontSize: "1.4rem" }}>🎮</span>
-                      )}
+                      <div style={{ width: "48px", height: "32px", borderRadius: "4px", overflow: "hidden", flexShrink: 0 }}>
+                        <LevelThumbnail
+                          level={lvl.level}
+                          imageUrl={lvl.thumbnail || lvl.originalImage}
+                          alt={lvl.name}
+                        />
+                      </div>
                       <div>
                         <strong style={{ display: "block", color: "#0f172a" }}>{lvl.name}</strong>
                         <span style={{ fontSize: "0.8rem", color: "#64748b" }}>
@@ -975,6 +1120,22 @@ export function LevelLibrary({
                   className="form-input"
                   style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
                 />
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontWeight: "bold", marginBottom: "6px" }}>Thema der Welt:</label>
+                <select
+                  value={newWorldTheme}
+                  onChange={(e) => setNewWorldTheme(e.target.value as WorldTheme)}
+                  className="form-input"
+                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1", background: "#ffffff" }}
+                >
+                  <option value="all">🌈 Alle 4 Themen (Gemischt / Bunt)</option>
+                  <option value="jungle">🌴 Dschungel (Wind & Blätter)</option>
+                  <option value="volcano">🌋 Vulkan (Doppelsprung & Glut)</option>
+                  <option value="space">🚀 Kosmos (Schwerelos & Staub)</option>
+                  <option value="paper">📝 Zeichenpapier (Klassischer Notizblock)</option>
+                </select>
               </div>
 
               <p style={{ margin: 0, fontSize: "0.9rem", color: "#64748b", lineHeight: 1.5 }}>

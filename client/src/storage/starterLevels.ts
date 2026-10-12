@@ -14,6 +14,7 @@ export const starterLevelTutorial: Level = {
     "Vergiss nicht, das Ei einzusammeln!",
     "Ein Kinderspiel für einen echten Dino!",
   ],
+  theme: "jungle",
   start: { x: 80, y: 880 },
   goal: { id: "goal", x: 920, y: 620, w: 48, h: 74 },
   platforms: [
@@ -55,6 +56,7 @@ export const starterLevelPortals: Level = {
     "Wuuusch! Teleportation funktioniert einwandfrei!",
     "Erst alle Eier holen, dann ist das Ziel offen!",
   ],
+  theme: "space",
   start: { x: 70, y: 880 },
   goal: { id: "goal", x: 920, y: 560, w: 48, h: 74 },
   platforms: [
@@ -106,6 +108,7 @@ export const starterLevelAllColors: Level = {
     "Wuuusch durch das lila Portal!",
     "Super Sprung mit dem Trampolin!",
   ],
+  theme: "paper",
   start: { x: 70, y: 880 },
   goal: { id: "goal", x: 880, y: 540, w: 48, h: 74 },
   platforms: [
@@ -129,7 +132,7 @@ export const starterLevelAllColors: Level = {
   ],
   collectibles: [
     { id: "egg-arena-1", x: 140, y: 860, w: 30, h: 30, type: "egg", collected: false },
-    { id: "egg-arena-2", x: 490, y: 720, w: 30, h: 30, type: "egg", collected: false },
+    { id: "egg-arena-2", x: 490, y: 660, w: 30, h: 30, type: "egg", collected: false },
     { id: "egg-arena-3", x: 800, y: 560, w: 30, h: 30, type: "egg", collected: false },
   ],
   teleporters: [

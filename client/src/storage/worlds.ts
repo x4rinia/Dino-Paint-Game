@@ -3,10 +3,12 @@ import type { BackgroundTheme } from "../game/paper";
 import { starterLevelTutorial, starterLevelPortals, starterLevelAllColors } from "./starterLevels";
 import { getSetting, setSetting, getAllLevels } from "./db";
 
+export type WorldTheme = BackgroundTheme | "all";
+
 export interface World {
   id: string;
   name: string;
-  theme: BackgroundTheme;
+  theme: WorldTheme;
   description: string;
   icon: string;
   levelIds: (string | null)[]; // Genau 8 Level-Slots (Index 0 bis 7)
@@ -15,14 +17,15 @@ export interface World {
   bestTime?: number; // Schnellste Zeit in Millisekunden für den Komplettdurchlauf
 }
 
-// 8 ausgefeilte Standard-Level für Welt 1 (Urzeit-Dschungel)
+// 8 ausgefeilte Standard-Level für Welt 1 mit allen 4 Themen des Spiels
 const JUNGLE_LEVELS: Level[] = [
   starterLevelTutorial,
   {
     version: 2,
     name: "Der Stachel-Pfad",
-    intro: "Achtung vor den roten Stacheln! Nutze die Steinplattformen mit geschickten Sprüngen.",
+    intro: "Vulkan-Pfad mit glühenden Felsen und roten Stacheln! Nutze geschickte Sprünge und den Doppelsprung.",
     quips: ["Guter Sprung!", "Nicht in die Stacheln treten!", "Perfekt gelandet!"],
+    theme: "volcano",
     start: { x: 80, y: 880 },
     goal: { id: "goal", x: 920, y: 640, w: 48, h: 74 },
     platforms: [
@@ -50,8 +53,9 @@ const JUNGLE_LEVELS: Level[] = [
   {
     version: 2,
     name: "Schubkisten-Garten",
-    intro: "Schiebe den blauen Block an die Wand, um höher gelegene Eier zu erreichen!",
+    intro: "Papier-Skizzenwelt: Schiebe den blauen Block an die Wand, um höher gelegene Eier zu erreichen!",
     quips: ["Schwere Kiste!", "Jetzt kommst du hoch!", "Dino hat Bärenkräfte!"],
+    theme: "paper",
     start: { x: 80, y: 880 },
     goal: { id: "goal", x: 910, y: 580, w: 48, h: 74 },
     platforms: [
@@ -76,8 +80,9 @@ const JUNGLE_LEVELS: Level[] = [
   {
     version: 2,
     name: "Lianen-Brücken",
-    intro: "Kombiniere Trampoline und schmale Plattformen in luftiger Höhe!",
+    intro: "Dschungel-Wipfel mit tropischem Wind: Kombiniere Trampoline und schmale Plattformen in luftiger Höhe!",
     quips: ["Huiiiii!", "Wie ein Flugsaurier!", "Ziel in Sicht!"],
+    theme: "jungle",
     start: { x: 80, y: 880 },
     goal: { id: "goal", x: 910, y: 520, w: 48, h: 74 },
     platforms: [
@@ -107,8 +112,9 @@ const JUNGLE_LEVELS: Level[] = [
   {
     version: 2,
     name: "Schwebelifte über der Schlucht",
-    intro: "Steige auf den braunen Holz-Lift und fahre sicher über den Abgrund!",
+    intro: "Vulkan-Krater: Steige auf den braunen Holz-Lift und fahre sicher über den feurigen Abgrund!",
     quips: ["Aufzug fährt ab!", "Gleichmäßige Fahrt!", "Sauber rübergekommen!"],
+    theme: "volcano",
     start: { x: 80, y: 880 },
     goal: { id: "goal", x: 920, y: 640, w: 48, h: 74 },
     platforms: [
@@ -133,8 +139,9 @@ const JUNGLE_LEVELS: Level[] = [
   {
     version: 2,
     name: "Flug-Insekten Reviere",
-    intro: "Vorsicht vor den pinken Flugviechern! Warte ihren Flug ab oder hüpfe auf sie drauf!",
+    intro: "Kosmos-Dimension mit reduzierter Schwerkraft: Vorsicht vor den außerirdischen Flug-Insekten!",
     quips: ["Patsch!", "Flugbahn gut abgepasst!", "Super Timing!"],
+    theme: "space",
     start: { x: 80, y: 880 },
     goal: { id: "goal", x: 920, y: 620, w: 48, h: 74 },
     platforms: [
@@ -163,8 +170,8 @@ export const DEFAULT_WORLDS: World[] = [
   {
     id: "world-adventure-1",
     name: "Welt 1: Dinos Abenteuer-Reise",
-    theme: "jungle",
-    description: "Die ultimative Beispielwelt! 8 abwechslungsreiche Level mit allen Mechaniken: Dschungel-Wind, Stachelpfade, Portale, Kisten-Rätsel, Schwebelifte, Trampoline & Gegner.",
+    theme: "all",
+    description: "Die ultimative Beispielwelt! 8 abwechslungsreiche Level mit allen 4 Themen des Spiels: Dschungel-Wind, Vulkan-Doppelsprung, Kosmos-Schweben, Papier-Skizzen, Stachelpfade, Portale, Kisten-Rätsel & Gegner.",
     icon: "🌍",
     levelIds: [
       "starter_tutorial",
@@ -199,7 +206,22 @@ export async function getAllWorlds(): Promise<World[]> {
   try {
     const custom = await getSetting<World[]>(WORLDS_STORAGE_KEY, []);
     if (custom && custom.length > 0) {
-      return custom;
+      let modified = false;
+      const updated = custom.map((w) => {
+        if (w.id === "world-adventure-1" && ((w.theme as string) === "jungle" || !w.theme || (w.theme as string) !== "all")) {
+          modified = true;
+          return {
+            ...w,
+            theme: "all" as WorldTheme,
+            description: DEFAULT_WORLDS[0].description,
+          };
+        }
+        return w;
+      });
+      if (modified) {
+        await saveAllWorlds(updated);
+      }
+      return updated;
     }
   } catch (err) {
     console.warn("Fehler beim Laden der Welten:", err);
@@ -213,7 +235,7 @@ export async function saveAllWorlds(worlds: World[]): Promise<void> {
 }
 
 /** Erstellt eine neue Welt mit 8 freien Slots */
-export async function createNewWorld(name: string, theme: BackgroundTheme = "paper"): Promise<World> {
+export async function createNewWorld(name: string, theme: WorldTheme = "all"): Promise<World> {
   const worlds = await getAllWorlds();
   const newWorld: World = {
     id: `world-custom-${Date.now()}`,

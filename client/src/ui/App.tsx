@@ -246,7 +246,7 @@ export function App() {
     onStart: () => setShowSettings(true),
   });
 
-  // Spiel mounten wenn im Playing-Screen
+  // Spiel mounten wenn im Playing-Screen (tvMode entkoppelt, damit TV-Umschaltung das Spiel nicht neu startet)
   useEffect(() => {
     if (screen === "playing" && currentLevel && gameContainerRef.current) {
       if (gameHandleRef.current) {
@@ -266,7 +266,14 @@ export function App() {
         gameHandleRef.current = null;
       };
     }
-  }, [screen, currentLevel, tvMode, selectedBackground, gameMode, gamepadSwapAB]);
+  }, [screen, currentLevel, selectedBackground, gameMode, gamepadSwapAB]);
+
+  // TV-Modus dynamisch weiterleiten ohne das Spiel neu zu starten
+  useEffect(() => {
+    if (gameHandleRef.current) {
+      gameHandleRef.current.setTvMode(tvMode);
+    }
+  }, [tvMode]);
 
   const handleEditCurrentLevel = () => {
     if (!currentLevel) return;
@@ -664,6 +671,24 @@ export function App() {
             </div>
           </div>
           <div className="nav-play-buttons">
+            <button
+              className="button button-pause"
+              type="button"
+              onClick={() => gameHandleRef.current?.togglePause()}
+              title="Spiel pausieren oder fortsetzen (Taste P)"
+              style={{ background: "#475569", color: "#ffffff", fontWeight: "bold" }}
+            >
+              ⏸️ Pause
+            </button>
+            <button
+              className="button button-restart"
+              type="button"
+              onClick={() => gameHandleRef.current?.restartLevel()}
+              title="Level von vorn neu starten (Taste R)"
+              style={{ background: "#dc2626", color: "#ffffff", fontWeight: "bold" }}
+            >
+              🔄 Neustart
+            </button>
             <button
               className="button button-edit-level"
               type="button"

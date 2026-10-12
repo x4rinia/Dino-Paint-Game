@@ -1396,6 +1396,15 @@ body {
   justify-content: center;
   background-color: #f7f2e3;
   position: relative;
+  min-height: 0;
+  max-height: calc(100vh - 65px);
+  overflow: hidden;
+}
+
+.game-stage-container canvas {
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain;
 }
 
 /* ===================================================================
