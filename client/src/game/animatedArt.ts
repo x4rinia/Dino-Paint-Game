@@ -148,6 +148,12 @@ class GoalDoodle {
     this.starX = cx + this.label.width / 2 + 16;
     this.starY = y;
     this.g = scene.add.graphics().setDepth(DEPTH.goal);
+
+    // Wenn die schöne Vorlagen-Zielflagge vorhanden ist, blende den textuellen Doodle-Aufkleber aus
+    if (scene.textures.exists("goal_flag")) {
+      this.label.setVisible(false);
+      this.g.setVisible(false);
+    }
   }
 
   setLocked(locked: boolean) {

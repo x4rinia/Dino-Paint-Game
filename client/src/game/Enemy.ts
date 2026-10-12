@@ -49,12 +49,11 @@ export class Enemy {
     this.art = scene.add.graphics().setDepth(DEPTH.enemy);
     this.rect.setData("id", id);
 
-    const enemyTextures = ["enemy_snail", "enemy_plant", "enemy_bug"];
-    const hash = Math.abs(id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0));
-    const tex = enemyTextures[hash % enemyTextures.length];
+    // Ausschließlich das geflügelte Insekt (Flugviech) als Gegner nutzen
+    const tex = "enemy_bug";
     if (scene.textures.exists(tex)) {
       this.sprite = scene.add.image(x, y, tex).setDepth(DEPTH.enemy);
-      this.sprite.setDisplaySize(ENEMY_SIZE * 1.3, ENEMY_SIZE * 1.15);
+      this.sprite.setDisplaySize(38, 34);
       this.art.setVisible(false);
     }
 
@@ -62,7 +61,9 @@ export class Enemy {
     this.body = this.rect.body as Phaser.Physics.Arcade.Body;
     this.body.setCollideWorldBounds(false);
 
-    const halfRange = scaleDistance(patrol) / 2;
+    // Größere Patrouille-Reichweite für lebhaftere Flugbewegungen
+    const patrolDistance = Math.max(220, scaleDistance(patrol || 260));
+    const halfRange = patrolDistance / 2;
     this.minX = x - halfRange;
     this.maxX = x + halfRange;
     this.body.setVelocityX(PATROL_SPEED * this.direction);
@@ -90,9 +91,16 @@ export class Enemy {
   update(scene: Phaser.Scene, platforms: Phaser.Physics.Arcade.StaticGroup) {
     if (!this.alive) return;
 
-    if (this.rect.x <= this.minX) this.direction = 1;
-    else if (this.rect.x >= this.maxX) this.direction = -1;
-    else if ((this.body.blocked.down || this.body.touching.down) && !this.hasGroundAhead(scene, platforms)) {
+    // Richtungsumkehr bei Wänden oder Erreichen der Patrouillengrenze
+    if (this.body.blocked.left || this.body.touching.left) {
+      this.direction = 1;
+    } else if (this.body.blocked.right || this.body.touching.right) {
+      this.direction = -1;
+    } else if (this.rect.x <= this.minX) {
+      this.direction = 1;
+    } else if (this.rect.x >= this.maxX) {
+      this.direction = -1;
+    } else if ((this.body.blocked.down || this.body.touching.down) && !this.hasGroundAhead(scene, platforms)) {
       this.direction *= -1;
     }
 
@@ -104,11 +112,11 @@ export class Enemy {
     if (!this.alive) return;
     const { art, body } = this;
     if (this.sprite) {
-      this.sprite.setPosition(body.center.x, body.center.y);
-      this.sprite.setScale(
-        (this.direction * ENEMY_SIZE * 1.3) / (this.sprite.width || 100),
-        (ENEMY_SIZE * 1.15) / (this.sprite.height || 100)
-      );
+      // Leichtes Schweben (Flügelschlag-Auf-und-Ab)
+      const hoverY = Math.sin(this.scene.time.now * 0.008 + (this.minX % 10)) * 3;
+      this.sprite.setPosition(body.center.x, body.center.y + hoverY);
+      // Sprite schaut von Natur aus nach LINKS -> wenn Richtung = 1 (rechts), dann FlipX!
+      this.sprite.setFlipX(this.direction > 0);
     } else {
       art.setPosition(body.center.x, body.center.y).setScale(this.direction, 1);
       if (tick === this.lastTick) return;

@@ -54,17 +54,19 @@ function renderLevelGeometryToDataUrl(level: Level): string {
     ctx.fillRect((m.x / 1000) * 1280, (m.y / 1000) * 720, (m.w / 1000) * 1280, (m.h / 1000) * 720);
   }
 
-  // 5. Gelb: Dino-Eier
+  // 5. Gelb: Dino-Eier (unterstützt collectibles & coins)
   ctx.fillStyle = "#f5c518";
-  for (const c of level.collectibles ?? []) {
-    const cw = c.w ?? 30;
-    const ch = c.h ?? 30;
+  const previewCollectibles = [
+    ...(level.collectibles ?? []),
+    ...(level.coins ?? []).map((coin) => ({ x: coin.x, y: coin.y, w: 24, h: 24 })),
+  ];
+  for (const c of previewCollectibles) {
+    const cw = c.w ?? 24;
+    const ch = c.h ?? 24;
     const cx = ((c.x + cw / 2) / 1000) * 1280;
     const cy = ((c.y + ch / 2) / 1000) * 720;
-    const rx = (cw / 2000) * 1280;
-    const ry = (ch / 2000) * 720;
     ctx.beginPath();
-    ctx.ellipse(cx, cy, Math.max(6, rx), Math.max(8, ry), 0, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 14, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -80,8 +82,8 @@ function renderLevelGeometryToDataUrl(level: Level): string {
     ctx.fillRect((mp.x / 1000) * 1280, (mp.y / 1000) * 720, (mp.w / 1000) * 1280, (mp.h / 1000) * 720);
   }
 
-  // 8. Orange: Bewegliche Gegner
-  ctx.fillStyle = "#e8590c";
+  // 8. Pink: Fliegende Gegner (Insekten)
+  ctx.fillStyle = "#ec4899";
   for (const e of level.enemies ?? []) {
     ctx.beginPath();
     ctx.arc((e.x / 1000) * 1280, (e.y / 1000) * 720, 18, 0, Math.PI * 2);
@@ -648,10 +650,10 @@ export function App() {
               </div>
             </div>
             <div className="rule-item">
-              <span className="color-indicator" style={{ backgroundColor: "#e8590c" }} />
+              <span className="color-indicator" style={{ backgroundColor: "#ec4899" }} />
               <div>
-                <strong>Orange</strong>
-                <span>Gegner (Patrouillieren hin und her)</span>
+                <strong>Pink</strong>
+                <span>Gegner (🪰 Fliegende Insekten)</span>
               </div>
             </div>
           </div>

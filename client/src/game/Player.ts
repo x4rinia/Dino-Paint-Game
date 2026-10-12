@@ -1,7 +1,8 @@
 import Phaser from "phaser";
 import { JUMP_VELOCITY, PLAYER_H, PLAYER_W, RUN_SPEED } from "@sketchquest/shared";
 import { playJump } from "./audio";
-import { BOIL_VARIANTS, DEPTH } from "./palette";
+import { BOIL_VARIANTS, DEPTH, INK } from "./palette";
+import { burstParticles } from "./particles";
 import { seededFor } from "./sketch";
 import { drawPlayer } from "./characterArt";
 import { PF_AIRBORNE, PF_FACING_LEFT, PF_LANDING, PF_RISING, PF_RUNNING, type PlayerFrame } from "./RunRecorder";
@@ -139,16 +140,18 @@ export class Player {
 
       const inputX = Number(right) - Number(left);
       const inputY = Number(down) - Number(up);
-      const vx = inputX * RUN_SPEED;
-      const vy = inputY * RUN_SPEED;
-
-      if (left && !right) this.facing = -1;
-      else if (right && !left) this.facing = 1;
-
       // Atmosphären-Einfluss im Labyrinth:
       const bgTheme = this.scene.game.registry.get("backgroundTheme");
       const isSpace = bgTheme === "space";
-      const isVolcano = this.allowDoubleJump;
+      const isVolcano = this.allowDoubleJump || bgTheme === "volcano";
+
+      // Vulkan-Turbo: +25% schnellere Bewegung durchs Labyrinth!
+      const speedMultiplier = isVolcano ? 1.25 : 1.0;
+      const vx = inputX * RUN_SPEED * speedMultiplier;
+      const vy = inputY * RUN_SPEED * speedMultiplier;
+
+      if (left && !right) this.facing = -1;
+      else if (right && !left) this.facing = 1;
 
       if (jumpJustPressed) {
         // Sprungtaste = Ausweich-Dash / Hopser!
@@ -158,17 +161,41 @@ export class Player {
           this.magmaDashCount++;
           const dashDirX = inputX !== 0 ? inputX : this.facing;
           const dashDirY = inputY !== 0 ? inputY : 0;
-          const dashSpeed = RUN_SPEED * (isVolcano ? 2.35 : 1.85);
+          const dashSpeed = RUN_SPEED * (isVolcano ? 2.5 : 1.85);
           this.body.setVelocity(dashDirX * dashSpeed, dashDirY * dashSpeed);
-          this.knockbackUntil = now + (isVolcano ? 160 : 120);
+          this.knockbackUntil = now + (isVolcano ? 180 : 120);
           this.playJumpSquash();
           playJump();
           this.onJump?.();
+          burstParticles(this.scene, this.x, this.y, {
+            color: isVolcano ? INK.orange : INK.paper,
+            count: 10,
+            speed: [50, 150],
+            size: 6,
+            duration: 250,
+          });
         }
       } else {
         if (inputX !== 0 || inputY !== 0) {
           this.magmaDashCount = 0;
           this.body.setVelocity(vx, vy);
+          if (isVolcano && Math.random() < 0.28) {
+            burstParticles(this.scene, this.x, this.y + 14, {
+              color: INK.orange,
+              count: 2,
+              speed: [15, 50],
+              size: 4,
+              duration: 220,
+            });
+          } else if (isSpace && Math.random() < 0.25) {
+            burstParticles(this.scene, this.x, this.y + 14, {
+              color: INK.purple,
+              count: 2,
+              speed: [10, 40],
+              size: 4,
+              duration: 280,
+            });
+          }
         } else if (isSpace) {
           // Kosmische Schwerelosigkeit: Sanftes Ausgleiten (Zero-G Drift)
           this.body.setVelocity(this.body.velocity.x * 0.94, this.body.velocity.y * 0.94);

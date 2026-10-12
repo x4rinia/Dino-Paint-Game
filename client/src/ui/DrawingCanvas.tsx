@@ -4,7 +4,7 @@ import { GuideModal } from "./GuideModal";
 import { saveLevel, importLevelFile, getSetting } from "../storage/db";
 import type { BackgroundTheme } from "../game/paper";
 
-const COLOR_TOOLS = ["black", "red", "green", "blue", "yellow", "purple", "brown", "orange", "eraser"] as const;
+const COLOR_TOOLS = ["black", "red", "green", "blue", "yellow", "purple", "brown", "pink", "eraser"] as const;
 type ColorTool = (typeof COLOR_TOOLS)[number];
 type Tool = ColorTool | "start" | "goal";
 
@@ -27,7 +27,7 @@ const COLORS: Record<ColorTool, { hex: string; label: string; desc: string }> = 
   yellow: { hex: "#f5c518", label: "Gelb", desc: "Sammelobjekte (Dino-Eier)" },
   purple: { hex: "#9b51e0", label: "Lila", desc: "Teleporter-Portale (Beamen oder Vortex-Boost)" },
   brown: { hex: "#8b5a2b", label: "Braun", desc: "Bewegliche Lifte (Fährt waagerecht oder senkrecht)" },
-  orange: { hex: "#e8590c", label: "Orange", desc: "Bewegliche patrouillierende Gegner" },
+  pink: { hex: "#ec4899", label: "Pink", desc: "🪰 Fliegende Gegner (Patrouille)" },
   eraser: { hex: "#ffffff", label: "Radierer", desc: "Linien entfernen" },
 };
 
@@ -528,7 +528,7 @@ export function DrawingCanvas({
         drawSolidRect(360, 680, 560, 35, "#d6453d");
 
         drawSolidRect(510, 290, 48, 48, "#2a6df4");
-        drawCircle(820, 245, 18, "#e8590c");
+        drawCircle(820, 245, 18, "#ec4899");
 
         // 🌀 Genau 1 Vortex-Katapult-Portal in der Mitte! (NICHT am Anfang!)
         // Katapultiert Dino hoch zu den schwebenden Himmels-Eiern
@@ -559,8 +559,8 @@ export function DrawingCanvas({
         drawSolidRect(160, 310, 48, 48, "#2a6df4");
         drawSolidRect(480, 460, 160, 26, "#8b5a2b");
 
-        drawCircle(440, 260, 18, "#e8590c");
-        drawCircle(1050, 315, 18, "#e8590c");
+        drawCircle(440, 260, 18, "#ec4899");
+        drawCircle(1050, 315, 18, "#ec4899");
 
         // Portale: Oben in der Pyramide & unten rechts (Fern vom Start bei x:120!)
         drawPortal(460, 240, 38, 70);
@@ -593,7 +593,7 @@ export function DrawingCanvas({
         drawSolidRect(790, 430, 120, 25, "#8b5a2b");
 
         drawSolidRect(500, 530, 46, 46, "#2a6df4");
-        drawCircle(640, 555, 18, "#e8590c");
+        drawCircle(640, 555, 18, "#ec4899");
 
         // 🌀 Genau 1 Vortex-Portal (Schleudert Dino über die Schlucht!)
         drawPortal(530, 290, 38, 70);
@@ -856,19 +856,28 @@ export function DrawingCanvas({
         <div className="studio-header-actions">
           {onOpenGameMode && (
             <button
-              className="button button-secondary"
+              className="button studio-mode-badge"
               type="button"
               onClick={onOpenGameMode}
               title="Spielmodus (Jump 'n' Run oder 4-Wege Labyrinth) und Welt-Hintergrund wählen"
               style={{
-                backgroundColor: "#2e3b56",
-                color: "#e2e8f0",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start",
+                padding: "4px 12px",
+                lineHeight: 1.15,
+                backgroundColor: "#1e293b",
                 border: "1px solid rgba(255, 255, 255, 0.25)",
-                fontSize: "0.88rem",
-                fontWeight: 600,
+                borderRadius: "8px",
+                cursor: "pointer",
               }}
             >
-              {gameMode === "rpg_labyrinth" ? "🧭 Labyrinth" : "🏃 Jump 'n' Run"}
+              <span style={{ fontSize: "0.68rem", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                Modus:
+              </span>
+              <span style={{ fontSize: "0.92rem", fontWeight: 700, color: "#4ade80" }}>
+                {gameMode === "rpg_labyrinth" ? "🧭 4-Wege Labyrinth" : "🏃 Jump 'n' Run"}
+              </span>
             </button>
           )}
 
@@ -1258,8 +1267,8 @@ export function DrawingCanvas({
           <strong>Braun:</strong> 🪵 Bewegliche Lifte
         </div>
         <div className="legend-item">
-          <span className="legend-pill" style={{ backgroundColor: COLORS.orange.hex }} />
-          <strong>Orange:</strong> 🐌 Gegner (Patrouille)
+          <span className="legend-pill" style={{ backgroundColor: COLORS.pink.hex }} />
+          <strong>Pink:</strong> 🪰 Fliegende Gegner (Patrouille)
         </div>
       </footer>
 

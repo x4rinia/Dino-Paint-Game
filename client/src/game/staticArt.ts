@@ -40,7 +40,6 @@ export function renderStaticLevel(scene: Phaser.Scene, level: Level): Phaser.Gam
     if (h.type === "lava") drawLavaBody(g, h);
     else drawSpikes(g, h);
   }
-  drawGoalDoor(g, level.goal);
 
   const rt = scene.add.renderTexture(0, 0, WORLD_W, WORLD_H).setOrigin(0, 0).setDepth(DEPTH.staticLevel);
   rt.draw(g);

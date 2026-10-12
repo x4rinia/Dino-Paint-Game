@@ -148,6 +148,7 @@ export class GameScene extends Phaser.Scene {
   private replayCtl?: ReplayController;
   private pendingReplay?: WinEvent;
   private debugOverlay?: DebugOverlay;
+  private goalFlagArt?: Phaser.GameObjects.Image;
   private stuck!: StuckHelper;
   private lastGrounded = { x: 0, feetY: 0 };
   private touchControls?: TouchControls;
@@ -307,7 +308,10 @@ export class GameScene extends Phaser.Scene {
 
       let art: Phaser.GameObjects.Graphics | Phaser.GameObjects.Image;
       if (this.textures.exists("trampoline_mushroom")) {
-        art = this.add.image(bx, by, "trampoline_mushroom").setDisplaySize(bw * 1.1, bh * 1.1).setDepth(DEPTH.staticLevel + 2);
+        // Natürliche Proportionen des Pilzes mit Feder erhalten (Höhe ~46px, nicht plattgedrückt)
+        const mH = Math.max(42, Math.min(52, bw * 0.75));
+        const mW = mH * 1.05;
+        art = this.add.image(bx, by - (mH - bh) / 2, "trampoline_mushroom").setDisplaySize(mW, mH).setDepth(DEPTH.staticLevel + 2);
       } else {
         const g = this.add.graphics().setDepth(DEPTH.staticLevel + 2);
         this.drawBouncerArt(g, bw, bh, b.id);
@@ -376,22 +380,22 @@ export class GameScene extends Phaser.Scene {
     this.collectedCount = 0;
 
     for (const c of allEggs) {
-      const cw = sx(c.w ?? 30);
-      const ch = sy(c.h ?? 30);
-      const cx = sx(c.x) + cw / 2;
-      const cy = sy(c.y) + ch / 2;
+      // Kompakte, wohlproportionierte Dino-Eier (ca. 28-30px, blockieren keine Korridore)
+      const EGG_SIZE = 30;
+      const cx = sx(c.x) + sx(c.w ?? 24) / 2;
+      const cy = sy(c.y) + sy(c.h ?? 24) / 2;
 
-      const rect = this.add.rectangle(cx, cy, cw, ch, COLORS.coin).setAlpha(0);
+      const rect = this.add.rectangle(cx, cy, EGG_SIZE, EGG_SIZE, COLORS.coin).setAlpha(0);
       rect.setData("id", c.id);
       this.physics.add.existing(rect, true);
       this.collectiblesGroup.add(rect);
 
       let art: Phaser.GameObjects.Graphics | Phaser.GameObjects.Image;
       if (this.textures.exists("coin_egg")) {
-        art = this.add.image(cx, cy, "coin_egg").setDisplaySize(cw, ch).setDepth(DEPTH.collectible);
+        art = this.add.image(cx, cy, "coin_egg").setDisplaySize(EGG_SIZE, EGG_SIZE).setDepth(DEPTH.collectible);
       } else {
         const g = this.add.graphics().setDepth(DEPTH.collectible);
-        this.drawEggArt(g, cw, ch, c.id);
+        this.drawEggArt(g, EGG_SIZE, EGG_SIZE, c.id);
         g.setPosition(cx, cy);
         art = g;
       }
@@ -399,7 +403,7 @@ export class GameScene extends Phaser.Scene {
       // Sanftes Schweben (Bobbing)
       this.tweens.add({
         targets: art,
-        y: cy - 6,
+        y: cy - 5,
         duration: 650 + (c.x % 300),
         yoyo: true,
         repeat: -1,
@@ -516,16 +520,17 @@ export class GameScene extends Phaser.Scene {
       });
     }
 
-    // Ziel & Extras
+    // Ziel & Extras: Schöne, freistehende Zielflagge mit Steinsockel
     this.goal = this.rectTopLeft(level.goal, COLORS.goal);
     this.physics.add.existing(this.goal, true);
 
+    const gx = sx(level.goal.x) + sx(level.goal.w) / 2;
+    const gy = sy(level.goal.y) + sy(level.goal.h) / 2;
+
     if (this.textures.exists("goal_flag")) {
-      const gw = sx(level.goal.w);
-      const gh = sy(level.goal.h);
-      const gx = sx(level.goal.x) + gw / 2;
-      const gy = sy(level.goal.y) + gh / 2;
-      this.add.image(gx, gy, "goal_flag").setDisplaySize(gw * 1.1, gh * 1.1).setDepth(DEPTH.staticLevel + 2);
+      const flagW = 52;
+      const flagH = 68;
+      this.goalFlagArt = this.add.image(gx, gy, "goal_flag").setDisplaySize(flagW, flagH).setDepth(DEPTH.staticLevel + 3);
     }
 
     this.coins = [];
@@ -533,11 +538,10 @@ export class GameScene extends Phaser.Scene {
 
     if (this.totalCollectibles > 0) {
       this.doodles.setGoalLocked(true);
-      this.goal.setAlpha(0.45);
-      this.drawGoalLockDoodle();
+      if (this.goalFlagArt) this.goalFlagArt.setAlpha(0.55);
     } else {
       this.doodles.setGoalLocked(false);
-      this.goal.setAlpha(1);
+      if (this.goalFlagArt) this.goalFlagArt.setAlpha(1);
     }
 
     for (const e of level.enemies) {
@@ -1309,8 +1313,33 @@ export class GameScene extends Phaser.Scene {
 
     const dest = this.teleportersList.find((t) => t.id === src.targetId);
     if (!dest) {
-      // Wenn nur 1 Portal existiert: magischer Gravitations-Katapult / Vortex-Boost!
       this.lastTeleportAt = this.time.now;
+      if (this.gameMode === "rpg_labyrinth") {
+        // Magischer 4-Wege Vortex-Warp: Teleportiert Dino 240px vorwärts in Laufrichtung
+        playTeleport();
+        burstParticles(this, src.x, src.y, {
+          color: INK.purple,
+          count: 32,
+          speed: [120, 320],
+          size: 10,
+          duration: 500,
+        });
+        const facing = this.player.facing;
+        const targetX = Phaser.Math.Clamp(this.player.x + facing * 240, 60, WORLD_W - 60);
+        const targetY = this.player.y;
+        this.player.teleport(targetX, targetY);
+        burstParticles(this, targetX, targetY, {
+          color: INK.purple,
+          count: 24,
+          speed: [80, 240],
+          size: 9,
+          duration: 450,
+        });
+        floatText(this, "Dimensionstor! 🌀", targetX, targetY - 35, INK_CSS.purple);
+        return;
+      }
+
+      // Jump 'n' Run: Magischer Gravitations-Katapult
       this.player.trampolineBounce(BOUNCE_VELOCITY * 1.35, () => {
         playJump();
         burstParticles(this, src.x, src.y, {
@@ -1374,7 +1403,6 @@ export class GameScene extends Phaser.Scene {
     // Falls genau 1 Portal existiert -> Magischer Vortex-Katapult!
     if (this.teleportersList.length === 1) {
       playTeleport();
-      mBody.setVelocity(520, this.gameMode === "rpg_labyrinth" ? -350 : -800);
       burstParticles(this, mRect.x, mRect.y, {
         color: INK.purple,
         count: 24,
@@ -1382,6 +1410,13 @@ export class GameScene extends Phaser.Scene {
         size: 10,
         duration: 480,
       });
+      if (this.gameMode === "rpg_labyrinth") {
+        const nextX = Phaser.Math.Clamp(mRect.x + (mBody.velocity.x >= 0 ? 220 : -220), 80, WORLD_W - 80);
+        mRect.setPosition(nextX, mRect.y);
+        mBody.reset(nextX, mRect.y);
+      } else {
+        mBody.setVelocity(520, -800);
+      }
       return;
     }
 

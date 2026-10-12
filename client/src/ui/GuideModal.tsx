@@ -26,15 +26,15 @@ export function GuideModal({ onClose }: GuideModalProps) {
 
         <div className="guide-rules-list" style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
           
-          {/* ORANGE: GEGNER */}
-          <div style={{ background: "#fff4e6", borderLeft: "6px solid #e8590c", padding: "12px 16px", borderRadius: "8px" }}>
+          {/* PINK: GEGNER */}
+          <div style={{ background: "#fdf2f8", borderLeft: "6px solid #ec4899", padding: "12px 16px", borderRadius: "8px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
-              <span style={{ width: "20px", height: "20px", background: "#e8590c", borderRadius: "4px", display: "inline-block" }} />
-              <strong style={{ fontSize: "18px", color: "#e8590c" }}>Orange: Bewegliche Gegner</strong>
+              <span style={{ width: "20px", height: "20px", background: "#ec4899", borderRadius: "4px", display: "inline-block" }} />
+              <strong style={{ fontSize: "18px", color: "#ec4899" }}>Pink: 🪰 Fliegende Gegner</strong>
             </div>
             <p style={{ margin: "4px 0 0", color: "#333", fontSize: "15px" }}>
-              Zeichne einfach einen <strong>ausgefüllten Klecks oder Kasten</strong> (mind. Fingergröße / ca. 20 Pixel).
-              Im Spiel erwacht er zum Leben, patrouilliert hin und her und kann von oben durch Draufspringen besiegt werden!
+              Zeichne einfach einen <strong>ausgefüllten pinken Klecks oder Kasten</strong> (mind. Fingergröße / ca. 20 Pixel).
+              Im Spiel erwacht er als geflügeltes Insekt zum Leben, flattert hin und her und kann durch Draufspringen besiegt werden!
             </p>
           </div>
 

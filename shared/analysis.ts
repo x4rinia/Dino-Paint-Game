@@ -156,8 +156,10 @@ export function classifyPixel(
     return "green";
   }
 
-  // ORANGE: Hue 14° - 38°, hohe Sättigung & HELL (v >= 0.60, r >= 175) -> Bewegliche Gegner
+  // PINK / MAGENTA & ORANGE: Bewegliche fliegende Gegner
+  // Pink (z.B. #ec4899) Hue 320° - 355°, sowie klassisches Orange (Hue 14° - 38°)
   if (
+    (s > 0.30 && h >= 320 && h <= 355 && v >= 0.50 && r > 160 && b > 70) ||
     (s > 0.45 && h >= 14 && h <= 38 && v >= 0.60) ||
     (r >= 180 && g >= 55 && g < r - 25 && b < 85)
   ) {
@@ -518,8 +520,8 @@ export function decomposeComponentToRects(
         {
           x: (comp.minX / gridW) * 1000,
           y: (comp.minY / gridH) * 1000,
-          w: Math.max(20, Math.min(48, rawW)),
-          h: Math.max(20, Math.min(48, rawH)),
+          w: 24,
+          h: 24,
         },
       ];
     }
@@ -678,10 +680,11 @@ export function analyzeDrawing(
           h: Math.round(r.h),
         });
       } else if (comp.color === 2) {
-        // Rot -> Gefahr
+        // Rot -> Gefahr (Breite Flächen oder bodennahe Zonen werden als animierte Lava gerendert)
+        const isLava = r.w >= 60 || r.y >= 620;
         hazards.push({
           id: `hazard-${hId++}`,
-          type: "spike",
+          type: isLava ? "lava" : "spike",
           x: Math.round(r.x),
           y: Math.round(r.y),
           w: Math.round(r.w),

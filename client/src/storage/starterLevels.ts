@@ -23,7 +23,7 @@ export const starterLevelTutorial: Level = {
     { id: "step-2", x: 740, y: 720, w: 200, h: 28 },
   ],
   hazards: [
-    { id: "hazard-1", type: "spike", x: 440, y: 950, w: 160, h: 30 },
+    { id: "hazard-1", type: "lava", x: 440, y: 950, w: 160, h: 30 },
   ],
   bouncers: [
     { id: "bounce-1", x: 470, y: 890, w: 100, h: 26 },
@@ -118,7 +118,7 @@ export const starterLevelAllColors: Level = {
     { id: "goal-island", x: 740, y: 620, w: 240, h: 30 },
   ],
   hazards: [
-    { id: "spikes-1", type: "spike", x: 310, y: 950, w: 40, h: 20 },
+    { id: "lava-1", type: "lava", x: 310, y: 950, w: 45, h: 25 },
     { id: "spikes-2", type: "spike", x: 630, y: 950, w: 40, h: 20 },
   ],
   bouncers: [
