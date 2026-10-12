@@ -254,8 +254,8 @@ export class GameScene extends Phaser.Scene {
       this.physics.world.gravity.y = 1200;
     }
 
-    // Dschungelwind nur im Jump 'n' Run (im RPG-Labyrinth frei erkundbar)
-    if (bgTheme === "jungle" && gameMode === "jump_n_run") {
+    // Dschungelwind: Blätter und Brisen in beiden Modi aktiv
+    if (bgTheme === "jungle") {
       this.initJungleWind();
     }
 
@@ -513,11 +513,15 @@ export class GameScene extends Phaser.Scene {
     // Kollisionen: Spieler mit Plattformen
     this.physics.add.collider(this.player.rect, this.platforms);
 
-    // Kollisionen: Spieler mit grünen Trampolinen (verbessertes elastisches Verhalten)
+    // Kollisionen: Spieler mit grünen Trampolinen (im Labyrinth als Bumper-Rückstoß)
     this.physics.add.collider(this.player.rect, this.bouncers, (_p, bouncerRect) => {
-      const isBounceHit = this.player.body.touching.down || this.player.isFalling;
-      if (isBounceHit) {
+      if (this.gameMode === "rpg_labyrinth") {
         this.handleTrampolineBounce(bouncerRect as Phaser.GameObjects.Rectangle);
+      } else {
+        const isBounceHit = this.player.body.touching.down || this.player.isFalling;
+        if (isBounceHit) {
+          this.handleTrampolineBounce(bouncerRect as Phaser.GameObjects.Rectangle);
+        }
       }
     });
 
@@ -1109,16 +1113,40 @@ export class GameScene extends Phaser.Scene {
     const bId = bouncerRect.getData("id");
     const bEntity = this.bouncersList.find((b) => b.id === bId);
     if (bEntity) {
-      // Trampolin drückt sich sichtbar ein und federt zurück
+      // Trampolin drückt sich sichtbar ein und federt elastisch zurück
       this.tweens.killTweensOf(bEntity.art);
       this.tweens.add({
         targets: bEntity.art,
+        scaleX: this.gameMode === "rpg_labyrinth" ? 0.75 : 1,
         scaleY: 0.45,
-        y: bEntity.y + bEntity.h * 0.28,
         duration: 55,
         yoyo: true,
         ease: "Back.easeOut",
       });
+    }
+
+    if (this.gameMode === "rpg_labyrinth") {
+      // 🛡️ BUMPER-RÜCKSTOSS IM LABYRINTH:
+      // Kickt Dino kraftvoll in Gegenrichtung weg vom Trampolin!
+      let dirX = this.player.x - bouncerRect.x;
+      let dirY = this.player.y - bouncerRect.y;
+      if (Math.abs(dirX) < 2 && Math.abs(dirY) < 2) {
+        dirX = this.player.facing * -1;
+      }
+      const len = Math.hypot(dirX, dirY) || 1;
+      const kickX = (dirX / len) * 620;
+      const kickY = (dirY / len) * 620;
+
+      this.player.knockback(kickX, kickY, 320);
+      playJump();
+      burstParticles(this, this.player.x, this.player.y, {
+        color: INK.green,
+        count: 22,
+        speed: [120, 360],
+        size: 9,
+        duration: 420,
+      });
+      return;
     }
 
     const prevVy = this.player.body.velocity.y;
@@ -1553,8 +1581,13 @@ export class GameScene extends Phaser.Scene {
     if (this.player && !this.locked) {
       const body = this.player.body;
       const airborne = !this.player.grounded;
-      // In der Luft greift der Wind deutlich stärker als mit festem Bodenkontakt
-      const windForce = airborne ? this.windSpeed * 0.95 : this.windSpeed * 0.55;
+      // Im Jump 'n' Run in der Luft stärker, im Labyrinth stetige feine Brise
+      const windForce =
+        this.gameMode === "rpg_labyrinth"
+          ? this.windSpeed * 0.42
+          : airborne
+          ? this.windSpeed * 0.95
+          : this.windSpeed * 0.55;
       body.velocity.x += windForce;
     }
 

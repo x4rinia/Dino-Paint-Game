@@ -36,9 +36,11 @@ export class Player {
   private wasJumpDown = false;
   private wasGrounded = true;
   private canDoubleJump = true;
-  private readonly art: Phaser.GameObjects.Graphics;
-  private facing: 1 | -1 = 1;
+  readonly art: Phaser.GameObjects.Graphics;
+  facing: 1 | -1 = 1;
   private artKey = "";
+  private knockbackUntil = 0;
+  private magmaDashCount = 0;
   /** Called on every real (input-driven) jump, for the run recorder. */
   onJump?: () => void;
 
@@ -67,6 +69,20 @@ export class Player {
 
   setGravityMode(mode: GravityMode) {
     this.gravityMode = mode;
+  }
+
+  /** Bumper-Rückstoß / elastischer Abprall für Trampoline und Fallen */
+  knockback(vx: number, vy: number, durationMs = 300) {
+    this.body.setVelocity(vx, vy);
+    this.knockbackUntil = this.scene.time.now + durationMs;
+    this.rect.setScale(0.8, 1.25);
+    this.scene.tweens.add({
+      targets: this.rect,
+      scaleX: 1,
+      scaleY: 1,
+      duration: durationMs,
+      ease: "Quad.easeOut",
+    });
   }
 
   get x() {
@@ -99,7 +115,7 @@ export class Player {
   handleInput(input: MoveInput, locked: boolean) {
     const now = this.scene.time.now;
 
-    // 🧭 RPG MAKER / TOP-DOWN LABYRINTH MODUS
+    // 🧭 LABYRINTH / RPG MODUS (4-WEGE-STEUERUNG)
     if (this.gameMode === "rpg_labyrinth") {
       if (locked) {
         this.body.setVelocity(0, 0);
@@ -107,26 +123,52 @@ export class Player {
         return;
       }
 
+      // Falls Dino gerade von einem Trampolin/Bumper zurückgekickt wird
+      if (now < this.knockbackUntil) {
+        return;
+      }
+
       const { left, right, up = false, down = false, jump: jumpDown } = input;
       const jumpJustPressed = jumpDown && !this.wasJumpDown;
 
-      const vx = (Number(right) - Number(left)) * RUN_SPEED;
-      const vy = (Number(down) - Number(up)) * RUN_SPEED;
+      const inputX = Number(right) - Number(left);
+      const inputY = Number(down) - Number(up);
+      const vx = inputX * RUN_SPEED;
+      const vy = inputY * RUN_SPEED;
 
       if (left && !right) this.facing = -1;
       else if (right && !left) this.facing = 1;
 
+      // Atmosphären-Einfluss im Labyrinth:
+      const bgTheme = this.scene.game.registry.get("backgroundTheme");
+      const isSpace = bgTheme === "space";
+      const isVolcano = this.allowDoubleJump;
+
       if (jumpJustPressed) {
-        // 💨 RPG Maker Hopser / Dash: Dino springt federnd zur Seite oder in Laufrichtung
-        const dashDirX = vx !== 0 ? Math.sign(vx) : this.facing;
-        const dashDirY = vy !== 0 ? Math.sign(vy) : 0;
-        const dashSpeed = RUN_SPEED * 1.85;
-        this.body.setVelocity(dashDirX * dashSpeed, dashDirY * dashSpeed);
-        this.playJumpSquash();
-        playJump();
-        this.onJump?.();
+        // Sprungtaste = Ausweich-Dash / Hopser!
+        // Auf Vulkan: Doppel-Dash (Magma-Turbo) mit Boost!
+        const canDash = this.magmaDashCount < (isVolcano ? 2 : 1);
+        if (canDash) {
+          this.magmaDashCount++;
+          const dashDirX = inputX !== 0 ? inputX : this.facing;
+          const dashDirY = inputY !== 0 ? inputY : 0;
+          const dashSpeed = RUN_SPEED * (isVolcano ? 2.35 : 1.85);
+          this.body.setVelocity(dashDirX * dashSpeed, dashDirY * dashSpeed);
+          this.knockbackUntil = now + (isVolcano ? 160 : 120);
+          this.playJumpSquash();
+          playJump();
+          this.onJump?.();
+        }
       } else {
-        this.body.setVelocity(vx, vy);
+        if (inputX !== 0 || inputY !== 0) {
+          this.magmaDashCount = 0;
+          this.body.setVelocity(vx, vy);
+        } else if (isSpace) {
+          // Kosmische Schwerelosigkeit: Sanftes Ausgleiten (Zero-G Drift)
+          this.body.setVelocity(this.body.velocity.x * 0.94, this.body.velocity.y * 0.94);
+        } else {
+          this.body.setVelocity(0, 0);
+        }
       }
 
       this.wasJumpDown = jumpDown;

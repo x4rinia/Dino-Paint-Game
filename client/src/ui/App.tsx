@@ -630,12 +630,7 @@ export function App() {
 
       <footer className="home-footer">
         <div className="footer-credits">
-          <strong>Dino Paint Game</strong> • Version 2.5 (Erweiterte Edition) • by X4rinia & Dino
-        </div>
-        <div className="footer-status-pill">
-          <span>🎮 {gameMode === "rpg_labyrinth" ? "Modus: RPG-Labyrinth 🧭" : "Modus: Jump 'n' Run 🏃‍♂️"}</span>
-          <span style={{ opacity: 0.4 }}>•</span>
-          <span>🎨 Welt: {BACKGROUND_THEMES.find((t) => t.id === selectedBackground)?.name || "Notizheft"}</span>
+          <strong>Dino Paint Game</strong> • Version 2.5 • by X4rinia & Dino
         </div>
       </footer>
 

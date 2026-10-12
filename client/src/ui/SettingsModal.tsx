@@ -184,11 +184,11 @@ export function SettingsModal({
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <strong style={{ fontSize: "1.02rem" }}>🧭 RPG Maker (Labyrinth & Dungeon)</strong>
+                <strong style={{ fontSize: "1.02rem" }}>🧭 Labyrinth-Erkundung (Dungeon / Top-Down)</strong>
                 {gameMode === "rpg_labyrinth" && <span style={{ color: "#4ade80", fontWeight: "bold" }}>✓ Aktiv</span>}
               </div>
               <span style={{ fontSize: "0.82rem", opacity: 0.88, lineHeight: 1.35 }}>
-                4-Wege-Bewegung wie im RPG Maker: Dino läuft frei nach Oben ⬆️, Unten ⬇️, Links & Rechts! Sprungtaste macht einen Ausweich-Hopser.
+                Freies 4-Wege-Laufen nach Oben, Unten, Links & Rechts. Trampoline kicken Dino mit Bumper-Rückstoß ab, Sprungtaste macht einen schnellen Dash-Hopser.
               </span>
             </button>
           </div>
@@ -221,22 +221,6 @@ export function SettingsModal({
                 </button>
               );
             })}
-          </div>
-
-          <div
-            style={{
-              marginTop: "12px",
-              padding: "10px 14px",
-              borderRadius: "8px",
-              backgroundColor: "rgba(239, 68, 68, 0.12)",
-              border: "1px solid rgba(239, 68, 68, 0.35)",
-              fontSize: "0.84rem",
-              lineHeight: 1.4,
-              color: "#fca5a5",
-            }}
-          >
-            <strong>🌋 Doppelsprung-Regel:</strong> Der Dino-Doppelsprung funktioniert <em>ausschließlich</em> auf der{" "}
-            <strong>Vulkanlandschaft</strong>! Auf Karopapier/Notizheft und anderen Welten gilt der klassische Einzelsprung. Im RPG-Labyrinth-Modus sind alle Welten frei ohne Schwerkraftbarrieren spielbar.
           </div>
         </div>
 
