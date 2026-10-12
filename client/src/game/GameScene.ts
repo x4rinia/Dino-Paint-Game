@@ -593,8 +593,52 @@ export class GameScene extends Phaser.Scene {
     this.player.setAllowDoubleJump(bgTheme === "volcano");
     this.player.onJump = () => this.recorder.addJump(this.time.now);
 
-    // Kollisionen: Spieler mit Plattformen (Feste, solide Barrieren in alle 4 Richtungen – kein Durchspringen von unten oder seitliches Hineinspringen!)
-    this.physics.add.collider(this.player.rect, this.platforms);
+    // Kollisionen: Spieler mit Plattformen
+    // Im Jump 'n' Run darf Dino von unten durch horizontale Plattformen nach oben springen.
+    // Aber WÄNDE (vertikale Linien) und seitliche Stöße sind IMMER 100% solide Barrieren!
+    this.physics.add.collider(
+      this.player.rect,
+      this.platforms,
+      undefined,
+      (playerObj, platformObj) => {
+        // 1. Im 4-Wege Labyrinth (RPG) immer feste, solide Kollision in alle Richtungen:
+        if (this.gameMode !== "jump_n_run") return true;
+
+        const pRect = playerObj as Phaser.GameObjects.Rectangle;
+        const pBody = pRect.body as Phaser.Physics.Arcade.Body;
+        const platRect = platformObj as Phaser.GameObjects.Rectangle;
+
+        const platW = platRect.width;
+        const platH = platRect.height;
+        const platLeft = platRect.x;
+        const platRight = platRect.x + platW;
+        const platTop = platRect.y;
+
+        // 2. Vertikale Wände / Pfeiler / Linien: Immer vollkommen solide in alle Richtungen!
+        // Niemals durch eine senkrechte Linie springen (weder von unten noch seitlich).
+        const isVerticalWall = platH > platW * 1.05 || (platH > 40 && platW < 45);
+        if (isVerticalWall) {
+          return true;
+        }
+
+        // 3. Nur wenn Dino aktiv AUFWÄRTS springt (velocity.y < -10),
+        // sich ECHTERWEISE UNTERHALB der Plattformoberkante befindet
+        // UND sich horizontal innerhalb der Plattformbreite befindet,
+        // darf er von unten nach oben hindurchspringen:
+        const isJumpingUpward = pBody.velocity.y < -10;
+        const isBeneathTop = pBody.bottom > platTop + 4;
+        const isHorizontallyUnder = pBody.right > platLeft + 6 && pBody.x < platRight - 6;
+
+        if (isJumpingUpward && isBeneathTop && isHorizontallyUnder) {
+          // Dino springt von unten durch die horizontale Plattform
+          return false;
+        }
+
+        // 4. In allen anderen Fällen (von oben landen, seitlich anstoßen, stehen):
+        // Feste solide Kollision!
+        return true;
+      }
+    );
 
     // Kollisionen: Spieler mit grünen Trampolinen (im Labyrinth als Bumper-Rückstoß)
     this.physics.add.collider(this.player.rect, this.bouncers, (_p, bouncerRect) => {
