@@ -5,6 +5,7 @@ import { DrawingCanvas } from "./DrawingCanvas";
 import { PhotoCapture } from "./PhotoCapture";
 import { LevelLibrary } from "./LevelLibrary";
 import { SettingsModal } from "./SettingsModal";
+import { GameModeModal } from "./GameModeModal";
 import { TvModal } from "./TvModal";
 import { InstallPromptModal } from "./InstallPromptModal";
 import { GuideModal } from "./GuideModal";
@@ -96,6 +97,7 @@ export function App() {
   const [currentDrawingUrl, setCurrentDrawingUrl] = useState<string | undefined>(undefined);
   const [initialDrawingForStudio, setInitialDrawingForStudio] = useState<string | undefined>(undefined);
   const [showSettings, setShowSettings] = useState(false);
+  const [showGameModeModal, setShowGameModeModal] = useState(false);
   const [showTvModal, setShowTvModal] = useState(false);
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
@@ -273,10 +275,14 @@ export function App() {
           backgroundTheme={selectedBackground}
           gameMode={gameMode}
           onOpenSettings={() => setShowSettings(true)}
+          onOpenGameMode={() => setShowGameModeModal(true)}
         />
         {showSettings && (
-          <SettingsModal
-            onClose={() => setShowSettings(false)}
+          <SettingsModal onClose={() => setShowSettings(false)} />
+        )}
+        {showGameModeModal && (
+          <GameModeModal
+            onClose={() => setShowGameModeModal(false)}
             currentBackground={selectedBackground}
             onBackgroundChange={setSelectedBackground}
             currentGameMode={gameMode}
@@ -420,10 +426,23 @@ export function App() {
             📺 TV-Modus
           </button>
           <button
+            className="button"
+            type="button"
+            onClick={() => setShowGameModeModal(true)}
+            title="Spielmodus (Jump 'n' Run oder Labyrinth) und Spielwelt wählen"
+            style={{
+              backgroundColor: "#2e3b56",
+              color: "#e2e8f0",
+              border: "1px solid rgba(255, 255, 255, 0.25)",
+            }}
+          >
+            {gameMode === "rpg_labyrinth" ? "🧭 Labyrinth" : "🏃 Jump 'n' Run"}
+          </button>
+          <button
             className="button button-settings-icon"
             type="button"
             onClick={() => setShowSettings(true)}
-            title="Einstellungen & Tastenbelegung"
+            title="Audio, Soundeffekte & Einstellungen"
           >
             ⚙️ Einstellungen
           </button>
@@ -646,8 +665,11 @@ export function App() {
       </footer>
 
       {showSettings && (
-        <SettingsModal
-          onClose={() => setShowSettings(false)}
+        <SettingsModal onClose={() => setShowSettings(false)} />
+      )}
+      {showGameModeModal && (
+        <GameModeModal
+          onClose={() => setShowGameModeModal(false)}
           currentBackground={selectedBackground}
           onBackgroundChange={setSelectedBackground}
           currentGameMode={gameMode}

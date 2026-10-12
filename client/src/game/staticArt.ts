@@ -27,14 +27,12 @@ const MAX_TEETH = 60;
  */
 export function renderStaticLevel(scene: Phaser.Scene, level: Level): Phaser.GameObjects.RenderTexture {
   const g = scene.make.graphics({}, false);
-  const hasOriginalImage = Boolean((level as any).originalImage);
 
   for (const p of level.platforms) {
     if (isAssist(p.id)) {
       drawAssistPlatform(g, p);
-    } else if (!hasOriginalImage) {
-      // Nur zeichnen, wenn KEIN handgezeichnetes Originalbild existiert.
-      // Bei handgezeichneten Leveln bleibt der Strich unverfälscht wie gezeichnet sichtbar!
+    } else {
+      // Wand-Striche direkt & immer zeichnen – satter Wand-Strich wie gezeichnet!
       drawPlatform(g, p);
     }
   }
@@ -53,16 +51,10 @@ export function renderStaticLevel(scene: Phaser.Scene, level: Level): Phaser.Gam
 function drawPlatform(g: Phaser.GameObjects.Graphics, p: Box) {
   const { x, y, w, h } = px(p);
   const rng = seededFor(p.id);
-  const corners = jitterPoints(rectCorners(x, y, w, h), Math.min(2, Math.min(w, h) * 0.2), rng);
-  if (w <= 20 || h <= 20) {
-    // Wand-Linie: Massiver Steinbalken wie gezeichnet
-    fillPoly(g, corners, 0x1d1d24, 0.98);
-    sketchPoly(g, corners, { color: INK.black, width: 3.2, wobble: 1.2 }, rng);
-  } else {
-    fillPoly(g, corners, INK.paper, 0.94);
-    hatchPoly(g, corners, { color: INK.grey, width: 1.8, alpha: 0.32 }, rng, 13, -Math.PI / 4, 4);
-    sketchPoly(g, corners, { color: INK.black, width: 4, wobble: 2.2 }, rng);
-  }
+  const corners = jitterPoints(rectCorners(x, y, w, h), Math.min(2, Math.min(w, h) * 0.15), rng);
+  // Satter, dunkler Wand-Strich wie mit Stift gezeichnet (kein weißer Papierbalken, keine Schraffur)
+  fillPoly(g, corners, 0x1b1b24, 0.98);
+  sketchPoly(g, corners, { color: INK.black, width: 2.8, wobble: 1.0 }, rng);
 }
 
 function drawBouncer(g: Phaser.GameObjects.Graphics, b: Box) {

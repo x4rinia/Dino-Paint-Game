@@ -16,6 +16,7 @@ interface DrawingCanvasProps {
   gameMode?: "jump_n_run" | "rpg_labyrinth";
   onGameModeChange?: (mode: "jump_n_run" | "rpg_labyrinth") => void;
   onOpenSettings?: () => void;
+  onOpenGameMode?: () => void;
 }
 
 const COLORS: Record<ColorTool, { hex: string; label: string; desc: string }> = {
@@ -44,6 +45,7 @@ export function DrawingCanvas({
   gameMode = "jump_n_run",
   onGameModeChange,
   onOpenSettings,
+  onOpenGameMode,
 }: DrawingCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -852,12 +854,30 @@ export function DrawingCanvas({
           <span className="studio-subtitle">Zeichne mit allen 8 Spielfarben deine Welt</span>
         </div>
         <div className="studio-header-actions">
+          {onOpenGameMode && (
+            <button
+              className="button button-secondary"
+              type="button"
+              onClick={onOpenGameMode}
+              title="Spielmodus (Jump 'n' Run oder 4-Wege Labyrinth) und Welt-Hintergrund wählen"
+              style={{
+                backgroundColor: "#2e3b56",
+                color: "#e2e8f0",
+                border: "1px solid rgba(255, 255, 255, 0.25)",
+                fontSize: "0.88rem",
+                fontWeight: 600,
+              }}
+            >
+              {gameMode === "rpg_labyrinth" ? "🧭 Labyrinth" : "🏃 Jump 'n' Run"}
+            </button>
+          )}
+
           {onOpenSettings && (
             <button
               className="button button-secondary"
               type="button"
               onClick={onOpenSettings}
-              title="Einstellungen, Spielmodus & Hintergründe ändern"
+              title="Audio, Soundeffekte, Controller & Offline-Speicher"
               style={{
                 backgroundColor: "#253048",
                 color: "#e2e8f0",
@@ -866,7 +886,7 @@ export function DrawingCanvas({
                 fontWeight: 600,
               }}
             >
-              ⚙️ Einstellungen & Welt
+              ⚙️ Einstellungen
             </button>
           )}
 

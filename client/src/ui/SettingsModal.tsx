@@ -2,30 +2,16 @@ import React, { useEffect, useState } from "react";
 import { isMuted, toggleMute, isMusicEnabled, setMusicEnabled } from "../game/audio";
 import { narrator } from "../game/narrator";
 import { getStorageQuota, requestPersistentStorage, getSetting, setSetting } from "../storage/db";
-import { BACKGROUND_THEMES, type BackgroundTheme } from "../game/paper";
-import type { GameMode } from "../game/Player";
 
 interface SettingsModalProps {
   onClose: () => void;
-  currentBackground?: BackgroundTheme;
-  onBackgroundChange?: (bg: BackgroundTheme) => void;
-  currentGameMode?: GameMode;
-  onGameModeChange?: (mode: GameMode) => void;
 }
 
-export function SettingsModal({
-  onClose,
-  currentBackground,
-  onBackgroundChange,
-  currentGameMode,
-  onGameModeChange,
-}: SettingsModalProps) {
+export function SettingsModal({ onClose }: SettingsModalProps) {
   const [muted, setMuted] = useState(isMuted());
   const [musicOn, setMusicOn] = useState(isMusicEnabled());
   const [narratorOn, setNarratorOn] = useState(narrator.isEnabled());
   const [spawnMode, setSpawnMode] = useState<"manual" | "auto">("manual");
-  const [selectedBg, setSelectedBg] = useState<BackgroundTheme>(currentBackground || "paper");
-  const [gameMode, setGameMode] = useState<GameMode>(currentGameMode || "jump_n_run");
   const [gamepads, setGamepads] = useState<string[]>([]);
   const [storageInfo, setStorageInfo] = useState<{
     usedBytes: number;
@@ -47,12 +33,6 @@ export function SettingsModal({
     });
     getSetting<"manual" | "auto">("spawn_mode", "manual").then((mode) => {
       setSpawnMode(mode);
-    });
-    getSetting<BackgroundTheme>("selected_background", "paper").then((bg) => {
-      setSelectedBg(bg);
-    });
-    getSetting<GameMode>("game_mode", "jump_n_run").then((mode) => {
-      setGameMode(mode);
     });
 
     const updateGamepads = () => {
@@ -107,26 +87,6 @@ export function SettingsModal({
     void setSetting("spawn_mode", mode);
   };
 
-  const handleSelectBackground = (theme: BackgroundTheme) => {
-    setSelectedBg(theme);
-  };
-
-  const handleSelectGameMode = (mode: GameMode) => {
-    setGameMode(mode);
-  };
-
-  const handleSaveAndClose = () => {
-    void setSetting("selected_background", selectedBg);
-    void setSetting("game_mode", gameMode);
-    if (onBackgroundChange) onBackgroundChange(selectedBg);
-    if (onGameModeChange) onGameModeChange(gameMode);
-    onClose();
-  };
-
-  const handleCancel = () => {
-    onClose();
-  };
-
   const handleRequestPersistence = async () => {
     setPersisting(true);
     await requestPersistentStorage();
@@ -143,93 +103,10 @@ export function SettingsModal({
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-box settings-modal" onClick={(e) => e.stopPropagation()}>
         <div className="settings-header">
-          <h3>⚙️ Einstellungen & Spieloptionen</h3>
-          <button className="button-close" type="button" onClick={onClose}>
+          <h3>⚙️ Einstellungen</h3>
+          <button className="button-close" type="button" onClick={onClose} aria-label="Schließen">
             ✕
           </button>
-        </div>
-
-        {/* 🎮 SPIELMODI */}
-        <div className="settings-section">
-          <h4>🎮 Spielmodus</h4>
-          <p style={{ margin: "4px 0 12px", fontSize: "0.9rem", color: "#b0b5c5" }}>
-            Wähle dein bevorzugtes Spielerlebnis für alle gezeichneten Welten:
-          </p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "12px" }}>
-            <button
-              className={`button ${gameMode === "jump_n_run" ? "button-primary" : "button-secondary"}`}
-              type="button"
-              onClick={() => handleSelectGameMode("jump_n_run")}
-              style={{
-                textAlign: "left",
-                padding: "14px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "6px",
-                borderColor: gameMode === "jump_n_run" ? "#4ade80" : undefined,
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <strong style={{ fontSize: "1.02rem" }}>🏃‍♂️ Jump 'n' Run (Platformer)</strong>
-                {gameMode === "jump_n_run" && <span style={{ color: "#4ade80", fontWeight: "bold" }}>✓ Aktiv</span>}
-              </div>
-              <span style={{ fontSize: "0.82rem", opacity: 0.88, lineHeight: 1.35 }}>
-                Klassischer 2D-Platformer mit Schwerkraft nach unten, Klettern auf Plattformen & hohen Trampolinsprüngen.
-              </span>
-            </button>
-
-            <button
-              className={`button ${gameMode === "rpg_labyrinth" ? "button-primary" : "button-secondary"}`}
-              type="button"
-              onClick={() => handleSelectGameMode("rpg_labyrinth")}
-              style={{
-                textAlign: "left",
-                padding: "14px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "6px",
-                borderColor: gameMode === "rpg_labyrinth" ? "#4ade80" : undefined,
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <strong style={{ fontSize: "1.02rem" }}>🧭 Labyrinth-Erkundung (Dungeon / Top-Down)</strong>
-                {gameMode === "rpg_labyrinth" && <span style={{ color: "#4ade80", fontWeight: "bold" }}>✓ Aktiv</span>}
-              </div>
-              <span style={{ fontSize: "0.82rem", opacity: 0.88, lineHeight: 1.35 }}>
-                Freies 4-Wege-Laufen nach Oben, Unten, Links & Rechts. Trampoline kicken Dino mit Bumper-Rückstoß ab, Sprungtaste macht einen schnellen Dash-Hopser.
-              </span>
-            </button>
-          </div>
-        </div>
-
-        {/* 🎨 HINTERGRUND & SPIELWELT */}
-        <div className="settings-section">
-          <h4>🎨 Hintergrund & Spielwelt</h4>
-          <p style={{ margin: "4px 0 10px", fontSize: "0.9rem", color: "#b0b5c5" }}>
-            Wähle das Design der Spielwelt (4 Atmosphären verfügbar):
-          </p>
-          <div className="background-choices-grid">
-            {BACKGROUND_THEMES.map((theme) => {
-              const isSelected = selectedBg === theme.id;
-              return (
-                <button
-                  key={theme.id}
-                  className={`bg-choice-card ${isSelected ? "active" : ""}`}
-                  type="button"
-                  onClick={() => handleSelectBackground(theme.id)}
-                >
-                  <div className={`bg-choice-preview preview-${theme.id}`}>
-                    <span className="bg-preview-icon">{theme.icon}</span>
-                  </div>
-                  <div className="bg-choice-content">
-                    <strong>{theme.name}</strong>
-                    <span className="bg-choice-sub">{theme.subtitle}</span>
-                  </div>
-                  {isSelected && <span className="bg-choice-check">✓ Aktiv</span>}
-                </button>
-              );
-            })}
-          </div>
         </div>
 
         {/* AUDIO & MUSIK */}
@@ -249,209 +126,124 @@ export function SettingsModal({
             </button>
           </div>
 
-          <div className="setting-row" style={{ marginTop: "10px" }}>
+          <div className="setting-row">
             <div>
-              <strong>Soundeffekte (Sprünge, Eier, Aktionen)</strong>
-              <small style={{ display: "block", color: "#a0a5b5" }}>Taste M schaltet den Gesamtton stumm</small>
+              <strong>Soundeffekte (SFX)</strong>
+              <small style={{ display: "block", color: "#a0a5b5" }}>Sprünge, Münzen, Teleporter & Bumper</small>
             </div>
             <button
-              className={`button ${muted ? "button-secondary" : "button-primary"}`}
+              className={`button ${!muted ? "button-primary" : "button-secondary"}`}
               type="button"
               onClick={handleToggleSound}
             >
-              {muted ? "Ton: AUS (Stumm)" : "Ton: AN"}
+              {!muted ? "🔊 Ton: AN" : "🔇 Stumm"}
             </button>
           </div>
 
-          <div className="setting-row" style={{ marginTop: "10px" }}>
+          <div className="setting-row">
             <div>
-              <strong>Vorleser (Sprachausgabe / Erzähler)</strong>
-              <small style={{ display: "block", color: "#a0a5b5" }}>
-                Liest Level-Titel und witzige Kommentare vor (Standard: AUS)
-              </small>
+              <strong>Audio-Vorleser / Erzähler</strong>
+              <small style={{ display: "block", color: "#a0a5b5" }}>Liest Spieltipps & Aktionen vor</small>
             </div>
             <button
               className={`button ${narratorOn ? "button-primary" : "button-secondary"}`}
               type="button"
               onClick={handleToggleNarrator}
             >
-              {narratorOn ? "🗣️ Vorleser: AN" : "🗣️ Vorleser: AUS"}
+              {narratorOn ? "🗣️ Sprache: AN" : "🔇 Sprache: AUS"}
             </button>
           </div>
         </div>
 
-        {/* START & ZIEL PLATZIERUNG */}
+        {/* START- & ZIELPUNKT SPAWN */}
         <div className="settings-section">
-          <h4>🚩🏁 Start & Ziel Modus</h4>
-          <p style={{ margin: "4px 0 12px", fontSize: "0.9rem", color: "#b0b5c5" }}>
-            Bestimme, wie Startpunkt und Zieltor im Spiel gesetzt werden:
-          </p>
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <button
-              className={`button ${spawnMode === "manual" ? "button-primary" : "button-secondary"}`}
-              type="button"
-              onClick={() => handleToggleSpawnMode("manual")}
-              style={{ flex: 1, minWidth: "180px", textAlign: "left", padding: "10px 14px" }}
-            >
-              <strong>✍️ Manuell (S & Z)</strong>
-              <span style={{ display: "block", fontSize: "0.8rem", opacity: 0.9, marginTop: "2px" }}>
-                Startet bei 🚩 S und endet bei 🏁 Z (im Editor markierbar)
-              </span>
-            </button>
-            <button
-              className={`button ${spawnMode === "auto" ? "button-primary" : "button-secondary"}`}
-              type="button"
-              onClick={() => handleToggleSpawnMode("auto")}
-              style={{ flex: 1, minWidth: "180px", textAlign: "left", padding: "10px 14px" }}
-            >
-              <strong>🎲 Zufall / Automatisch</strong>
-              <span style={{ display: "block", fontSize: "0.8rem", opacity: 0.9, marginTop: "2px" }}>
-                Platziert Dino und Ziel automatisch auf sicheren Plattformen
-              </span>
-            </button>
+          <h4>🚩 Start- & Zielpunkt Platzierung</h4>
+          <div className="setting-row">
+            <div>
+              <strong>Modus für Start & Ziel</strong>
+              <small style={{ display: "block", color: "#a0a5b5" }}>
+                {spawnMode === "manual"
+                  ? "Manuell: Nutze die Start- (S) und Ziel- (Z) Werkzeuge im Editor"
+                  : "Automatisch: Start links, Ziel rechts"}
+              </small>
+            </div>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button
+                className={`button ${spawnMode === "manual" ? "button-primary" : "button-secondary"}`}
+                type="button"
+                onClick={() => handleToggleSpawnMode("manual")}
+              >
+                🚩 Manuell
+              </button>
+              <button
+                className={`button ${spawnMode === "auto" ? "button-primary" : "button-secondary"}`}
+                type="button"
+                onClick={() => handleToggleSpawnMode("auto")}
+              >
+                ⚙️ Auto
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* STEUERUNG */}
+        {/* CONTROLLER & GAMEPAD */}
         <div className="settings-section">
-          <h4>🕹️ Steuerung</h4>
-          <table className="controls-table">
-            <thead>
-              <tr>
-                <th>Aktion</th>
-                <th>Tastatur</th>
-                <th>Xbox / Bluetooth Controller</th>
-                <th>Touch</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Bewegung ({gameMode === "rpg_labyrinth" ? "4 Richtungen" : "Links/Rechts"})</td>
-                <td>
-                  {gameMode === "rpg_labyrinth" ? (
-                    <>
-                      <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> / <kbd>▲</kbd> <kbd>▼</kbd> <kbd>◀</kbd> <kbd>▶</kbd>
-                    </>
-                  ) : (
-                    <>
-                      <kbd>A</kbd> / <kbd>D</kbd> oder <kbd>◀</kbd> <kbd>▶</kbd>
-                    </>
-                  )}
-                </td>
-                <td>Linker Stick / 4-Wege-Steuerkreuz</td>
-                <td>Touch D-Pad Pfeile</td>
-              </tr>
-              <tr>
-                <td>
-                  {gameMode === "rpg_labyrinth" ? "Ausweichen / Dash" : "Sprung (Doppelsprung auf 🌋)"}
-                </td>
-                <td><kbd>Leertaste</kbd> {gameMode !== "rpg_labyrinth" && "/ W"}</td>
-                <td><kbd>A</kbd>-Taste</td>
-                <td>Aktionstaste rechts</td>
-              </tr>
-              <tr>
-                <td>Pause</td>
-                <td><kbd>Escape</kbd></td>
-                <td><kbd>Start</kbd>-Taste</td>
-                <td>Pause-Taste oben</td>
-              </tr>
-              <tr>
-                <td>Level neustarten</td>
-                <td><kbd>R</kbd></td>
-                <td><kbd>Y</kbd>-Taste</td>
-                <td>Neustart nach Tod</td>
-              </tr>
-              <tr>
-                <td>Ton stummschalten</td>
-                <td><kbd>M</kbd></td>
-                <td>–</td>
-                <td>Im Pausemenü</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* CONTROLLER STATUS */}
-        <div className="settings-section">
-          <h4>🎮 Angeschlossene Controller</h4>
-          {gamepads.length === 0 ? (
-            <p style={{ margin: "4px 0", fontSize: "0.9rem", color: "#a0a5b5" }}>
-              Kein Controller erkannt. Schließe einen Xbox, PlayStation oder Bluetooth Controller an und drücke eine Taste!
-            </p>
-          ) : (
-            <ul style={{ margin: "6px 0 0 16px", padding: 0 }}>
-              {gamepads.map((name, i) => (
-                <li key={i} style={{ color: "#4ade80", fontSize: "0.9rem" }}>
-                  ✓ {name}
+          <h4>🎮 Gamepads & Controller</h4>
+          {gamepads.length > 0 ? (
+            <ul style={{ margin: "4px 0 0", paddingLeft: "20px", color: "#4ade80" }}>
+              {gamepads.map((gp, i) => (
+                <li key={i}>
+                  ✓ <strong>{gp}</strong> verbunden
                 </li>
               ))}
             </ul>
+          ) : (
+            <p style={{ margin: "4px 0 0", color: "#a0a5b5", fontSize: "0.9rem" }}>
+              Kein Gamepad angeschlossen. Schließe einen Xbox-, PlayStation- oder USB-Controller an und drücke eine Taste!
+            </p>
           )}
         </div>
 
-        {/* SPEICHERSTATUS & OFFLINE-DATEN */}
+        {/* SPEICHERPLATZ & OFFLINE-PWA */}
         <div className="settings-section">
-          <h4>💾 Offline-Speicher (IndexedDB)</h4>
-          <p style={{ margin: "4px 0 8px", fontSize: "0.9rem", color: "#a0a5b5" }}>
-            Alle deine gezeichneten Level werden lokal und offline auf deinem Gerät gespeichert.
-          </p>
-          <div className="storage-meter-box">
-            <div className="storage-meter-bar">
-              <div
-                className="storage-meter-fill"
-                style={{ width: `${Math.max(2, Math.min(100, storageInfo.percentage))}%` }}
-              />
-            </div>
-            <div className="storage-meter-labels">
-              <span>Belegt: {formatMB(storageInfo.usedBytes)}</span>
-              <span>Verfügbar: {formatMB(storageInfo.quotaBytes)}</span>
-            </div>
+          <h4>💾 Offline-Speicher (PWA)</h4>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+            <span>Belegt: <strong>{formatMB(storageInfo.usedBytes)}</strong> von {formatMB(storageInfo.quotaBytes)}</span>
+            <span style={{ color: storageInfo.persisted ? "#4ade80" : "#ffc107" }}>
+              {storageInfo.persisted ? "✓ Dauerhafter Speicher aktiv" : "⚠️ Temporärer Speicher"}
+            </span>
           </div>
+
           {!storageInfo.persisted && (
-            <div style={{ marginTop: "12px" }}>
-              <button
-                className="button button-secondary"
-                type="button"
-                onClick={handleRequestPersistence}
-                disabled={persisting}
-              >
-                {persisting ? "Sichere Speicher…" : "🛡️ Dauerhaften Speicher anfordern (Browser-Bereinigung verhindern)"}
-              </button>
-            </div>
+            <button
+              className="button button-secondary"
+              type="button"
+              style={{ width: "100%", marginTop: "6px" }}
+              disabled={persisting}
+              onClick={handleRequestPersistence}
+            >
+              {persisting ? "Speicher wird gesichert..." : "🔒 Dauerhaften Speicher anfordern"}
+            </button>
           )}
         </div>
 
-        {/* MODAL FOOTER AKTIONEN: OK & ABBRECHEN */}
+        {/* FOOTER BUTTONS: OK & ABBRECHEN */}
         <div
+          className="settings-footer"
           style={{
             display: "flex",
             justifyContent: "flex-end",
-            alignItems: "center",
             gap: "12px",
-            marginTop: "24px",
+            marginTop: "20px",
             paddingTop: "16px",
             borderTop: "1px solid rgba(255, 255, 255, 0.12)",
-            position: "sticky",
-            bottom: 0,
-            background: "#1a1d26",
-            zIndex: 10,
           }}
         >
-          <button
-            className="button button-secondary"
-            type="button"
-            onClick={handleCancel}
-            style={{ padding: "10px 20px" }}
-          >
+          <button className="button button-secondary" type="button" onClick={onClose}>
             ✕ Abbrechen
           </button>
-          <button
-            className="button button-primary"
-            type="button"
-            onClick={handleSaveAndClose}
-            style={{ padding: "10px 28px", fontWeight: "bold" }}
-          >
-            ✓ OK / Übernehmen
+          <button className="button button-primary" type="button" onClick={onClose}>
+            ✓ OK / Fertig
           </button>
         </div>
       </div>
