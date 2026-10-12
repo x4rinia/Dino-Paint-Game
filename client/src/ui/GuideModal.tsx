@@ -119,15 +119,17 @@ export function GuideModal({ onClose }: GuideModalProps) {
             </p>
           </div>
 
-          {/* START & ZIEL S / Z */}
-          <div style={{ background: "#f0fdf4", borderLeft: "6px solid #10b981", padding: "12px 16px", borderRadius: "8px" }}>
+          {/* GRAU: START & ZIEL */}
+          <div style={{ background: "#f4f4f5", borderLeft: "6px solid #71717a", padding: "12px 16px", borderRadius: "8px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
-              <span style={{ fontSize: "20px" }}>🚩🏁</span>
-              <strong style={{ fontSize: "18px", color: "#065f46" }}>Start (S) & Ziel (Z) Marker</strong>
+              <span style={{ width: "20px", height: "20px", background: "#71717a", borderRadius: "4px", display: "inline-block" }} />
+              <strong style={{ fontSize: "18px", color: "#3f3f46" }}>Grau: 🚩 Start & 🏁 Ziel mit Punkten</strong>
             </div>
             <p style={{ margin: "4px 0 0", color: "#333", fontSize: "15px" }}>
-              Wähle im Editor einfach <strong>🚩 Start (S)</strong> oder <strong>🏁 Ziel (Z)</strong> und klicke auf deine Zeichnung,
-              um Dino und das Zieltor manuell zu platzieren. Setzt du keine Marker, platziert das Spiel beide automatisch sicher auf Plattformen!
+              Zeichne einfach <strong>graue Punkte</strong> auf deine Zeichnung (genau wie bei den Portalen):<br />
+              • <strong>1 grauer Punkt</strong> = 🚩 Startpunkt für deinen Dino.<br />
+              • <strong>2 graue Punkte</strong> = 🚩 Start (linker Punkt) und 🏁 Ziel (rechter Punkt).<br />
+              Zeichnest du keine grauen Punkte, platziert das Spiel Dino und Ziel automatisch sicher auf den Plattformen!
             </p>
           </div>
 

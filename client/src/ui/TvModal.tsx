@@ -8,11 +8,18 @@ interface TvModalProps {
 
 export function TvModal({ onClose, tvMode, onToggleTvMode }: TvModalProps) {
   const handleToggleFullscreen = async () => {
+    const next = !tvMode;
     onToggleTvMode();
-    if (!tvMode) {
+    if (next) {
       try {
         if (!document.fullscreenElement) {
           await document.documentElement.requestFullscreen();
+        }
+      } catch {}
+    } else {
+      try {
+        if (document.fullscreenElement) {
+          await document.exitFullscreen();
         }
       } catch {}
     }
@@ -20,7 +27,11 @@ export function TvModal({ onClose, tvMode, onToggleTvMode }: TvModalProps) {
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-box tv-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal-box tv-modal"
+        onClick={(e) => e.stopPropagation()}
+        style={{ maxHeight: "88vh", overflowY: "auto" }}
+      >
         <div className="settings-header">
           <h3>📡 Streaming- & Fernseher-Menü</h3>
           <button className="button-close" type="button" onClick={onClose}>

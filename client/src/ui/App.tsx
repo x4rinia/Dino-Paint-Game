@@ -16,6 +16,7 @@ import { setMusicEnabled, installAudioUnlock, startBgMusic, pauseBgMusic, isMusi
 import { narrator } from "../game/narrator";
 import { BACKGROUND_THEMES, type BackgroundTheme } from "../game/paper";
 import type { GameMode } from "../game/Player";
+import { resolveLevelById, type World } from "../storage/worlds";
 import "./App.css";
 
 type Screen = "menu" | "draw" | "camera" | "library" | "playing";
@@ -106,13 +107,22 @@ export function App() {
   const [showGuide, setShowGuide] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState(false);
 
-  // TV-Modus & PWA Install
+  // TV-Modus
   const [tvMode, setTvModeState] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any | null>(null);
   const [isStandalone, setIsStandalone] = useState(false);
   const [isSmartphone, setIsSmartphone] = useState(false);
   const [selectedBackground, setSelectedBackground] = useState<BackgroundTheme>("paper");
   const [gameMode, setGameModeState] = useState<GameMode>("jump_n_run");
+
+  // 8-Level-Welten-System
+  const [activeWorldContext, setActiveWorldContext] = useState<{ world: World; levelIndex: number } | null>(null);
+  const [worldWinStatus, setWorldWinStatus] = useState<{
+    world: World;
+    completedSlot: number;
+    nextSlot: number;
+    isComplete: boolean;
+  } | null>(null);
 
   const gameContainerRef = useRef<HTMLDivElement | null>(null);
   const gameHandleRef = useRef<ReturnType<typeof mountGame> | null>(null);
@@ -145,7 +155,7 @@ export function App() {
       narrator.setEnabled(enabled);
     });
 
-    // Prüfe ob PWA bereits installiert ist
+    // Prüfe ob App bereits installiert ist
     if (
       window.matchMedia("(display-mode: standalone)").matches ||
       (window.navigator as any).standalone === true
@@ -162,7 +172,7 @@ export function App() {
     checkIsPhone();
     window.addEventListener("resize", checkIsPhone);
 
-    // Fange PWA-Installationsereignis ab
+    // Fange Installationsereignis ab
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -179,6 +189,23 @@ export function App() {
     const nextVal = !tvMode;
     setTvModeState(nextVal);
     await setSetting("tv_mode", nextVal);
+    if (!nextVal) {
+      if (document.fullscreenElement) {
+        try {
+          await document.exitFullscreen();
+        } catch {
+          // ignore
+        }
+      }
+    } else {
+      try {
+        if (!document.fullscreenElement) {
+          await document.documentElement.requestFullscreen();
+        }
+      } catch {
+        // ignore
+      }
+    }
   };
 
   // Gamepad-Navigation in den Menüs
@@ -232,13 +259,64 @@ export function App() {
     return unsub;
   }, [currentLevel, currentDrawingUrl]);
 
-  const handleStartPlaying = (level: Level, drawingDataUrl?: string) => {
+  // Sieg in einem Level: Prüfe ob wir uns in einer 8-Level-Welt befinden
+  useEffect(() => {
+    const unsub = gameEvents.on("win", () => {
+      if (activeWorldContext) {
+        const nextSlot = activeWorldContext.levelIndex + 1;
+        const isComplete = nextSlot >= 8;
+        setWorldWinStatus({
+          world: activeWorldContext.world,
+          completedSlot: activeWorldContext.levelIndex,
+          nextSlot,
+          isComplete,
+        });
+      }
+    });
+    return unsub;
+  }, [activeWorldContext]);
+
+  const handlePlayNextWorldLevel = async () => {
+    if (!worldWinStatus) return;
+    const { world, nextSlot } = worldWinStatus;
+    if (nextSlot < 8) {
+      const nextLevelId = world.levelIds[nextSlot];
+      const nextLevel = nextLevelId ? await resolveLevelById(nextLevelId) : null;
+      if (nextLevel) {
+        handleStartPlaying(nextLevel, (nextLevel as any).originalImage, {
+          world,
+          levelIndex: nextSlot,
+        });
+      } else {
+        alert(`Slot ${nextSlot + 1} ist noch nicht belegt! Öffne die Bibliothek, um ein Level zuzuweisen.`);
+        setScreen("library");
+      }
+    } else {
+      setScreen("library");
+    }
+    setWorldWinStatus(null);
+  };
+
+  const handleStartPlaying = (
+    level: Level,
+    drawingDataUrl?: string,
+    worldContext?: { world: World; levelIndex: number }
+  ) => {
     setCurrentLevel(level);
     const imgUrl = drawingDataUrl || (level as any).originalImage;
     setCurrentDrawingUrl(imgUrl);
     if (imgUrl) {
       setInitialDrawingForStudio(imgUrl);
     }
+    if (worldContext) {
+      setActiveWorldContext(worldContext);
+      if (worldContext.world.theme) {
+        setSelectedBackground(worldContext.world.theme);
+      }
+    } else {
+      setActiveWorldContext(null);
+    }
+    setWorldWinStatus(null);
     setScreen("playing");
   };
 
@@ -337,7 +415,11 @@ export function App() {
       <main className={`game-screen-wrapper ${tvMode ? "tv-mode-active" : ""}`}>
         <header className="game-play-nav">
           <div className="nav-level-info">
-            <span className="eyebrow">Dino spielt:</span>
+            <span className="eyebrow">
+              {activeWorldContext
+                ? `🌍 Welt: ${activeWorldContext.world.name} (Level ${activeWorldContext.levelIndex + 1}/8)`
+                : "Dino spielt:"}
+            </span>
             <h1 className="nav-level-name">{currentLevel?.name || "Level"}</h1>
           </div>
           <div className="nav-play-buttons">
@@ -373,6 +455,20 @@ export function App() {
                   gameHandleRef.current.destroy();
                   gameHandleRef.current = null;
                 }
+                setScreen("library");
+              }}
+              title="Welten und Level-Bibliothek öffnen"
+            >
+              🌍 Welten-Bibliothek
+            </button>
+            <button
+              className="button button-secondary"
+              type="button"
+              onClick={() => {
+                if (gameHandleRef.current) {
+                  gameHandleRef.current.destroy();
+                  gameHandleRef.current = null;
+                }
                 setScreen("menu");
               }}
             >
@@ -382,6 +478,66 @@ export function App() {
         </header>
 
         <div className={`game-stage-container bg-stage-${selectedBackground}`} ref={gameContainerRef} />
+
+        {/* 8-Level-Welt: Fortschritts-Dialog bei Level-Sieg */}
+        {worldWinStatus && (
+          <div className="modal-backdrop" style={{ zIndex: 10000 }}>
+            <div className="modal-box" style={{ maxWidth: "480px", textAlign: "center", padding: "32px 28px" }}>
+              {worldWinStatus.isComplete ? (
+                <>
+                  <div style={{ fontSize: "3.8rem", marginBottom: "8px" }}>🏆🎉🦖</div>
+                  <h2 style={{ color: "#2563eb", fontSize: "1.8rem", marginBottom: "10px" }}>Welt gemeistert!</h2>
+                  <p style={{ fontSize: "1.1rem", color: "#374151", marginBottom: "24px" }}>
+                    Fantastisch! Du hast alle <strong>8 Level</strong> der Welt <strong>„{worldWinStatus.world.name}“</strong> erfolgreich abgeschlossen!
+                  </p>
+                  <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+                    <button
+                      className="button button-primary"
+                      type="button"
+                      onClick={() => {
+                        setWorldWinStatus(null);
+                        setScreen("library");
+                      }}
+                      style={{ fontSize: "1.1rem", padding: "12px 24px" }}
+                    >
+                      🌍 Zurück zur Welten-Auswahl
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: "3.6rem", marginBottom: "8px" }}>🌟⭐🦖</div>
+                  <h2 style={{ color: "#16a34a", fontSize: "1.8rem", marginBottom: "10px" }}>
+                    Level {worldWinStatus.completedSlot + 1} von 8 geschafft!
+                  </h2>
+                  <p style={{ fontSize: "1.05rem", color: "#374151", marginBottom: "24px" }}>
+                    Großartig gemeistert! Bereit für das nächste Abenteuer in <strong>„{worldWinStatus.world.name}“</strong>?
+                  </p>
+                  <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
+                    <button
+                      className="button button-primary"
+                      type="button"
+                      onClick={handlePlayNextWorldLevel}
+                      style={{ fontSize: "1.15rem", padding: "14px 28px", fontWeight: "bold" }}
+                    >
+                      ▶ Nächstes Level ({worldWinStatus.nextSlot + 1}/8) spielen
+                    </button>
+                    <button
+                      className="button button-secondary"
+                      type="button"
+                      onClick={() => {
+                        setWorldWinStatus(null);
+                        setScreen("library");
+                      }}
+                    >
+                      🌍 Welten-Übersicht
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </main>
     );
   }
@@ -390,14 +546,13 @@ export function App() {
   return (
     <div className={`dino-app-home ${tvMode ? "tv-mode-layout" : ""}`}>
       <header className="home-topbar">
-        <div className="brand-logo" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div className="brand-logo" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <img
-            src="./sprites/dino_idle.png"
+            src="./sprites/dino_mascot.png"
             alt="Dino"
-            style={{ width: "36px", height: "auto" }}
+            style={{ width: "42px", height: "42px", objectFit: "contain" }}
           />
           <span className="brand-text">Dino Paint Game</span>
-          <span className="badge-pwa-offline">Offline PWA</span>
         </div>
         <div className="topbar-actions">
           {!isStandalone && (
@@ -422,7 +577,7 @@ export function App() {
             className="button button-settings-icon"
             type="button"
             onClick={() => setShowSettings(true)}
-            title="Audio, Soundeffekte & Einstellungen"
+            title="Audio, Soundeffekte, Controller & Einstellungen"
           >
             ⚙️ Einstellungen
           </button>
@@ -431,32 +586,52 @@ export function App() {
 
       <main className="home-main">
         <section className="mascot-hero">
-          <div className="mascot-visual" style={{ gap: "28px", alignItems: "center", justifyContent: "center" }}>
-            {/* Nur Dino, groß und schön präsentiert */}
-            <div className="mascot-dino-wrap" style={{ textAlign: "center" }}>
-              <img
-                src="./sprites/dino_idle.png"
-                alt="Dino Ankylosaurus"
+          <div className="mascot-visual" style={{ gap: "32px", alignItems: "center", justifyContent: "center" }}>
+            <div
+              className="mascot-dino-wrap"
+              style={{
+                position: "relative",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {/* Leuchtende bunte Aura */}
+              <div
                 style={{
-                  width: "155px",
+                  position: "absolute",
+                  width: "220px",
+                  height: "220px",
+                  borderRadius: "50%",
+                  background: "radial-gradient(circle, rgba(52, 211, 153, 0.45) 0%, rgba(59, 130, 246, 0.25) 55%, transparent 75%)",
+                  filter: "blur(12px)",
+                  zIndex: 0,
+                }}
+              />
+              <img
+                src="./sprites/dino_mascot.png"
+                alt="Dino Abenteurer"
+                style={{
+                  position: "relative",
+                  zIndex: 1,
+                  width: "185px",
                   height: "auto",
-                  filter: "drop-shadow(0 12px 24px rgba(0,0,0,0.35))",
-                  transform: "scaleX(-1)",
+                  filter: "drop-shadow(0 14px 28px rgba(0,0,0,0.22))",
                 }}
               />
             </div>
 
-            <div className="speech-bubble" style={{ maxWidth: "420px" }}>
+            <div className="speech-bubble" style={{ maxWidth: "430px" }}>
               <strong>Hallo! Ich bin Dino!</strong>
               <span>
-                Zeichne deine eigenen Level mit Stiften auf Papier oder male direkt im Zeichenstudio – mit 8 magischen Farben!
+                Zeichne deine eigenen Level mit Stiften auf Papier oder male direkt im Zeichenstudio. In der Bibliothek kannst du deine Level zu Welten mit je 8 Leveln verbinden!
               </span>
             </div>
           </div>
 
-          <h1 className="hero-heading">Zeichnen. Erkennen. Sofort spielen!</h1>
+          <h1 className="hero-heading">Zeichnen. Welten bauen. Spielen!</h1>
           <p className="hero-lead">
-            Erschaffe bunte Plattform-Welten und Labyrinthe auf PC, Tablet, Smartphone & TV!
+            Erschaffe bunte Plattform-Welten mit je 8 Leveln auf PC, Tablet, Smartphone & TV!
           </p>
         </section>
 
@@ -489,16 +664,12 @@ export function App() {
         )}
 
         <section className="menu-cards-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", maxWidth: "860px", margin: "0 auto" }}>
-          {/* 1. SPIELEN */}
+          {/* 1. SPIELEN & WELTEN */}
           <div
             className="menu-card card-play-action"
             tabIndex={0}
             onClick={() => {
-              if (currentLevel) {
-                setScreen("playing");
-              } else {
-                handleStartPlaying(easyLevel);
-              }
+              setScreen("library");
             }}
             style={{
               background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
@@ -507,37 +678,14 @@ export function App() {
               boxShadow: "0 10px 25px rgba(16, 185, 129, 0.35)",
             }}
           >
-            <div className="card-symbol" style={{ fontSize: "3.2rem" }}>▶️</div>
-            <h3 style={{ color: "#ffffff", fontSize: "1.8rem", margin: "6px 0" }}>Spielen</h3>
+            <div className="card-symbol" style={{ fontSize: "3.2rem" }}>🌍</div>
+            <h3 style={{ color: "#ffffff", fontSize: "1.8rem", margin: "6px 0" }}>Welten spielen</h3>
             <p style={{ color: "#d1fae5", fontSize: "0.95rem" }}>
-              {currentLevel
-                ? `Weiter mit „${currentLevel.name || "Mein Level"}“`
-                : "Direkt ins Spiel starten und loshüpfen!"}
+              Wähle eine Welt mit 8 Leveln zum Spielen oder verbinde deine eigenen gezeichneten Level zu einer 8er-Welt!
             </p>
             <span className="card-cta" style={{ background: "#ffffff", color: "#065f46", fontWeight: "bold" }}>
-              Jetzt spielen ▶
+              Welten-Bibliothek öffnen ▶
             </span>
-            <div style={{ marginTop: "14px", borderTop: "1px solid rgba(255,255,255,0.25)", paddingTop: "10px", width: "100%" }}>
-              <button
-                className="button"
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setScreen("library");
-                }}
-                style={{
-                  backgroundColor: "rgba(0,0,0,0.25)",
-                  color: "#ffffff",
-                  fontSize: "0.85rem",
-                  padding: "6px 12px",
-                  borderRadius: "8px",
-                  border: "1px solid rgba(255,255,255,0.35)",
-                  width: "100%",
-                }}
-              >
-                📁 Meine Spiele & Bibliothek
-              </button>
-            </div>
           </div>
 
           {/* 2. LEVEL ZEICHNEN */}
@@ -560,7 +708,7 @@ export function App() {
             <div className="card-symbol" style={{ fontSize: "3.2rem" }}>🎨</div>
             <h3 style={{ color: "#ffffff", fontSize: "1.8rem", margin: "6px 0" }}>Level zeichnen</h3>
             <p style={{ color: "#dbeafe", fontSize: "0.95rem" }}>
-              Erschaffe eigene Welten im Zeichenstudio mit 8 magischen Spielfarben, Stiften oder Foto-Scan.
+              Erschaffe eigene Level im Zeichenstudio mit 9 magischen Spielfarben, Stiften oder Foto-Scan.
             </p>
             <span className="card-cta" style={{ background: "#ffffff", color: "#1e40af", fontWeight: "bold" }}>
               Studio öffnen ▶
@@ -591,7 +739,7 @@ export function App() {
 
         <section className="rules-legend-box">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
-            <h3 style={{ margin: 0 }}>Die 8 Spielregeln: Jede Farbe hat magische Kräfte</h3>
+            <h3 style={{ margin: 0 }}>Die 9 Spielregeln: Jede Farbe hat magische Kräfte</h3>
             <button className="button button-secondary" type="button" onClick={() => setShowGuide(true)} style={{ fontSize: "16px" }}>
               📖 Zeichen-Anleitung & Tipps
             </button>
@@ -653,13 +801,20 @@ export function App() {
                 <span>Gegner (🪰 Fliegende Insekten)</span>
               </div>
             </div>
+            <div className="rule-item">
+              <span className="color-indicator" style={{ backgroundColor: "#71717a" }} />
+              <div>
+                <strong>Grau</strong>
+                <span>Start & Ziel (1 Punkt = Start, 2 Punkte = Start & Ziel)</span>
+              </div>
+            </div>
           </div>
         </section>
       </main>
 
       <footer className="home-footer">
         <div className="footer-credits">
-          <strong>Dino Paint Game</strong> • Version 2.5 • by X4rinia & Dino
+          <strong>Dino Paint Game</strong> • Version 2.6 • by X4rinia & Dino
         </div>
       </footer>
 

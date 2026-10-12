@@ -23,7 +23,7 @@ import {
  * Hintergrund: Weiß / Transparent / Helles Papier (keine Kollision)
  */
 
-export type ColorClass = "background" | "black" | "red" | "green" | "blue" | "yellow" | "purple" | "brown" | "orange";
+export type ColorClass = "background" | "black" | "red" | "green" | "blue" | "yellow" | "purple" | "brown" | "orange" | "gray";
 
 export type PixelData = {
   width: number;
@@ -196,6 +196,19 @@ export function classifyPixel(
     return "red";
   }
 
+  // GRAU: Start- und Ziel-Punkte (Hex #71717a)
+  // Mittlere Helligkeit, neutrale Kanäle und geringe Sättigung
+  if (
+    s < 0.22 &&
+    v >= 0.35 &&
+    v <= 0.62 &&
+    Math.abs(diffRG) < 22 &&
+    Math.abs(diffRB) < 22 &&
+    Math.abs(diffGB) < 22
+  ) {
+    return "gray";
+  }
+
   // Dunklere Töne mit geringer Sättigung -> Schwarz Plattform
   if (v < 0.50 && s < 0.35) {
     return "black";
@@ -214,7 +227,7 @@ export function sampleToGrid(
   gridW = 320,
   gridH = 180
 ): Uint8Array {
-  const grid = new Uint8Array(gridW * gridH); // 0=bg, 1=black, 2=red, 3=green, 4=blue, 5=yellow, 6=purple, 7=brown, 8=orange
+  const grid = new Uint8Array(gridW * gridH); // 0=bg, 1=black, 2=red, 3=green, 4=blue, 5=yellow, 6=purple, 7=brown, 8=orange, 9=gray
   const scaleX = image.width / gridW;
   const scaleY = image.height / gridH;
 
@@ -255,6 +268,7 @@ export function sampleToGrid(
       else if (c === "purple") val = 6;
       else if (c === "brown") val = 7;
       else if (c === "orange") val = 8;
+      else if (c === "gray") val = 9;
 
       grid[gy * gridW + gx] = val;
     }
@@ -670,6 +684,7 @@ export function analyzeDrawing(
   const movingPlatforms: MovingPlatform[] = [];
   const rawTeleporters: Array<{ id: string; x: number; y: number; w: number; h: number }> = [];
   const enemies: Enemy[] = [];
+  const grayMarkers: Array<{ x: number; y: number }> = [];
 
   let pId = 1;
   let hId = 1;
@@ -763,12 +778,18 @@ export function analyzeDrawing(
           speed: 80,
         });
       } else if (comp.color === 8) {
-        // Orange -> Beweglicher patrouillierender Gegner
+        // Orange / Pink -> Beweglicher patrouillierender Gegner
         enemies.push({
           id: `enemy-${enemyId++}`,
           x: Math.round(r.x + r.w / 2),
           y: Math.round(r.y + r.h / 2),
           patrol: Math.max(40, Math.min(240, Math.round(r.w * 1.6))),
+        });
+      } else if (comp.color === 9) {
+        // Grau -> Start (1 Punkt) und Ziel (2 Punkte)
+        grayMarkers.push({
+          x: ((comp.minX + comp.maxX) / 2 / gridW) * 1000,
+          y: ((comp.minY + comp.maxY) / 2 / gridH) * 1000,
         });
       }
     }
@@ -820,11 +841,30 @@ export function analyzeDrawing(
   const autoGoalX = Math.min(950, Math.max(100, Math.round(rightmostPlatform.x + rightmostPlatform.w - 50)));
   const autoGoalY = Math.max(30, Math.round(rightmostPlatform.y - 70));
 
-  const startX = options.customStart ? Math.round(options.customStart.x) : autoStartX;
-  const startY = options.customStart ? Math.round(options.customStart.y) : autoStartY;
+  let resolvedStartX = autoStartX;
+  let resolvedStartY = autoStartY;
+  let resolvedGoalX = autoGoalX;
+  let resolvedGoalY = autoGoalY;
 
-  const goalX = options.customGoal ? Math.round(options.customGoal.x) : autoGoalX;
-  const goalY = options.customGoal ? Math.round(options.customGoal.y) : autoGoalY;
+  // Wenn graue Punkte gezeichnet wurden:
+  // 1 grauer Punkt = Start
+  // 2 graue Punkte = Start & Ziel (nach X geordnet: links Start, rechts Ziel)
+  if (grayMarkers.length === 1) {
+    resolvedStartX = Math.round(grayMarkers[0].x);
+    resolvedStartY = Math.round(grayMarkers[0].y - 20);
+  } else if (grayMarkers.length >= 2) {
+    const sorted = [...grayMarkers].sort((a, b) => a.x - b.x);
+    resolvedStartX = Math.round(sorted[0].x);
+    resolvedStartY = Math.round(sorted[0].y - 20);
+    resolvedGoalX = Math.round(sorted[1].x);
+    resolvedGoalY = Math.round(sorted[1].y - 35);
+  }
+
+  const startX = options.customStart ? Math.round(options.customStart.x) : resolvedStartX;
+  const startY = options.customStart ? Math.round(options.customStart.y) : resolvedStartY;
+
+  const goalX = options.customGoal ? Math.round(options.customGoal.x) : resolvedGoalX;
+  const goalY = options.customGoal ? Math.round(options.customGoal.y) : resolvedGoalY;
 
   const level: Level = LevelSchema.parse({
     version: 2,

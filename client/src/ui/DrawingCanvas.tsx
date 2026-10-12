@@ -4,9 +4,9 @@ import { GuideModal } from "./GuideModal";
 import { saveLevel, importLevelFile, getSetting } from "../storage/db";
 import type { BackgroundTheme } from "../game/paper";
 
-const COLOR_TOOLS = ["black", "red", "green", "blue", "yellow", "purple", "brown", "pink", "eraser"] as const;
+const COLOR_TOOLS = ["black", "red", "green", "blue", "yellow", "purple", "brown", "pink", "gray", "eraser"] as const;
 type ColorTool = (typeof COLOR_TOOLS)[number];
-type Tool = ColorTool | "start" | "goal";
+type Tool = ColorTool;
 
 interface DrawingCanvasProps {
   onPlayLevel: (level: Level, drawingDataUrl: string) => void;
@@ -23,13 +23,14 @@ interface DrawingCanvasProps {
 
 const COLORS: Record<ColorTool, { hex: string; label: string; desc: string }> = {
   black: { hex: "#1d1d24", label: "Schwarz", desc: "Feste Plattformen & Wände" },
-  red: { hex: "#d6453d", label: "Rot", desc: "Tödliche Gefahren (Lava / Stacheln)" },
+  red: { hex: "#d6453d", label: "Rot", desc: "Tödliche Gefahren (Stacheln / Lava)" },
   green: { hex: "#2fb457", label: "Grün", desc: "Trampoline & Sprungflächen" },
   blue: { hex: "#2a6df4", label: "Blau", desc: "Bewegliche Physikblöcke" },
   yellow: { hex: "#f5c518", label: "Gelb", desc: "Sammelobjekte (Dino-Eier)" },
   purple: { hex: "#9b51e0", label: "Lila", desc: "Teleporter-Portale (Beamen oder Vortex-Boost)" },
   brown: { hex: "#8b5a2b", label: "Braun", desc: "Bewegliche Lifte (Fährt waagerecht oder senkrecht)" },
   pink: { hex: "#ec4899", label: "Pink", desc: "🪰 Fliegende Gegner (Patrouille)" },
+  gray: { hex: "#71717a", label: "Grau", desc: "🚩 Start (1 Punkt) & Ziel (2 Punkte)" },
   eraser: { hex: "#ffffff", label: "Radierer", desc: "Linien entfernen" },
 };
 
@@ -240,20 +241,6 @@ export function DrawingCanvas({
     if (e.button !== 0 && e.button !== undefined) return;
 
     const pt = getCanvasCoords(e);
-
-    // Start- und Ziel-Marker setzen
-    if (tool === "start") {
-      setStartPos(pt);
-      setSaveToast("🚩 Startpunkt (S) gesetzt!");
-      setTimeout(() => setSaveToast(null), 2000);
-      return;
-    }
-    if (tool === "goal") {
-      setGoalPos(pt);
-      setSaveToast("🏁 Zielpunkt (Z) gesetzt!");
-      setTimeout(() => setSaveToast(null), 2000);
-      return;
-    }
     
     // Pointer capture für kontinuierliche Striche bis über den Rand hinaus
     try {
@@ -279,8 +266,8 @@ export function DrawingCanvas({
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.lineWidth = effectiveWidth;
-    ctx.strokeStyle = COLORS[tool as Exclude<Tool, "start" | "goal">].hex;
-    ctx.fillStyle = COLORS[tool as Exclude<Tool, "start" | "goal">].hex;
+    ctx.strokeStyle = COLORS[tool].hex;
+    ctx.fillStyle = COLORS[tool].hex;
 
     // Ein einzelner Klick/Tipp zeichnet einen sauberen Punkt
     ctx.beginPath();
@@ -449,8 +436,11 @@ export function DrawingCanvas({
         drawEgg(1120, 200);
         drawEgg(900, 620);
 
-        setStartPos({ x: 90, y: 90 });
-        setGoalPos({ x: 1160, y: 600 });
+        // 🚩 Start (1. grauer Punkt) & 🏁 Ziel (2. grauer Punkt)
+        drawCircle(90, 90, 16, "#71717a");
+        drawCircle(1160, 600, 20, "#71717a");
+        setStartPos(null);
+        setGoalPos(null);
       } else if (choice === 1) {
         // Labyrinth 2: Die 4 Tempel-Kammern mit Raum-Portalen (fern vom Start)
         drawSolidRect(620, 20, 24, 300, "#1d1d24");
@@ -481,8 +471,11 @@ export function DrawingCanvas({
         drawEgg(1000, 220);
         drawEgg(1000, 600);
 
-        setStartPos({ x: 90, y: 90 });
-        setGoalPos({ x: 1160, y: 600 });
+        // 🚩 Start & 🏁 Ziel als graue Punkte
+        drawCircle(90, 90, 16, "#71717a");
+        drawCircle(1160, 600, 20, "#71717a");
+        setStartPos(null);
+        setGoalPos(null);
       } else {
         // Labyrinth 3: Das Wandelnde Schloss mit 1 Vortex
         drawSolidRect(200, 120, 840, 24, "#1d1d24");
@@ -507,8 +500,11 @@ export function DrawingCanvas({
         drawEgg(840, 300);
         drawEgg(640, 420);
 
-        setStartPos({ x: 90, y: 90 });
-        setGoalPos({ x: 1160, y: 200 });
+        // 🚩 Start & 🏁 Ziel als graue Punkte
+        drawCircle(90, 90, 16, "#71717a");
+        drawCircle(1160, 200, 20, "#71717a");
+        setStartPos(null);
+        setGoalPos(null);
       }
     } else {
       // 🏃‍♂️ JUMP 'N' RUN MODUS (Platformer)
@@ -543,8 +539,11 @@ export function DrawingCanvas({
         drawEgg(780, 210);
         drawEgg(1050, 470);
 
-        setStartPos({ x: 120, y: 540 });
-        setGoalPos({ x: 1120, y: 470 });
+        // 🚩 Start & 🏁 Ziel als graue Punkte
+        drawCircle(120, 540, 16, "#71717a");
+        drawCircle(1120, 470, 20, "#71717a");
+        setStartPos(null);
+        setGoalPos(null);
       } else if (choice === 1) {
         // Layout 2: Stufen-Pyramide & Vulkanfelsen (Portale weit weg vom Start!)
         drawSolidRect(30, 620, 360, 90, "#1d1d24");
@@ -575,8 +574,11 @@ export function DrawingCanvas({
         drawEgg(780, 170);
         drawEgg(1080, 570);
 
-        setStartPos({ x: 120, y: 580 });
-        setGoalPos({ x: 1040, y: 290 });
+        // 🚩 Start & 🏁 Ziel als graue Punkte
+        drawCircle(120, 580, 16, "#71717a");
+        drawCircle(1040, 290, 20, "#71717a");
+        setStartPos(null);
+        setGoalPos(null);
       } else {
         // Layout 3: Tal der Brücken mit 1 Vortex-Katapult
         drawSolidRect(30, 540, 300, 160, "#1d1d24");
@@ -607,8 +609,11 @@ export function DrawingCanvas({
         drawEgg(940, 290);
         drawEgg(600, 530);
 
-        setStartPos({ x: 110, y: 490 });
-        setGoalPos({ x: 1080, y: 470 });
+        // 🚩 Start & 🏁 Ziel als graue Punkte
+        drawCircle(110, 490, 16, "#71717a");
+        drawCircle(1080, 470, 20, "#71717a");
+        setStartPos(null);
+        setGoalPos(null);
       }
     }
 
@@ -1032,47 +1037,6 @@ export function DrawingCanvas({
           ))}
         </div>
 
-        <div className="tool-group marker-group">
-          <span className="tool-label">Marker:</span>
-          <button
-            type="button"
-            className={`tool-btn-marker ${tool === "start" ? "active-start" : ""}`}
-            onClick={() => {
-              setTool("start");
-              setIsPanMode(false);
-            }}
-            title="Klicke auf die Leinwand, um den Startpunkt (S) zu setzen"
-          >
-            🚩 Start (S)
-          </button>
-          <button
-            type="button"
-            className={`tool-btn-marker ${tool === "goal" ? "active-goal" : ""}`}
-            onClick={() => {
-              setTool("goal");
-              setIsPanMode(false);
-            }}
-            title="Klicke auf die Leinwand, um den Zielpunkt (Z) zu setzen"
-          >
-            🏁 Ziel (Z)
-          </button>
-          {(startPos || goalPos) && (
-            <button
-              type="button"
-              className="tool-btn-reset-markers"
-              onClick={() => {
-                setStartPos(null);
-                setGoalPos(null);
-                setSaveToast("Marker zurückgesetzt (automatisch)");
-                setTimeout(() => setSaveToast(null), 2000);
-              }}
-              title="Start- und Ziel-Marker entfernen (fällt auf automatische Platzierung zurück)"
-            >
-              ✕ Reset
-            </button>
-          )}
-        </div>
-
         <div className="tool-group size-group">
           <span className="tool-label">Größe:</span>
           {BRUSH_SIZES.map((b) => (
@@ -1177,8 +1141,6 @@ export function DrawingCanvas({
               ? "grab"
               : tool === "eraser"
               ? "cell"
-              : tool === "start" || tool === "goal"
-              ? "pointer"
               : "crosshair",
         }}
       >
@@ -1309,6 +1271,10 @@ export function DrawingCanvas({
         <div className="legend-item">
           <span className="legend-pill" style={{ backgroundColor: COLORS.pink.hex }} />
           <strong>Pink:</strong> 🪰 Fliegende Gegner (Patrouille)
+        </div>
+        <div className="legend-item">
+          <span className="legend-pill" style={{ backgroundColor: COLORS.gray.hex }} />
+          <strong>Grau:</strong> 🚩 Start (1 Punkt) & Ziel (2 Punkte)
         </div>
       </footer>
 
