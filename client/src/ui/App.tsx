@@ -280,7 +280,15 @@ export function App() {
           onOpenGameMode={() => setShowGameModeModal(true)}
         />
         {showSettings && (
-          <SettingsModal onClose={() => setShowSettings(false)} />
+          <SettingsModal
+            onClose={() => setShowSettings(false)}
+            tvMode={tvMode}
+            onToggleTvMode={toggleTvMode}
+            onOpenStreamModal={() => {
+              setShowSettings(false);
+              setShowTvModal(true);
+            }}
+          />
         )}
         {showGameModeModal && (
           <GameModeModal
@@ -423,9 +431,9 @@ export function App() {
             className={`button button-tv-pill ${tvMode ? "active" : ""}`}
             type="button"
             onClick={() => setShowTvModal(true)}
-            title="TV-Modus & Bildübertragung"
+            title="Streaming- & Fernseher-Menü öffnen"
           >
-            📺 TV-Modus
+            📡 Streamen & TV
           </button>
           <button
             className="button"
@@ -453,83 +461,70 @@ export function App() {
 
       <main className="home-main">
         <section className="mascot-hero">
-          <div className="mascot-visual">
-            <div className="mascot-dino-wrap">
-              <svg
-                className="dino-svg"
-                viewBox="0 0 200 160"
-                width="220"
-                height="176"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                {/* Niedlicher Ankylosaurus SVG */}
-                <circle cx="20" cy="95" r="14" fill="#708090" stroke="#1d1d24" strokeWidth="3" />
-                <path d="M 20 95 Q 45 92 70 85" stroke="#2e8b57" strokeWidth="16" fill="none" strokeLinecap="round" />
-                <rect x="65" y="105" width="16" height="28" rx="8" fill="#228b22" stroke="#1d1d24" strokeWidth="3" />
-                <rect x="110" y="105" width="16" height="28" rx="8" fill="#228b22" stroke="#1d1d24" strokeWidth="3" />
-                <ellipse cx="105" cy="85" rx="55" ry="38" fill="#3cb371" stroke="#1d1d24" strokeWidth="4" />
-                <ellipse cx="110" cy="98" rx="36" ry="18" fill="#98fb98" />
-                <polygon points="70,52 80,32 90,52" fill="#ffd700" stroke="#1d1d24" strokeWidth="3" />
-                <polygon points="95,50 108,28 120,50" fill="#ffd700" stroke="#1d1d24" strokeWidth="3" />
-                <polygon points="125,55 138,36 148,56" fill="#ffd700" stroke="#1d1d24" strokeWidth="3" />
-                <rect x="85" y="112" width="16" height="28" rx="8" fill="#2e8b57" stroke="#1d1d24" strokeWidth="3" />
-                <rect x="130" y="112" width="16" height="28" rx="8" fill="#2e8b57" stroke="#1d1d24" strokeWidth="3" />
-                <circle cx="155" cy="72" r="26" fill="#3cb371" stroke="#1d1d24" strokeWidth="4" />
-                <circle cx="152" cy="82" r="7" fill="#ffb6c1" opacity="0.8" />
-                <circle cx="162" cy="65" r="10" fill="#ffffff" stroke="#1d1d24" strokeWidth="3" />
-                <circle cx="165" cy="65" r="5.5" fill="#1d1d24" />
-                <circle cx="167" cy="63" r="2" fill="#ffffff" />
-                <path d="M 166 80 Q 174 83 178 77" stroke="#1d1d24" strokeWidth="3" fill="none" strokeLinecap="round" />
-              </svg>
+          <div className="mascot-visual" style={{ gap: "24px" }}>
+            <div className="mascot-characters-showcase" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "20px", flexWrap: "wrap" }}>
+              {/* Hauptfigur Dino */}
+              <div style={{ textAlign: "center" }}>
+                <img
+                  src="./sprites/dino_idle.png"
+                  alt="Dino Ankylosaurus"
+                  style={{ width: "125px", height: "auto", filter: "drop-shadow(0 10px 20px rgba(0,0,0,0.4))", transform: "scaleX(-1)" }}
+                />
+              </div>
+
+              {/* Gegner & Spielelemente */}
+              <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
+                <div style={{ background: "rgba(138, 63, 252, 0.16)", borderRadius: "14px", padding: "10px 14px", border: "1px solid rgba(138, 63, 252, 0.35)", textAlign: "center" }}>
+                  <img
+                    src="./sprites/enemy_bug.png"
+                    alt="Flug-Gegner"
+                    style={{ width: "46px", height: "auto", filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.3))" }}
+                  />
+                  <div style={{ fontSize: "11px", color: "#c084fc", fontWeight: "bold", marginTop: "3px" }}>Flug-Gegner</div>
+                </div>
+
+                <div style={{ background: "rgba(255, 215, 0, 0.16)", borderRadius: "14px", padding: "10px 14px", border: "1px solid rgba(255, 215, 0, 0.35)", textAlign: "center" }}>
+                  <img
+                    src="./sprites/coin_egg.png"
+                    alt="Dino-Ei Münze"
+                    style={{ width: "36px", height: "auto" }}
+                  />
+                  <div style={{ fontSize: "11px", color: "#facc15", fontWeight: "bold", marginTop: "3px" }}>Dino-Ei</div>
+                </div>
+
+                <div style={{ background: "rgba(74, 222, 128, 0.16)", borderRadius: "14px", padding: "10px 14px", border: "1px solid rgba(74, 222, 128, 0.35)", textAlign: "center" }}>
+                  <img
+                    src="./sprites/trampoline_mushroom.png"
+                    alt="Trampolin Pilz"
+                    style={{ width: "38px", height: "auto" }}
+                  />
+                  <div style={{ fontSize: "11px", color: "#4ade80", fontWeight: "bold", marginTop: "3px" }}>Sprung-Pilz</div>
+                </div>
+
+                <div style={{ background: "rgba(59, 130, 246, 0.16)", borderRadius: "14px", padding: "10px 14px", border: "1px solid rgba(59, 130, 246, 0.35)", textAlign: "center" }}>
+                  <img
+                    src="./sprites/block_crate.png"
+                    alt="Schiebekiste"
+                    style={{ width: "36px", height: "auto" }}
+                  />
+                  <div style={{ fontSize: "11px", color: "#60a5fa", fontWeight: "bold", marginTop: "3px" }}>Kiste</div>
+                </div>
+              </div>
             </div>
-            <div className="speech-bubble">
-              <strong>Hallo! Ich bin Dino!</strong>
+
+            <div className="speech-bubble" style={{ maxWidth: "480px" }}>
+              <strong>Hallo! Ich bin Dino! 🦖</strong>
               <span>
-                Zeichne deine eigene Plattform-Welt mit 8 magischen Farben oder fotografiere deine Zeichnung!
+                Zeichne deine eigenen Level mit Stiften auf Papier oder male direkt im Zeichenstudio – mit 8 magischen Farben!
               </span>
             </div>
           </div>
 
           <h1 className="hero-heading">Zeichnen. Erkennen. Sofort spielen!</h1>
           <p className="hero-lead">
-            Erschaffe deine eigenen bunten Plattformwelten auf Tablet, Smartphone, PC und TV!
+            Erschaffe bunte Plattform-Welten und Labyrinthe auf PC, Tablet, Smartphone & TV!
           </p>
         </section>
-
-        {isSmartphone && (
-          <section className="smartphone-helper-card">
-            <div className="phone-badge">📱 Smartphone-Tipp</div>
-            <h3>Für das beste Spielerlebnis empfohlen</h3>
-            <p>
-              Da Smartphone-Bildschirme zum Spielen recht klein sind, empfehlen wir zwei ideale Möglichkeiten:
-            </p>
-            <div className="smartphone-actions-grid">
-              <div
-                className="phone-action-item card-action-scanner"
-                onClick={() => setScreen("camera")}
-              >
-                <div className="phone-action-icon">📸</div>
-                <div className="phone-action-text">
-                  <strong>Foto-Scanner (Handy als Kamera)</strong>
-                  <span>Papier-Zeichnung fotografieren, analysieren & Level exportieren</span>
-                </div>
-                <span className="phone-action-cta">Scannen ▶</span>
-              </div>
-
-              <div
-                className="phone-action-item card-action-stream"
-                onClick={() => setShowTvModal(true)}
-              >
-                <div className="phone-action-icon">📺</div>
-                <div className="phone-action-text">
-                  <strong>Auf den Fernseher streamen</strong>
-                  <span>Per AirPlay / Cast auf den Smart TV übertragen & mit Controller spielen</span>
-                </div>
-                <span className="phone-action-cta">TV-Anleitung ▶</span>
-              </div>
-            </div>
-          </section>
-        )}
 
         {currentLevel && (
           <section className="resume-level-banner">
@@ -667,7 +662,15 @@ export function App() {
       </footer>
 
       {showSettings && (
-        <SettingsModal onClose={() => setShowSettings(false)} />
+        <SettingsModal
+          onClose={() => setShowSettings(false)}
+          tvMode={tvMode}
+          onToggleTvMode={toggleTvMode}
+          onOpenStreamModal={() => {
+            setShowSettings(false);
+            setShowTvModal(true);
+          }}
+        />
       )}
       {showGameModeModal && (
         <GameModeModal

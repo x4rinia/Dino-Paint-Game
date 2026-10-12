@@ -233,13 +233,21 @@ body {
   margin-bottom: 8px;
 }
 
-.mascot-dino-wrap {
+.mascot-dino-wrap,
+.mascot-characters-showcase {
   animation: dinoFloat 3.5s ease-in-out infinite alternate;
 }
 
 @keyframes dinoFloat {
-  0% { transform: translateY(0px) rotate(-1deg); }
-  100% { transform: translateY(-8px) rotate(1.5deg); }
+  0% { transform: translateY(0px) rotate(-0.5deg); }
+  100% { transform: translateY(-7px) rotate(1deg); }
+}
+
+@media (max-width: 680px) {
+  .mascot-visual {
+    flex-direction: column;
+    gap: 16px;
+  }
 }
 
 .speech-bubble {

@@ -245,6 +245,15 @@ export class Player {
       this.playJumpSquash();
       playJump();
       this.onJump?.();
+      if (this.gravityMode === "low") {
+        burstParticles(this.scene, this.x, this.y + 12, {
+          color: INK.purple,
+          count: 12,
+          speed: [40, 140],
+          size: 6,
+          duration: 350,
+        });
+      }
     } else if (jumpJustPressed && !withinCoyote && this.canDoubleJump && this.allowDoubleJump) {
       // 🌋 DINO DOPPELSPRUNG: Nur auf der Vulkanlandschaft freigeschaltet!
       this.canDoubleJump = false;
@@ -253,6 +262,13 @@ export class Player {
       this.playDoubleJumpSquash();
       playJump();
       this.onJump?.();
+      burstParticles(this.scene, this.x, this.y + 12, {
+        color: INK.orange,
+        count: 16,
+        speed: [60, 220],
+        size: 7,
+        duration: 350,
+      });
     } else if (!jumpDown && this.body.velocity.y < -jumpVel * JUMP_CUTOFF_FACTOR) {
       // Vorzeitiges Loslassen für kontrollierte Mini-Hüpfer
       this.body.setVelocityY(-jumpVel * JUMP_CUTOFF_FACTOR);

@@ -22,42 +22,66 @@ export function TvModal({ onClose, tvMode, onToggleTvMode }: TvModalProps) {
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-box tv-modal" onClick={(e) => e.stopPropagation()}>
         <div className="settings-header">
-          <h3>📺 Fernseher-Modus & Bildübertragung</h3>
+          <h3>📡 Streaming- & Fernseher-Menü</h3>
           <button className="button-close" type="button" onClick={onClose}>
             ✕
           </button>
         </div>
 
         <div className="settings-section">
-          <h4>🛋️ Was ist der TV-Modus?</h4>
+          <h4>🛋️ TV-Modus & Großbild-Ansicht</h4>
           <p className="tv-intro-text">
-            Der TV-Modus maximiert das Spielfeld auf die volle Bildschirmgröße, vergrößert die HUD-Anzeigen
-            (Münzen, Dino-Eier, Zähler) für bequemes Ablesen aus mehreren Metern Entfernung und blendet
-            störende Touch-Overlays aus, sobald ein Controller verwendet wird.
+            Maximiert das Spielfeld auf die volle Bildschirmgröße, vergrößert alle HUD-Anzeigen
+            und optimiert Steuerung & Schrift für Wohnzimmer-Fernseher und Beamer.
           </p>
 
-          <div className="setting-row" style={{ marginTop: "16px" }}>
+          <div className="setting-row" style={{ marginTop: "14px" }}>
             <span>TV-Optimierung:</span>
             <button
               className={`button ${tvMode ? "button-primary" : "button-secondary"}`}
               type="button"
               onClick={handleToggleFullscreen}
             >
-              {tvMode ? "✓ TV-Modus AKTIV (Großes HUD)" : "TV-Modus aktivieren"}
+              {tvMode ? "✓ TV-Modus AKTIV (Großes HUD)" : "📺 TV-Modus aktivieren"}
             </button>
           </div>
         </div>
 
         <div className="settings-section">
-          <h4>📡 Bildschirm auf den TV übertragen</h4>
+          <h4>🎥 Live-Stream (OBS Studio, Twitch, YouTube & Discord)</h4>
+          <div className="tv-guide-cards">
+            <div className="tv-guide-item">
+              <span className="tv-guide-icon">🎙️</span>
+              <div>
+                <strong>OBS Studio / Streamlabs</strong>
+                <p>
+                  Füge in OBS eine neue <em>„Fensteraufnahme“ (Window Capture)</em> hinzu und wähle deinen Browser aus.
+                  Nutze den TV-Modus für ein sauberes, randloses Bild ohne störende Menüleisten!
+                </p>
+              </div>
+            </div>
+
+            <div className="tv-guide-item">
+              <span className="tv-guide-icon">🎮</span>
+              <div>
+                <strong>Discord Bildschirmübertragung</strong>
+                <p>
+                  Teile direkt das Spielfenster in deinem Discord-Voice-Channel, damit Freunde deine gezeichneten Level live miterleben können.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="settings-section">
+          <h4>📡 Drahtlos auf den Smart TV übertragen</h4>
           <div className="tv-guide-cards">
             <div className="tv-guide-item">
               <span className="tv-guide-icon">🍎</span>
               <div>
                 <strong>Apple AirPlay (iPad & iPhone)</strong>
                 <p>
-                  Auf dem iPad/iPhone von oben rechts nach unten wischen, um das Kontrollzentrum zu öffnen.
-                  Tippe auf <em>„Bildschirmsynchronisierung“</em> und wähle deinen Apple TV oder AirPlay-fähigen Fernseher.
+                  Kontrollzentrum öffnen (von oben rechts wischen) ➔ <em>„Bildschirmsynchronisierung“</em> ➔ Apple TV / Smart TV wählen.
                 </p>
               </div>
             </div>
@@ -67,8 +91,7 @@ export function TvModal({ onClose, tvMode, onToggleTvMode }: TvModalProps) {
               <div>
                 <strong>Android Screen Mirroring (Smart View / Cast)</strong>
                 <p>
-                  Ziehe die Schnelleinstellungen von oben herunter. Tippe auf <em>„Smart View“</em> (Samsung)
-                  oder <em>„Bildschirm übertragen“</em> (Google Pixel / Xiaomi) und wähle deinen Smart TV.
+                  Schnelleinstellungen herunterziehen ➔ <em>„Smart View“</em> oder <em>„Bildschirm übertragen“</em> ➔ TV auswählen.
                 </p>
               </div>
             </div>
@@ -76,20 +99,9 @@ export function TvModal({ onClose, tvMode, onToggleTvMode }: TvModalProps) {
             <div className="tv-guide-item">
               <span className="tv-guide-icon">🔌</span>
               <div>
-                <strong>HDMI / USB-C Kabel (Verzögerungsfrei)</strong>
+                <strong>HDMI-Kabel (Verzögerungsfrei)</strong>
                 <p>
-                  Verbinde Laptop, PC oder Tablet mit einem USB-C-auf-HDMI-Kabel direkt mit dem Fernseher.
-                  Bietet die absolut geringste Latenz für präzise Sprünge!
-                </p>
-              </div>
-            </div>
-
-            <div className="tv-guide-item">
-              <span className="tv-guide-icon">🎮</span>
-              <div>
-                <strong>Kabelloser Controller</strong>
-                <p>
-                  Kopple einen Xbox-, PlayStation- oder Nintendo Switch Pro Controller per Bluetooth direkt mit deinem Tablet, Smartphone oder PC.
+                  Laptop oder iPad mit HDMI-Kabel verbinden für 0 ms Latenz bei anspruchsvollen Sprungpassagen.
                 </p>
               </div>
             </div>
@@ -97,20 +109,12 @@ export function TvModal({ onClose, tvMode, onToggleTvMode }: TvModalProps) {
         </div>
 
         <div className="info-callout">
-          <strong>Tipp fürs Querformat:</strong> Fixiere die automatische Bildschirmdrehung deines Tablets oder Handys
-          im <em>Querformat (Landscape)</em>, damit das Spiel das gesamte Fernsehbild optimal ausfüllt.
-        </div>
-
-        <div className="info-callout" style={{ marginTop: "12px", borderLeft: "4px solid #3b82f6" }}>
-          <strong>📱 Smartphone als TV-Konsole & Scanner nutzen:</strong>
-          <p style={{ margin: "4px 0 0", fontSize: "0.9rem" }}>
-            Auf dem Smartphone ist der Bildschirm für knifflige Sprünge sehr klein. Übertrage das Bild einfach per AirPlay (iPhone) oder Smart View / Cast (Android) auf deinen Fernseher! Dann kannst du ganz bequem von der Couch spielen – entweder per Touch-Steuerung oder mit einem gekoppelten Bluetooth-Controller (z.B. PlayStation, Xbox oder Nintendo Switch).
-          </p>
+          <strong>Tipp für Controller:</strong> Kopple einfach einen Bluetooth-Controller (PlayStation, Xbox oder Switch Pro) mit deinem Gerät, um wie auf einer Konsole zu spielen!
         </div>
 
         <div className="modal-actions">
           <button className="button button-primary" type="button" onClick={onClose}>
-            Verstanden & Schließen
+            ✓ Schließen
           </button>
         </div>
       </div>

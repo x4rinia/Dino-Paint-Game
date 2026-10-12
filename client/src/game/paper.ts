@@ -335,15 +335,6 @@ function drawJungleTexture(ctx: CanvasRenderingContext2D, rng: () => number) {
   drawVine(880, 115, 260, 30);
   drawVine(1040, 95, 210, -20);
 
-  // 7. Zarte Skizzen-Notizlinien im handgemalten Dschungelton (erhält den Doodle-Charme)
-  ctx.lineWidth = 1.0;
-  ctx.strokeStyle = "rgba(140, 210, 150, 0.12)";
-  for (let y = FIRST_LINE_Y; y < WORLD_H; y += LINE_GAP) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    for (let x = 40; x <= WORLD_W + 40; x += 40) ctx.lineTo(x, y + (rng() - 0.5) * 1.0);
-    ctx.stroke();
-  }
 
   // 8. Dschungel-Atmosphäre Vignette (Fokus in der Mitte der Baumkrone)
   const cx = WORLD_W / 2;
@@ -426,15 +417,6 @@ function drawSpaceTexture(ctx: CanvasRenderingContext2D, rng: () => number) {
   ctx.fill();
   ctx.restore();
 
-  // Feine Blueprint-Rasterlinien zur Orientierung für Sprünge
-  ctx.lineWidth = 1.0;
-  ctx.strokeStyle = "rgba(100, 150, 240, 0.16)";
-  for (let y = FIRST_LINE_Y; y < WORLD_H; y += LINE_GAP) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    for (let x = 40; x <= WORLD_W + 40; x += 40) ctx.lineTo(x, y + (rng() - 0.5) * 0.8);
-    ctx.stroke();
-  }
 
   // Kosmische Vignette
   const cx = WORLD_W / 2;
@@ -532,15 +514,6 @@ function drawVolcanoTexture(ctx: CanvasRenderingContext2D, rng: () => number) {
     ctx.fill();
   }
 
-  // Feine, warme Hilfslinien für Sprungdistanzen
-  ctx.lineWidth = 1.0;
-  ctx.strokeStyle = "rgba(255, 110, 40, 0.12)";
-  for (let y = FIRST_LINE_Y; y < WORLD_H; y += LINE_GAP) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    for (let x = 40; x <= WORLD_W + 40; x += 40) ctx.lineTo(x, y + (rng() - 0.5) * 0.8);
-    ctx.stroke();
-  }
 
   // Magma-Boden-Glühen am unteren Bildschirmrand
   const bottomGlow = ctx.createLinearGradient(0, WORLD_H - 120, 0, WORLD_H);

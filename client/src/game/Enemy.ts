@@ -115,8 +115,8 @@ export class Enemy {
       // Leichtes Schweben (Flügelschlag-Auf-und-Ab)
       const hoverY = Math.sin(this.scene.time.now * 0.008 + (this.minX % 10)) * 3;
       this.sprite.setPosition(body.center.x, body.center.y + hoverY);
-      // Sprite schaut von Natur aus nach LINKS -> wenn Richtung = 1 (rechts), dann FlipX!
-      this.sprite.setFlipX(this.direction > 0);
+      // Flugviech blickt in Flugrichtung nach vorne
+      this.sprite.setFlipX(this.direction < 0);
     } else {
       art.setPosition(body.center.x, body.center.y).setScale(this.direction, 1);
       if (tick === this.lastTick) return;

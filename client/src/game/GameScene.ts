@@ -148,7 +148,8 @@ export class GameScene extends Phaser.Scene {
   private replayCtl?: ReplayController;
   private pendingReplay?: WinEvent;
   private debugOverlay?: DebugOverlay;
-  private goalFlagArt?: Phaser.GameObjects.Image;
+  private isExitedFromTeleporter = true;
+  private goalDoorArt?: Phaser.GameObjects.Graphics;
   private stuck!: StuckHelper;
   private lastGrounded = { x: 0, feetY: 0 };
   private touchControls?: TouchControls;
@@ -174,6 +175,30 @@ export class GameScene extends Phaser.Scene {
     vy: number;
     angle: number;
     spin: number;
+    size: number;
+    color: number;
+    alpha: number;
+  }> = [];
+
+  // Kosmischer Stardust (Weltraum-Schwerelosigkeit)
+  private spaceDustGraphics?: Phaser.GameObjects.Graphics;
+  private spaceDust: Array<{
+    x: number;
+    y: number;
+    vy: number;
+    size: number;
+    color: number;
+    alpha: number;
+    twinkleSpeed: number;
+  }> = [];
+
+  // Magma-Glut & Funken (Vulkanlandschaft)
+  private volcanoEmbersGraphics?: Phaser.GameObjects.Graphics;
+  private volcanoEmbers: Array<{
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
     size: number;
     color: number;
     alpha: number;
@@ -247,6 +272,18 @@ export class GameScene extends Phaser.Scene {
     }
     this.windLeaves = [];
 
+    if (this.spaceDustGraphics) {
+      this.spaceDustGraphics.destroy();
+      this.spaceDustGraphics = undefined;
+    }
+    this.spaceDust = [];
+
+    if (this.volcanoEmbersGraphics) {
+      this.volcanoEmbersGraphics.destroy();
+      this.volcanoEmbersGraphics = undefined;
+    }
+    this.volcanoEmbers = [];
+
     this.physics.world.resume();
     this.attemptState.reset(this);
     this.recorder = new RunRecorder(level.enemies.length);
@@ -272,9 +309,13 @@ export class GameScene extends Phaser.Scene {
       this.physics.world.gravity.y = 1200;
     }
 
-    // Dschungelwind: Blätter und Brisen in beiden Modi aktiv
+    // Atmosphärische Effekte je nach Spielwelt:
     if (bgTheme === "jungle") {
       this.initJungleWind();
+    } else if (bgTheme === "space") {
+      this.initSpaceStardust();
+    } else if (bgTheme === "volcano") {
+      this.initVolcanoEmbers();
     }
 
     // Falls eine Originalzeichnung existiert, zeichne sie als Hintergrund
@@ -520,29 +561,17 @@ export class GameScene extends Phaser.Scene {
       });
     }
 
-    // Ziel & Extras: Schöne, freistehende Zielflagge mit Steinsockel
+    // Ziel & Tor: Unsichtbare Hitbox & detailreiches Stein- und Holztor mit Portal-Magie
     this.goal = this.rectTopLeft(level.goal, COLORS.goal);
+    this.goal.setAlpha(0); // Niemals als flacher grüner Kasten darstellen!
     this.physics.add.existing(this.goal, true);
-
-    const gx = sx(level.goal.x) + sx(level.goal.w) / 2;
-    const gy = sy(level.goal.y) + sy(level.goal.h) / 2;
-
-    if (this.textures.exists("goal_flag")) {
-      const flagW = 52;
-      const flagH = 68;
-      this.goalFlagArt = this.add.image(gx, gy, "goal_flag").setDisplaySize(flagW, flagH).setDepth(DEPTH.staticLevel + 3);
-    }
 
     this.coins = [];
     this.doodles = new LevelDoodles(this, level, this.coins);
 
-    if (this.totalCollectibles > 0) {
-      this.doodles.setGoalLocked(true);
-      if (this.goalFlagArt) this.goalFlagArt.setAlpha(0.55);
-    } else {
-      this.doodles.setGoalLocked(false);
-      if (this.goalFlagArt) this.goalFlagArt.setAlpha(1);
-    }
+    const isGoalLocked = this.totalCollectibles > 0;
+    this.doodles.setGoalLocked(isGoalLocked);
+    this.redrawGoalDoor(isGoalLocked);
 
     for (const e of level.enemies) {
       const enemy = new Enemy(this, e.id, sx(e.x), sy(e.y), e.patrol);
@@ -834,9 +863,22 @@ export class GameScene extends Phaser.Scene {
     const input = this.readCombinedInput(gp, touchInput);
     this.player.handleInput(input, this.locked);
 
-    // Dschungel: Dynamische tropische Windböen & herumwirbelnde Blätter
+    // Teleporter Exit-Prüfung: Erst wenn Dino den Teleporter komplett verlassen hat,
+    // darf wieder teleportiert werden (verhindert den Hin- und Her-Teleport-Loop)
+    if (!this.isExitedFromTeleporter) {
+      const isOverlapping = this.physics.overlap(this.player.rect, this.teleportersGroup);
+      if (!isOverlapping) {
+        this.isExitedFromTeleporter = true;
+      }
+    }
+
+    // Atmosphärische Partikel & Effekte je nach Spielwelt
     if (this.bgTheme === "jungle") {
       this.updateJungleWind(time, delta);
+    } else if (this.bgTheme === "space") {
+      this.updateSpaceStardust(time, delta);
+    } else if (this.bgTheme === "volcano") {
+      this.updateVolcanoEmbers(time, delta);
     }
 
     if (!this.locked && this.player.body.blocked.down) {
@@ -1274,7 +1316,8 @@ export class GameScene extends Phaser.Scene {
 
   private unlockGoal() {
     this.doodles.setGoalLocked(false);
-    this.goal.setAlpha(1);
+    this.goal.setAlpha(0); // Hitbox unsichtbar halten – kein grüner Kasten!
+    this.redrawGoalDoor(false); // Strahlend offenes Portal-Tor zeichnen
 
     if (this.goalLockArt) {
       this.tweens.add({
@@ -1305,6 +1348,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handleTeleporter(tpRect: Phaser.GameObjects.Rectangle) {
+    // Ping-Pong Schutz: Erst wieder aktivierbar, wenn Dino den Teleporter verlassen hat!
+    if (!this.isExitedFromTeleporter) return;
     if (this.time.now - this.lastTeleportAt < 420) return;
 
     const srcId = tpRect.getData("id");
@@ -1313,6 +1358,7 @@ export class GameScene extends Phaser.Scene {
 
     const dest = this.teleportersList.find((t) => t.id === src.targetId);
     if (!dest) {
+      this.isExitedFromTeleporter = false;
       this.lastTeleportAt = this.time.now;
       if (this.gameMode === "rpg_labyrinth") {
         // Magischer 4-Wege Vortex-Warp: Teleportiert Dino 240px vorwärts in Laufrichtung
@@ -1354,6 +1400,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    this.isExitedFromTeleporter = false;
     this.lastTeleportAt = this.time.now;
 
     // Ursprung: Partikel & Audio
@@ -1563,22 +1610,34 @@ export class GameScene extends Phaser.Scene {
     this.recorder.clear(this.time.now);
     this.resetCoinVisibility();
 
-    // Sammelobjekte zurücksetzen
+    // Sammelobjekte präzise auf 30x30 Bildgröße zurücksetzen
     this.collectedCount = 0;
     for (const c of this.collectiblesList) {
       c.collected = false;
       if (c.rect.body) (c.rect.body as Phaser.Physics.Arcade.Body).enable = true;
-      c.art.setVisible(true).setAlpha(1).setScale(1);
+      this.tweens.killTweensOf(c.art);
+      if (c.art instanceof Phaser.GameObjects.Image) {
+        c.art.setDisplaySize(30, 30);
+      } else {
+        c.art.setScale(1);
+      }
+      c.art.setPosition(c.rect.x, c.rect.y).setVisible(true).setAlpha(1);
+      this.tweens.add({
+        targets: c.art,
+        y: c.rect.y - 5,
+        duration: 650,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
     }
-    if (this.totalCollectibles > 0) {
-      this.doodles.setGoalLocked(true);
-      this.goal.setAlpha(0.45);
-      this.drawGoalLockDoodle();
-    } else {
-      this.doodles.setGoalLocked(false);
-      this.goal.setAlpha(1);
-    }
+
+    const isGoalLocked = this.totalCollectibles > 0;
+    this.doodles.setGoalLocked(isGoalLocked);
+    this.goal.setAlpha(0); // Hitbox unsichtbar halten – kein grüner Kasten!
+    this.redrawGoalDoor(isGoalLocked);
     this.hud.setCollectibles(this.collectedCount, this.totalCollectibles);
+    this.isExitedFromTeleporter = true;
 
     this.player.setActive(true);
     this.player.teleport(sx(this.level.start.x), sy(this.level.start.y));
@@ -1632,22 +1691,34 @@ export class GameScene extends Phaser.Scene {
     this.recorder.clear(this.time.now);
     this.resetCoinVisibility();
 
-    // Sammelobjekte zurücksetzen
+    // Sammelobjekte präzise auf 30x30 Bildgröße zurücksetzen
     this.collectedCount = 0;
     for (const c of this.collectiblesList) {
       c.collected = false;
       if (c.rect.body) (c.rect.body as Phaser.Physics.Arcade.Body).enable = true;
-      c.art.setVisible(true).setAlpha(1).setScale(1);
+      this.tweens.killTweensOf(c.art);
+      if (c.art instanceof Phaser.GameObjects.Image) {
+        c.art.setDisplaySize(30, 30);
+      } else {
+        c.art.setScale(1);
+      }
+      c.art.setPosition(c.rect.x, c.rect.y).setVisible(true).setAlpha(1);
+      this.tweens.add({
+        targets: c.art,
+        y: c.rect.y - 5,
+        duration: 650,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
     }
-    if (this.totalCollectibles > 0) {
-      this.doodles.setGoalLocked(true);
-      this.goal.setAlpha(0.45);
-      this.drawGoalLockDoodle();
-    } else {
-      this.doodles.setGoalLocked(false);
-      this.goal.setAlpha(1);
-    }
+
+    const isGoalLocked = this.totalCollectibles > 0;
+    this.doodles.setGoalLocked(isGoalLocked);
+    this.goal.setAlpha(0); // Hitbox unsichtbar halten – kein grüner Kasten!
+    this.redrawGoalDoor(isGoalLocked);
     this.hud.setCollectibles(this.collectedCount, this.totalCollectibles);
+    this.isExitedFromTeleporter = true;
 
     this.player.teleport(sx(this.level.start.x), sy(this.level.start.y));
 
@@ -1782,6 +1853,180 @@ export class GameScene extends Phaser.Scene {
         g.lineTo(leaf.x + cos * hw, leaf.y + sin * hw);
         g.strokePath();
       }
+    }
+  }
+
+  private redrawGoalDoor(locked: boolean) {
+    if (!this.goalDoorArt) {
+      this.goalDoorArt = this.add.graphics().setDepth(DEPTH.staticLevel + 4);
+    }
+    const g = this.goalDoorArt;
+    g.clear();
+
+    const gx = sx(this.level.goal.x) + sx(this.level.goal.w) / 2;
+    const gy = sy(this.level.goal.y) + sy(this.level.goal.h) / 2;
+    const dw = Math.max(52, sx(this.level.goal.w));
+    const dh = Math.max(76, sy(this.level.goal.h));
+    const left = gx - dw / 2;
+    const top = gy - dh / 2;
+
+    // 1. Schattierung / Sockel-Fundament am Boden
+    g.fillStyle(0x18181b, 0.45);
+    g.fillEllipse(gx, top + dh + 2, dw * 1.15, 12);
+
+    // 2. Äußerer Steinbogen (Portal-Rahmen aus massiven Steinquadern)
+    g.fillStyle(0x3f3f46, 1);
+    g.fillRoundedRect(left - 6, top + 16, 12, dh - 16, 3);
+    g.fillRoundedRect(left + dw - 6, top + 16, 12, dh - 16, 3);
+    g.fillRoundedRect(left - 8, top - 2, dw + 16, 26, 8);
+
+    // Steinfugen & Gravuren
+    g.lineStyle(2, 0x18181b, 0.7);
+    g.strokeRoundedRect(left - 6, top + 16, 12, dh - 16, 3);
+    g.strokeRoundedRect(left + dw - 6, top + 16, 12, dh - 16, 3);
+    g.strokeRoundedRect(left - 8, top - 2, dw + 16, 26, 8);
+
+    for (let py = top + 26; py < top + dh - 10; py += 16) {
+      g.lineBetween(left - 6, py, left + 6, py);
+      g.lineBetween(left + dw - 6, py, left + dw + 6, py);
+    }
+
+    // 3. Innere Toröffnung & Holztür
+    if (locked) {
+      // Verschlossenes massives Holztor
+      g.fillStyle(0x3b2314, 1);
+      g.fillRoundedRect(left + 5, top + 8, dw - 10, dh - 8, { tl: 18, tr: 18, bl: 2, br: 2 });
+
+      // Einzelne vertikale Holzbohlen
+      const plankCount = 4;
+      const pw = (dw - 10) / plankCount;
+      g.lineStyle(1.8, 0x1f120a, 0.85);
+      for (let i = 1; i < plankCount; i++) {
+        g.lineBetween(left + 5 + i * pw, top + 16, left + 5 + i * pw, top + dh);
+      }
+
+      // Schwere eiserne Querbänder
+      g.fillStyle(0x27272a, 1);
+      g.fillRoundedRect(left + 6, top + dh * 0.3, dw - 12, 6, 2);
+      g.fillRoundedRect(left + 6, top + dh * 0.72, dw - 12, 6, 2);
+
+      // Silberne Nieten auf den Eisenbändern
+      g.fillStyle(0xd4d4d8, 1);
+      g.fillCircle(left + 12, top + dh * 0.3 + 3, 2);
+      g.fillCircle(left + dw - 12, top + dh * 0.3 + 3, 2);
+      g.fillCircle(left + 12, top + dh * 0.72 + 3, 2);
+      g.fillCircle(left + dw - 12, top + dh * 0.72 + 3, 2);
+
+      // Eisernes Vorhängeschloss & Riegel
+      g.fillStyle(0xd97706, 1);
+      g.fillRoundedRect(gx - 10, top + dh * 0.5 - 4, 20, 16, 3);
+      g.lineStyle(2, 0x78350f, 1);
+      g.strokeRoundedRect(gx - 10, top + dh * 0.5 - 4, 20, 16, 3);
+      g.lineStyle(3, 0x52525b, 1);
+      g.beginPath();
+      g.arc(gx, top + dh * 0.5 - 4, 7, Math.PI, 0, false);
+      g.strokePath();
+      g.fillStyle(0x18181b, 1);
+      g.fillCircle(gx, top + dh * 0.5 + 2, 2.5);
+      g.fillRect(gx - 1, top + dh * 0.5 + 2, 2, 5);
+    } else {
+      // Offenes magisch leuchtendes Dimensionstor
+      g.fillStyle(0x064e3b, 1);
+      g.fillRoundedRect(left + 5, top + 8, dw - 10, dh - 8, { tl: 18, tr: 18, bl: 2, br: 2 });
+
+      g.fillStyle(0x10b981, 0.45);
+      g.fillRoundedRect(left + 8, top + 12, dw - 16, dh - 12, { tl: 16, tr: 16, bl: 2, br: 2 });
+
+      g.fillStyle(0x34d399, 0.6);
+      g.fillRoundedRect(left + 12, top + 18, dw - 24, dh - 20, { tl: 14, tr: 14, bl: 2, br: 2 });
+
+      g.fillStyle(0xfef08a, 0.85);
+      g.fillEllipse(gx, gy + 4, dw * 0.45, dh * 0.45);
+
+      g.fillStyle(0xf59e0b, 1);
+      g.fillCircle(left + dw - 12, gy + 6, 4);
+    }
+
+    // 4. Schlussstein im Bogen mit leuchtendem Edelstein
+    g.fillStyle(0x52525b, 1);
+    g.fillRoundedRect(gx - 12, top - 6, 24, 18, 4);
+    g.lineStyle(2, 0x27272a, 1);
+    g.strokeRoundedRect(gx - 12, top - 6, 24, 18, 4);
+
+    g.fillStyle(locked ? 0xef4444 : 0x10b981, 1);
+    g.fillCircle(gx, top + 2, 5);
+    g.fillStyle(0xffffff, 0.8);
+    g.fillCircle(gx - 1.5, top + 0.5, 1.8);
+  }
+
+  private initSpaceStardust() {
+    this.spaceDustGraphics = this.add.graphics().setDepth(DEPTH.player + 4);
+    this.spaceDust = [];
+    const colors = [0x93c5fd, 0xc4b5fd, 0xa5f3fc, 0xfde047, 0xffffff];
+    for (let i = 0; i < 40; i++) {
+      this.spaceDust.push({
+        x: Math.random() * WORLD_W,
+        y: Math.random() * WORLD_H,
+        vy: -(15 + Math.random() * 25),
+        size: 1.5 + Math.random() * 2.5,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        alpha: 0.35 + Math.random() * 0.55,
+        twinkleSpeed: 1.5 + Math.random() * 3,
+      });
+    }
+  }
+
+  private updateSpaceStardust(time: number, delta: number) {
+    if (!this.spaceDustGraphics || this.spaceDust.length === 0) return;
+    const dt = Math.max(0.001, Math.min(delta / 1000, 0.05));
+    const g = this.spaceDustGraphics;
+    g.clear();
+
+    for (const p of this.spaceDust) {
+      p.y += p.vy * dt;
+      p.x += Math.sin(time * 0.002 * p.twinkleSpeed + p.y * 0.01) * 0.4;
+      if (p.y < -10) {
+        p.y = WORLD_H + 10;
+        p.x = Math.random() * WORLD_W;
+      }
+      const twinkle = 0.5 + Math.sin(time * 0.003 * p.twinkleSpeed) * 0.35;
+      g.fillStyle(p.color, p.alpha * twinkle);
+      g.fillCircle(p.x, p.y, p.size);
+    }
+  }
+
+  private initVolcanoEmbers() {
+    this.volcanoEmbersGraphics = this.add.graphics().setDepth(DEPTH.player + 4);
+    this.volcanoEmbers = [];
+    const colors = [0xf97316, 0xef4444, 0xfacc15, 0xffedd5];
+    for (let i = 0; i < 42; i++) {
+      this.volcanoEmbers.push({
+        x: Math.random() * WORLD_W,
+        y: Math.random() * WORLD_H,
+        vx: -20 + Math.random() * 40,
+        vy: -(35 + Math.random() * 55),
+        size: 2 + Math.random() * 3.5,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        alpha: 0.4 + Math.random() * 0.5,
+      });
+    }
+  }
+
+  private updateVolcanoEmbers(time: number, delta: number) {
+    if (!this.volcanoEmbersGraphics || this.volcanoEmbers.length === 0) return;
+    const dt = Math.max(0.001, Math.min(delta / 1000, 0.05));
+    const g = this.volcanoEmbersGraphics;
+    g.clear();
+
+    for (const p of this.volcanoEmbers) {
+      p.y += p.vy * dt;
+      p.x += (p.vx + Math.sin(time * 0.004 + p.y * 0.02) * 15) * dt;
+      if (p.y < -15) {
+        p.y = WORLD_H + 15;
+        p.x = Math.random() * WORLD_W;
+      }
+      g.fillStyle(p.color, p.alpha);
+      g.fillCircle(p.x, p.y, p.size);
     }
   }
 

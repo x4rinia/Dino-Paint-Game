@@ -5,9 +5,17 @@ import { getStorageQuota, requestPersistentStorage, getSetting, setSetting } fro
 
 interface SettingsModalProps {
   onClose: () => void;
+  tvMode?: boolean;
+  onToggleTvMode?: () => void;
+  onOpenStreamModal?: () => void;
 }
 
-export function SettingsModal({ onClose }: SettingsModalProps) {
+export function SettingsModal({
+  onClose,
+  tvMode = false,
+  onToggleTvMode,
+  onOpenStreamModal,
+}: SettingsModalProps) {
   const [muted, setMuted] = useState(isMuted());
   const [musicOn, setMusicOn] = useState(isMusicEnabled());
   const [narratorOn, setNarratorOn] = useState(narrator.isEnabled());
@@ -184,6 +192,45 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* TV-MODUS & STREAMING */}
+        <div className="settings-section">
+          <h4>📺 Fernseher & Live-Streaming</h4>
+          <div className="setting-row">
+            <div>
+              <strong>TV-Modus & Großes HUD</strong>
+              <small style={{ display: "block", color: "#a0a5b5" }}>
+                Maximales Vollbild & vergrößerte Anzeigen für Fernseher
+              </small>
+            </div>
+            {onToggleTvMode && (
+              <button
+                className={`button ${tvMode ? "button-primary" : "button-secondary"}`}
+                type="button"
+                onClick={onToggleTvMode}
+              >
+                {tvMode ? "✓ TV-Modus: AN" : "TV-Modus aktivieren"}
+              </button>
+            )}
+          </div>
+          {onOpenStreamModal && (
+            <div className="setting-row" style={{ marginTop: "10px" }}>
+              <div>
+                <strong>Streaming- & TV-Menü</strong>
+                <small style={{ display: "block", color: "#a0a5b5" }}>
+                  AirPlay, Chromecast, OBS & Bildübertragung
+                </small>
+              </div>
+              <button
+                className="button button-secondary"
+                type="button"
+                onClick={onOpenStreamModal}
+              >
+                📡 Menü öffnen
+              </button>
+            </div>
+          )}
         </div>
 
         {/* CONTROLLER & GAMEPAD */}
