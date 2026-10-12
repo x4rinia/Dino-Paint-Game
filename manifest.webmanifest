@@ -1,7 +1,7 @@
 {
-  "name": "Dino Draw Your Game",
-  "short_name": "Dino Draw",
-  "description": "Zeichne deine eigene Plattform-Welt mit 6 magischen Farben und spiele sofort los! 100% Offline-fähig.",
+  "name": "Dino Paint Game",
+  "short_name": "Dino Paint",
+  "description": "Zeichne deine eigene Plattform-Welt mit 8 magischen Farben und spiele sofort los! 100% Offline-fähig.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
