@@ -36,7 +36,7 @@ export function LevelLibrary({
   const [activeTab, setActiveTab] = useState<"worlds" | "levels">(initialTab);
   const [levels, setLevels] = useState<SavedLevelItem[]>([]);
   const [worlds, setWorlds] = useState<World[]>([]);
-  const [selectedWorldId, setSelectedWorldId] = useState<string>("");
+  const [selectedWorldId, setSelectedWorldId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Modals & Aktionen
@@ -53,9 +53,6 @@ export function LevelLibrary({
       const [lvls, wrlds] = await Promise.all([getAllLevels(), getAllWorlds()]);
       setLevels(lvls);
       setWorlds(wrlds);
-      if (wrlds.length > 0 && !selectedWorldId) {
-        setSelectedWorldId(wrlds[0].id);
-      }
     } catch (err) {
       console.error("Fehler beim Laden der Bibliothek:", err);
     } finally {
@@ -67,11 +64,14 @@ export function LevelLibrary({
     fetchAllData();
   }, []);
 
-  const activeWorld = worlds.find((w) => w.id === selectedWorldId) || worlds[0];
+  const activeWorld = selectedWorldId ? worlds.find((w) => w.id === selectedWorldId) || null : null;
 
   // Lade die 8 Level für die aktuell ausgewählte Welt auf
   useEffect(() => {
-    if (!activeWorld) return;
+    if (!activeWorld) {
+      setWorldResolvedLevels({});
+      return;
+    }
     let isCancelled = false;
     const loadSlots = async () => {
       const map: Record<number, Level | null> = {};
@@ -221,12 +221,13 @@ export function LevelLibrary({
     onPlayLevel(fullLevel, fullImage);
   };
 
-  // Startet die Kampagne der aktiven Welt: Zufällige Reihenfolge durch alle belegten Level!
-  const handleStartCampaign = () => {
-    if (!activeWorld) return;
+  // Startet die Kampagne einer Welt: Zufällige Reihenfolge durch alle belegten Level!
+  const handleStartCampaign = (targetWorld?: World) => {
+    const w = targetWorld || activeWorld;
+    if (!w) return;
     const occupiedSlots: number[] = [];
     for (let i = 0; i < 8; i++) {
-      if (activeWorld.levelIds[i]) {
+      if (w.levelIds[i]) {
         occupiedSlots.push(i);
       }
     }
@@ -240,7 +241,7 @@ export function LevelLibrary({
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-    onStartWorldCampaign(activeWorld, shuffled);
+    onStartWorldCampaign(w, shuffled);
   };
 
   const handleAssignLevelToSlot = async (lvl: SavedLevelItem) => {
@@ -346,135 +347,275 @@ export function LevelLibrary({
         {/* ======================================================== */}
         {!loading && activeTab === "worlds" && (
           <div className="worlds-view-container" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-            {/* WELTEN-AUSWAHL-LEISTE */}
-            <div
-              style={{
-                display: "flex",
-                gap: "10px",
-                overflowX: "auto",
-                paddingBottom: "8px",
-                borderBottom: "2px solid rgba(0,0,0,0.08)",
-                alignItems: "center",
-              }}
-            >
-              {worlds.map((w) => {
-                const isSelected = activeWorld?.id === w.id;
-                return (
-                  <button
-                    key={w.id}
-                    type="button"
-                    onClick={() => setSelectedWorldId(w.id)}
-                    className={`button ${isSelected ? "button-primary" : "button-secondary"}`}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      padding: "8px 18px",
-                      borderRadius: "10px",
-                      whiteSpace: "nowrap",
-                      fontWeight: isSelected ? 700 : 500,
-                    }}
-                  >
-                    <span style={{ fontSize: "1.3rem" }}>{w.icon || "🌍"}</span>
-                    <span>{w.name}</span>
-                  </button>
-                );
-              })}
-
-              <button
-                type="button"
-                className="button button-secondary"
-                onClick={() => setShowCreateWorldModal(true)}
-                style={{ padding: "8px 16px", borderRadius: "10px", whiteSpace: "nowrap" }}
-              >
-                ➕ Neue Welt erstellen
-              </button>
-            </div>
-
-            {/* AUSGEWÄHLTE WELT KOPFBEREICH */}
-            {activeWorld && (
-              <div
-                style={{
-                  background: "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)",
-                  border: "2px solid #cbd5e1",
-                  borderRadius: "16px",
-                  padding: "20px 24px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  gap: "16px",
-                  boxShadow: "0 6px 16px rgba(0,0,0,0.06)",
-                }}
-              >
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
-                    <span style={{ fontSize: "2rem" }}>{activeWorld.icon || "🌍"}</span>
-                    <h3 style={{ margin: 0, fontSize: "1.6rem", color: "#0f172a" }}>{activeWorld.name}</h3>
+            {/* 1. HAUPTANSICHT: ALLE WELTEN ALS KACHELN */}
+            {!selectedWorldId && (
+              <div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "18px",
+                    flexWrap: "wrap",
+                    gap: "12px",
+                  }}
+                >
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: "1.5rem", color: "#0f172a" }}>🗺️ Spielwelten-Übersicht</h3>
+                    <p style={{ margin: "4px 0 0", color: "#64748b", fontSize: "0.95rem" }}>
+                      Wähle eine Welt, um ihre 8 Level zu bearbeiten, oder starte direkt eine Kampagne!
+                    </p>
                   </div>
-                  <p style={{ margin: 0, color: "#475569", fontSize: "0.95rem" }}>
-                    {activeWorld.description}
-                  </p>
-                  <div style={{ marginTop: "8px", display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
-                    <span
-                      style={{
-                        fontSize: "0.88rem",
-                        color: "#047857",
-                        background: "#d1fae5",
-                        border: "1px solid #a7f3d0",
-                        padding: "3px 10px",
-                        borderRadius: "20px",
-                        fontWeight: 700,
-                      }}
-                    >
-                      🏆 Rekordzeit: {formatWorldTime(activeWorld.bestTime || 0)}
-                    </span>
-                    <span style={{ fontSize: "0.85rem", color: "#64748b" }}>
-                      {activeWorld.levelIds.filter(Boolean).length} von 8 Leveln zugewiesen
-                    </span>
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
                   <button
                     type="button"
                     className="button button-primary"
-                    onClick={handleStartCampaign}
+                    onClick={() => setShowCreateWorldModal(true)}
+                    style={{ fontSize: "1rem", padding: "10px 20px", fontWeight: "bold" }}
+                  >
+                    ➕ Neue Welt erstellen
+                  </button>
+                </div>
+
+                {/* KACHEL-GRID */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+                    gap: "22px",
+                  }}
+                >
+                  {worlds.map((w) => {
+                    const assignedCount = w.levelIds.filter(Boolean).length;
+                    return (
+                      <div
+                        key={w.id}
+                        className="world-kachel-card"
+                        style={{
+                          background: "#ffffff",
+                          border: "2px solid #e2e8f0",
+                          borderRadius: "18px",
+                          padding: "22px",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-between",
+                          boxShadow: "0 6px 16px rgba(0,0,0,0.06)",
+                          position: "relative",
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
+                            <span style={{ fontSize: "2.4rem" }}>{w.icon || "🌍"}</span>
+                            <div>
+                              <h4 style={{ margin: 0, fontSize: "1.35rem", color: "#0f172a" }}>{w.name}</h4>
+                              <span
+                                style={{
+                                  fontSize: "0.78rem",
+                                  fontWeight: 700,
+                                  textTransform: "uppercase",
+                                  color: "#64748b",
+                                  background: "#f1f5f9",
+                                  padding: "2px 8px",
+                                  borderRadius: "12px",
+                                  display: "inline-block",
+                                  marginTop: "2px",
+                                }}
+                              >
+                                {w.theme}
+                              </span>
+                            </div>
+                          </div>
+
+                          <p
+                            style={{
+                              margin: "10px 0 16px",
+                              color: "#475569",
+                              fontSize: "0.93rem",
+                              lineHeight: 1.45,
+                              minHeight: "42px",
+                            }}
+                          >
+                            {w.description}
+                          </p>
+
+                          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "20px" }}>
+                            <span
+                              style={{
+                                fontSize: "0.82rem",
+                                color: assignedCount === 8 ? "#059669" : "#d97706",
+                                background: assignedCount === 8 ? "#d1fae5" : "#fef3c7",
+                                padding: "4px 10px",
+                                borderRadius: "14px",
+                                fontWeight: 700,
+                              }}
+                            >
+                              ✓ {assignedCount} / 8 Level
+                            </span>
+                            <span
+                              style={{
+                                fontSize: "0.82rem",
+                                color: "#0284c7",
+                                background: "#e0f2fe",
+                                padding: "4px 10px",
+                                borderRadius: "14px",
+                                fontWeight: 700,
+                              }}
+                            >
+                              🏆 Rekord: {formatWorldTime(w.bestTime || 0)}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div style={{ display: "flex", gap: "10px", marginTop: "auto" }}>
+                          <button
+                            type="button"
+                            className="button button-primary"
+                            onClick={() => handleStartCampaign(w)}
+                            style={{ flex: 1, padding: "11px 14px", fontSize: "0.96rem", fontWeight: "bold" }}
+                            title="Spielt alle belegten Level dieser Welt in zufälliger Reihenfolge!"
+                          >
+                            ▶ Welt spielen (Zufall)
+                          </button>
+                          <button
+                            type="button"
+                            className="button button-secondary"
+                            onClick={() => setSelectedWorldId(w.id)}
+                            style={{ padding: "11px 16px", fontSize: "0.96rem" }}
+                            title="8 Level dieser Welt ansehen und bearbeiten"
+                          >
+                            📂 Level ansehen
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* KACHEL: NEUE WELT ERSTELLEN */}
+                  <div
+                    onClick={() => setShowCreateWorldModal(true)}
                     style={{
-                      fontSize: "1.1rem",
-                      padding: "12px 24px",
-                      fontWeight: "bold",
-                      boxShadow: "0 6px 14px rgba(16, 185, 129, 0.4)",
+                      border: "2px dashed #94a3b8",
+                      borderRadius: "18px",
+                      padding: "24px 20px",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      background: "rgba(248, 250, 252, 0.7)",
+                      minHeight: "220px",
+                      textAlign: "center",
                     }}
                   >
-                    ▶️ Welt spielen (Zufällige Reihenfolge)
-                  </button>
-
-                  <button
-                    type="button"
-                    className="button button-secondary"
-                    onClick={() => handleExportWorld(activeWorld)}
-                    title="Diese komplette Welt mit allen 8 Leveln als .world.json exportieren"
-                    style={{ fontSize: "0.92rem", padding: "10px 16px" }}
-                  >
-                    💾 Welt als JSON sichern
-                  </button>
-
-                  <button
-                    type="button"
-                    className="button button-secondary"
-                    onClick={handleDeleteActiveWorld}
-                    title="Diese Welt löschen"
-                    style={{ padding: "10px 14px", color: "#dc2626" }}
-                  >
-                    🗑
-                  </button>
+                    <div style={{ fontSize: "3rem", marginBottom: "8px" }}>➕</div>
+                    <div style={{ fontWeight: "bold", fontSize: "1.15rem", color: "#334155", marginBottom: "4px" }}>
+                      Neue Welt entwerfen
+                    </div>
+                    <div style={{ fontSize: "0.88rem", color: "#64748b" }}>
+                      Erstelle eine eigene Spielwelt mit 8 Level-Slots
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* 8 LEVEL-SLOTS GRID */}
-            <div style={{ marginTop: "8px" }}>
+            {/* 2. DETAILANSICHT: WENN EINE WELT GEÖFFNET WURDE */}
+            {selectedWorldId && activeWorld && (
+              <div>
+                {/* ZURÜCK ZUR WELTEN-ÜBERSICHT BUTTON */}
+                <div style={{ marginBottom: "16px" }}>
+                  <button
+                    type="button"
+                    className="button button-secondary"
+                    onClick={() => setSelectedWorldId(null)}
+                    style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "1rem", padding: "9px 18px", fontWeight: "bold" }}
+                  >
+                    ◀ Zurück zur Welten-Übersicht
+                  </button>
+                </div>
+
+                {/* AUSGEWÄHLTE WELT KOPFBEREICH */}
+                <div
+                  style={{
+                    background: "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)",
+                    border: "2px solid #cbd5e1",
+                    borderRadius: "16px",
+                    padding: "20px 24px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                    gap: "16px",
+                    boxShadow: "0 6px 16px rgba(0,0,0,0.06)",
+                    marginBottom: "24px",
+                  }}
+                >
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
+                      <span style={{ fontSize: "2rem" }}>{activeWorld.icon || "🌍"}</span>
+                      <h3 style={{ margin: 0, fontSize: "1.6rem", color: "#0f172a" }}>{activeWorld.name}</h3>
+                    </div>
+                    <p style={{ margin: 0, color: "#475569", fontSize: "0.95rem" }}>
+                      {activeWorld.description}
+                    </p>
+                    <div style={{ marginTop: "8px", display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
+                      <span
+                        style={{
+                          fontSize: "0.88rem",
+                          color: "#047857",
+                          background: "#d1fae5",
+                          border: "1px solid #a7f3d0",
+                          padding: "3px 10px",
+                          borderRadius: "20px",
+                          fontWeight: 700,
+                        }}
+                      >
+                        🏆 Rekordzeit: {formatWorldTime(activeWorld.bestTime || 0)}
+                      </span>
+                      <span style={{ fontSize: "0.85rem", color: "#64748b" }}>
+                        {activeWorld.levelIds.filter(Boolean).length} von 8 Leveln zugewiesen
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      className="button button-primary"
+                      onClick={() => handleStartCampaign(activeWorld)}
+                      style={{
+                        fontSize: "1.1rem",
+                        padding: "12px 24px",
+                        fontWeight: "bold",
+                        boxShadow: "0 6px 14px rgba(16, 185, 129, 0.4)",
+                      }}
+                    >
+                      ▶️ Welt spielen (Zufällige Reihenfolge)
+                    </button>
+
+                    <button
+                      type="button"
+                      className="button button-secondary"
+                      onClick={() => handleExportWorld(activeWorld)}
+                      title="Diese komplette Welt mit allen 8 Leveln als .world.json exportieren"
+                      style={{ fontSize: "0.92rem", padding: "10px 16px" }}
+                    >
+                      💾 Welt als JSON sichern
+                    </button>
+
+                    <button
+                      type="button"
+                      className="button button-secondary"
+                      onClick={handleDeleteActiveWorld}
+                      title="Diese Welt löschen"
+                      style={{ padding: "10px 14px", color: "#dc2626" }}
+                    >
+                      🗑
+                    </button>
+                  </div>
+                </div>
+
+                {/* 8 LEVEL-SLOTS GRID */}
+                <div style={{ marginTop: "8px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
                 <h4 style={{ margin: 0, fontSize: "1.2rem", color: "#1e293b" }}>
                   Level-Verbindungen (8 Level dieser Welt):
@@ -613,6 +754,8 @@ export function LevelLibrary({
             </div>
           </div>
         )}
+      </div>
+    )}
 
         {/* ======================================================== */}
         {/* TAB 2: ALLE EINZEL-LEVEL                                  */}

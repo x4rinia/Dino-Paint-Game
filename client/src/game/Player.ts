@@ -373,9 +373,6 @@ export class Player {
    */
   draw(tick: number) {
     const { body, rect } = this;
-    if (Math.abs(body.velocity.x) > 65) {
-      this.facing = body.velocity.x > 0 ? 1 : -1;
-    }
     const hasTexture = this.scene.textures.exists("dino_idle");
     if (hasTexture) {
       this.sprite.setVisible(true);
@@ -390,8 +387,10 @@ export class Player {
         bobY = Math.sin(this.scene.time.now * 0.016) * 1.2;
       }
       this.sprite.setPosition(body.center.x, body.center.y - 2 + bobY);
+      // dino_idle und dino_jump blicken in der Bilddatei nach links (-1), dino_walk und dino_run nach rechts (1)
+      const baseDir = tex === "dino_idle" || tex === "dino_jump" ? -1 : 1;
       this.sprite.setScale(
-        (rect.scaleX * this.facing * 50) / (this.sprite.width || 200),
+        (rect.scaleX * this.facing * baseDir * 50) / (this.sprite.width || 200),
         (rect.scaleY * 42) / (this.sprite.height || 200)
       );
       if (this.sprite.texture.key !== tex && this.scene.textures.exists(tex)) {
@@ -412,15 +411,16 @@ export class Player {
       this.sprite.setVisible(true);
       this.art.setVisible(false);
       this.sprite.setPosition(f.x, f.y - 2);
-      this.sprite.setScale(
-        (f.scaleX * this.facing * 50) / (this.sprite.width || 200),
-        (f.scaleY * 42) / (this.sprite.height || 200)
-      );
       const isAirborne = (f.flags & PF_AIRBORNE) !== 0;
       const isRunning = (f.flags & PF_RUNNING) !== 0;
       let tex = "dino_idle";
       if (isAirborne) tex = "dino_jump";
       else if (isRunning) tex = "dino_walk";
+      const baseDir = tex === "dino_idle" || tex === "dino_jump" ? -1 : 1;
+      this.sprite.setScale(
+        (f.scaleX * this.facing * baseDir * 50) / (this.sprite.width || 200),
+        (f.scaleY * 42) / (this.sprite.height || 200)
+      );
       if (this.sprite.texture.key !== tex && this.scene.textures.exists(tex)) {
         this.sprite.setTexture(tex);
       }

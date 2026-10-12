@@ -691,30 +691,51 @@ export class GameScene extends Phaser.Scene {
 
     // Kollision: Spieler mit blauen Objekten (schieben & draufstehen)
     this.physics.add.collider(this.player.rect, this.moversGroup, (pObj, mObj) => {
-      const pBody = (pObj as Phaser.GameObjects.Rectangle).body as Phaser.Physics.Arcade.Body;
-      const mBody = (mObj as Phaser.GameObjects.Rectangle).body as Phaser.Physics.Arcade.Body;
+      const pRect = pObj as Phaser.GameObjects.Rectangle;
+      const mRect = mObj as Phaser.GameObjects.Rectangle;
+      const pBody = pRect.body as Phaser.Physics.Arcade.Body;
+      const mBody = mRect.body as Phaser.Physics.Arcade.Body;
+
+      const now = this.time.now;
+      const lastPush = (mRect.getData("lastPushTime") as number) || 0;
+      // Kiste wird beim Anstoßen um ca. 1 Kästchen (~30-36px) verschoben und stoppt dann
+      const PUSH_COOLDOWN = 340;
+      const STEP_SPEED = 155;
+      const DRAG_STOP = 420;
 
       if (this.gameMode === "rpg_labyrinth") {
-        // Sokoban-Schieben in alle 4 Richtungen:
-        const pushForce = 210;
-        if (pBody.velocity.x > 15 && this.player.x < mBody.x) {
-          mBody.setVelocityX(pushForce);
-        } else if (pBody.velocity.x < -15 && this.player.x > mBody.x) {
-          mBody.setVelocityX(-pushForce);
-        }
-        if (pBody.velocity.y > 15 && this.player.y < mBody.y) {
-          mBody.setVelocityY(pushForce);
-        } else if (pBody.velocity.y < -15 && this.player.y > mBody.y) {
-          mBody.setVelocityY(-pushForce);
+        if (now - lastPush > PUSH_COOLDOWN) {
+          if (pBody.velocity.x > 20 && this.player.x < mBody.x) {
+            mRect.setData("lastPushTime", now);
+            mBody.setDrag(DRAG_STOP, DRAG_STOP);
+            mBody.setVelocity(STEP_SPEED, 0);
+          } else if (pBody.velocity.x < -20 && this.player.x > mBody.x) {
+            mRect.setData("lastPushTime", now);
+            mBody.setDrag(DRAG_STOP, DRAG_STOP);
+            mBody.setVelocity(-STEP_SPEED, 0);
+          } else if (pBody.velocity.y > 20 && this.player.y < mBody.y) {
+            mRect.setData("lastPushTime", now);
+            mBody.setDrag(DRAG_STOP, DRAG_STOP);
+            mBody.setVelocity(0, STEP_SPEED);
+          } else if (pBody.velocity.y < -20 && this.player.y > mBody.y) {
+            mRect.setData("lastPushTime", now);
+            mBody.setDrag(DRAG_STOP, DRAG_STOP);
+            mBody.setVelocity(0, -STEP_SPEED);
+          }
         }
       } else {
-        if (pBody.touching.right && mBody.touching.left) {
-          mBody.setVelocityX(Math.max(140, pBody.velocity.x * 0.95));
-        } else if (pBody.touching.left && mBody.touching.right) {
-          mBody.setVelocityX(Math.min(-140, pBody.velocity.x * 0.95));
-        }
         if (pBody.touching.down) {
           this.lastGrounded = { x: this.player.x, feetY: this.player.bottom };
+        } else if (now - lastPush > PUSH_COOLDOWN) {
+          if (pBody.touching.right && mBody.touching.left && pBody.velocity.x > 15) {
+            mRect.setData("lastPushTime", now);
+            mBody.setDragX(DRAG_STOP);
+            mBody.setVelocityX(STEP_SPEED);
+          } else if (pBody.touching.left && mBody.touching.right && pBody.velocity.x < -15) {
+            mRect.setData("lastPushTime", now);
+            mBody.setDragX(DRAG_STOP);
+            mBody.setVelocityX(-STEP_SPEED);
+          }
         }
       }
     });
