@@ -481,26 +481,6 @@ function drawVolcanoTexture(ctx: CanvasRenderingContext2D, rng: () => number) {
   ctx.arc(vx, vy, 110, 0, Math.PI * 2);
   ctx.fill();
 
-  // Magma-Adern & Lava-Risse im unteren Bereich
-  for (let c = 0; c < 5; c++) {
-    let px = (c + 0.5) * (WORLD_W / 5) + (rng() - 0.5) * 120;
-    let py = WORLD_H * 0.85;
-    ctx.strokeStyle = "rgba(255, 140, 20, 0.5)";
-    ctx.lineWidth = 3.5;
-    ctx.beginPath();
-    ctx.moveTo(px, WORLD_H);
-    for (let s = 0; s < 4; s++) {
-      px += (rng() - 0.5) * 80;
-      py -= 35 + rng() * 25;
-      ctx.lineTo(px, py);
-    }
-    ctx.stroke();
-
-    // Glühender Kern der Ader
-    ctx.strokeStyle = "rgba(255, 230, 120, 0.8)";
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-  }
 
   // Aufsteigende Glut- & Asche-Partikel
   for (let i = 0; i < 90; i++) {

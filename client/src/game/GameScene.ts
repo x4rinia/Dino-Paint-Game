@@ -649,11 +649,45 @@ export class GameScene extends Phaser.Scene {
       this.handleTeleporter(tpRect as Phaser.GameObjects.Rectangle);
     });
 
-    // Kollisionen: Blaue Objekte untereinander und mit Plattformen/Trampolinen/Liften
+    // Kollisionen: Blaue Objekte untereinander (Stapeln & Schieben) und mit Plattformen/Liften
     this.physics.add.collider(this.moversGroup, this.platforms);
     this.physics.add.collider(this.moversGroup, this.bouncers);
     this.physics.add.collider(this.moversGroup, this.movingPlatformsGroup);
-    this.physics.add.collider(this.moversGroup, this.moversGroup);
+    this.physics.add.collider(this.moversGroup, this.moversGroup, (m1Obj, m2Obj) => {
+      if (this.gameMode === "rpg_labyrinth") {
+        const b1 = (m1Obj as Phaser.GameObjects.Rectangle).body as Phaser.Physics.Arcade.Body;
+        const b2 = (m2Obj as Phaser.GameObjects.Rectangle).body as Phaser.Physics.Arcade.Body;
+        if (Math.abs(b1.velocity.x) > 30 && Math.abs(b2.velocity.x) < 30) b2.setVelocityX(b1.velocity.x * 0.9);
+        else if (Math.abs(b2.velocity.x) > 30 && Math.abs(b1.velocity.x) < 30) b1.setVelocityX(b2.velocity.x * 0.9);
+        if (Math.abs(b1.velocity.y) > 30 && Math.abs(b2.velocity.y) < 30) b2.setVelocityY(b1.velocity.y * 0.9);
+        else if (Math.abs(b2.velocity.y) > 30 && Math.abs(b1.velocity.y) < 30) b1.setVelocityY(b2.velocity.y * 0.9);
+      }
+    });
+
+    // 🧱 Kisten auf Gefahren: Stachel-Brücke & Lava-Floß
+    for (const h of this.hazards) {
+      this.physics.add.collider(this.moversGroup, h, (mObj) => {
+        const hazardType = (h as Phaser.GameObjects.Rectangle).getData("hazardType");
+        const mRect = mObj as Phaser.GameObjects.Rectangle;
+        const mBody = mRect.body as Phaser.Physics.Arcade.Body;
+        if (hazardType === "lava") {
+          // Holz-Kiste schwimmt auf Lava wie ein Floß!
+          const hTop = h.y;
+          if (mRect.y + mRect.height / 2 >= hTop) {
+            mBody.setVelocityY(Math.min(mBody.velocity.y * 0.15, -20));
+          }
+          if (Math.random() < 0.05) {
+            burstParticles(this, mRect.x + (Math.random() - 0.5) * 16, hTop, {
+              color: 0xf97316,
+              count: 2,
+              speed: [15, 45],
+              size: 3,
+              duration: 260,
+            });
+          }
+        }
+      });
+    }
 
     // Kollision: Spieler mit blauen Objekten (schieben & draufstehen)
     this.physics.add.collider(this.player.rect, this.moversGroup, (pObj, mObj) => {
@@ -692,6 +726,10 @@ export class GameScene extends Phaser.Scene {
 
     // Kollisionen: Gefahren, Münzen, Ziel, Gegner
     this.physics.add.overlap(this.player.rect, this.hazards, (_p, hazard) => {
+      // Wenn Dino sicher auf einer Kiste steht (Lava-Floß oder Stachel-Brücke), stirbt er nicht!
+      if (this.isPlayerStandingOnCrate()) {
+        return;
+      }
       const type = (hazard as Phaser.GameObjects.Rectangle).getData("hazardType") as DeathCause;
       this.triggerDeath(type, this.player.x, this.player.y);
     });
@@ -706,7 +744,7 @@ export class GameScene extends Phaser.Scene {
           this.lastGoalWarningTime = this.time.now;
           floatText(
             this,
-            `Sammle zuerst alle gelben Objekte! (${this.collectedCount}/${this.totalCollectibles}) 🥚`,
+            `Sammle zuerst alle Dino-Münzen! (${this.collectedCount}/${this.totalCollectibles}) 🪙`,
             this.goal.x + this.goal.width / 2,
             this.goal.y - 30,
             INK_CSS.orange
@@ -717,8 +755,34 @@ export class GameScene extends Phaser.Scene {
       this.triggerWin();
     });
 
+    // Gegner-Interaktionen: Spieler-Kollision und Kisten-Plätten
     for (const enemy of this.enemies) {
       this.physics.add.overlap(this.player.rect, enemy.rect, () => this.handleEnemyOverlap(enemy));
+
+      // 💥 Kisten plätten Gegner (beim Drauffallen oder Schieben in Jump 'n' Run & Labyrinth)
+      this.physics.add.collider(this.moversGroup, enemy.rect, (mObj) => {
+        if (!enemy.alive) return;
+        const mRect = mObj as Phaser.GameObjects.Rectangle;
+        const mBody = mRect.body as Phaser.Physics.Arcade.Body;
+
+        const isCrush =
+          this.gameMode === "rpg_labyrinth"
+            ? Math.abs(mBody.velocity.x) > 20 || Math.abs(mBody.velocity.y) > 20
+            : mBody.velocity.y > 15 || mRect.y < enemy.midY - 8 || Math.abs(mBody.velocity.x) > 35;
+
+        if (isCrush) {
+          enemy.kill();
+          playStomp();
+          burstParticles(this, enemy.midX, enemy.midY, {
+            color: 0xe8590c,
+            count: 24,
+            speed: [80, 260],
+            size: 9,
+            duration: 400,
+          });
+          floatText(this, "💥 Kiste plättet Gegner!", enemy.midX, enemy.midY - 30, INK_CSS.orange);
+        }
+      });
     }
 
     this.hud = new Hud(this);
@@ -1483,6 +1547,27 @@ export class GameScene extends Phaser.Scene {
       duration: 220,
       ease: "Back.easeOut",
     });
+  }
+
+  private isPlayerStandingOnCrate(): boolean {
+    if (!this.player || !this.moversGroup) return false;
+    const pBody = this.player.body;
+    for (const mObj of this.moversGroup.getChildren()) {
+      const mRect = mObj as Phaser.GameObjects.Rectangle;
+      const mBody = mRect.body as Phaser.Physics.Arcade.Body;
+      if (!mBody) continue;
+
+      const playerBottom = pBody.bottom;
+      const crateTop = mBody.top;
+      const verticallyOnTop =
+        Math.abs(playerBottom - crateTop) <= 8 || (playerBottom >= crateTop && playerBottom <= crateTop + 14);
+      const horizontallyOverlapping = pBody.right > mBody.left + 4 && pBody.left < mBody.right - 4;
+
+      if (verticallyOnTop && horizontallyOverlapping) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private handleMoverTeleporter(mRect: Phaser.GameObjects.Rectangle, tpRect: Phaser.GameObjects.Rectangle) {

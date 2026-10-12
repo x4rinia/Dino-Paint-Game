@@ -629,28 +629,57 @@ export function LevelLibrary({
                         })}
                       </span>
                       <div className="card-badges">
-                        <span>{item.level?.platforms?.length ?? 0} Plattformen</span>
+                        <span>
+                          {item.level?.platforms?.length ?? 0}{" "}
+                          {(item.level?.platforms?.length ?? 0) === 1 ? "Plattform" : "Plattformen"}
+                        </span>
                         {(item.level?.bouncers?.length ?? 0) > 0 && (
-                          <span className="badge-bounce">{item.level.bouncers.length} Trampoline</span>
+                          <span className="badge-bounce">
+                            {item.level.bouncers.length}{" "}
+                            {item.level.bouncers.length === 1 ? "Trampolin" : "Trampoline"}
+                          </span>
                         )}
                         {(item.level?.collectibles?.length ?? 0) > 0 && (
-                          <span className="badge-collectible">🥚 {item.level.collectibles.length} Eier</span>
+                          <span className="badge-collectible">
+                            🪙 {item.level.collectibles.length}{" "}
+                            {item.level.collectibles.length === 1 ? "Münze" : "Münzen"}
+                          </span>
                         )}
                         {(item.level?.teleporters?.length ?? 0) > 0 && (
-                          <span className="badge-teleporter">🌀 {item.level.teleporters.length} Portale</span>
+                          <span className="badge-teleporter">
+                            🌀 {item.level.teleporters.length}{" "}
+                            {item.level.teleporters.length === 1 ? "Portal" : "Portale"}
+                          </span>
+                        )}
+                        {(item.level?.movers?.length ?? 0) > 0 && (
+                          <span className="badge-mover">
+                            📦 {item.level.movers.length}{" "}
+                            {item.level.movers.length === 1 ? "Kiste" : "Kisten"}
+                          </span>
+                        )}
+                        {(item.level?.enemies?.length ?? 0) > 0 && (
+                          <span className="badge-danger">
+                            👾 {item.level.enemies.length} Gegner
+                          </span>
                         )}
                       </div>
                     </div>
 
                     <div className="card-actions">
-                      <button className="button button-play-small" type="button" onClick={() => playLevelItem(item)}>
-                        Spielen
+                      <button
+                        className="button button-play-small"
+                        type="button"
+                        onClick={() => playLevelItem(item)}
+                        title="Level sofort spielen"
+                      >
+                        ▶ Spielen
                       </button>
                       <button
                         className="button button-secondary-small"
                         type="button"
                         onClick={() => onEditDrawing(item.originalImage || item.thumbnail || "")}
-                        title="Level im Zeichenstudio bearbeiten"
+                        title="✏️ Im Zeichenstudio bearbeiten"
+                        aria-label="Level bearbeiten"
                       >
                         ✏️
                       </button>
@@ -658,7 +687,8 @@ export function LevelLibrary({
                         className="button button-secondary-small"
                         type="button"
                         onClick={() => handleDuplicate(item)}
-                        title="Duplizieren"
+                        title="📋 Level duplizieren (Kopie erstellen)"
+                        aria-label="Level duplizieren"
                       >
                         📋
                       </button>
@@ -666,7 +696,8 @@ export function LevelLibrary({
                         className="button button-secondary-small"
                         type="button"
                         onClick={() => handleExportPng(item)}
-                        title="Als PNG-Bild herunterladen"
+                        title="🖼️ Zeichnung als PNG-Bild herunterladen"
+                        aria-label="Als PNG herunterladen"
                       >
                         🖼️
                       </button>
@@ -674,7 +705,8 @@ export function LevelLibrary({
                         className="button button-secondary-small"
                         type="button"
                         onClick={() => handleExport(item)}
-                        title="Als Level-JSON exportieren"
+                        title="💾 Als Level-Datei (.json) sichern"
+                        aria-label="Level exportieren"
                       >
                         💾
                       </button>
@@ -682,7 +714,8 @@ export function LevelLibrary({
                         className="button button-danger-small"
                         type="button"
                         onClick={() => setDeleteTarget(item)}
-                        title="Löschen"
+                        title="🗑️ Level löschen"
+                        aria-label="Level löschen"
                       >
                         🗑
                       </button>

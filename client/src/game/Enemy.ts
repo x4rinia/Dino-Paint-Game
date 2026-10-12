@@ -82,6 +82,11 @@ export class Enemy {
     return this.direction < 0;
   }
 
+  /** X of the enemy's midpoint. */
+  get midX() {
+    return this.rect.x;
+  }
+
   /** Y of the enemy's midpoint, for the stomp-vs-side-hit check. */
   get midY() {
     return this.rect.y;
