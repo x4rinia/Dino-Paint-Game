@@ -551,7 +551,10 @@ export function App() {
 
   // 5. HAUPTMENÜ
   return (
-    <div className={`dino-app-home ${tvMode ? "tv-mode-layout" : ""}`}>
+    <div
+      className={`dino-app-home ${tvMode ? "tv-mode-layout" : ""}`}
+      style={{ backgroundImage: 'url("./sprites/home_background_themes.jpg")' }}
+    >
       <header className="home-topbar">
         <div className="brand-logo" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <img
@@ -593,43 +596,18 @@ export function App() {
 
       <main className="home-main">
         <section className="mascot-hero">
-          <div className="mascot-visual" style={{ gap: "32px", alignItems: "center", justifyContent: "center" }}>
-            <div
-              className="mascot-dino-wrap"
-              style={{
-                position: "relative",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              {/* Leuchtende bunte Aura */}
-              <div
-                style={{
-                  position: "absolute",
-                  width: "220px",
-                  height: "220px",
-                  borderRadius: "50%",
-                  background: "radial-gradient(circle, rgba(52, 211, 153, 0.45) 0%, rgba(59, 130, 246, 0.25) 55%, transparent 75%)",
-                  filter: "blur(12px)",
-                  zIndex: 0,
-                }}
-              />
+          <div className="mascot-visual">
+            <div className="mascot-dino-wrap">
+              <div className="mascot-dino-aura" />
               <img
+                className="mascot-dino-img"
                 src="./sprites/dino_mascot.png"
                 alt="Dino Abenteurer"
-                style={{
-                  position: "relative",
-                  zIndex: 1,
-                  width: "185px",
-                  height: "auto",
-                  filter: "drop-shadow(0 14px 28px rgba(0,0,0,0.22))",
-                }}
               />
             </div>
 
-            <div className="speech-bubble" style={{ maxWidth: "430px" }}>
-              <strong>Hallo! Ich bin Dino!</strong>
+            <div className="speech-bubble">
+              <strong>🦖 Hallo! Ich bin Dino!</strong>
               <span>
                 Zeichne deine eigenen Level mit Stiften auf Papier oder male direkt im Zeichenstudio. In der Bibliothek kannst du deine Level zu Welten mit je 8 Leveln verbinden!
               </span>
@@ -645,10 +623,10 @@ export function App() {
         {currentLevel && (
           <section className="resume-level-banner">
             <div className="resume-banner-left">
-              <span className="resume-badge">Zuletzt geöffnetes Level</span>
+              <span className="resume-badge">✨ Zuletzt geöffnetes Level</span>
               <h3 className="resume-name">{currentLevel.name || "Mein gezeichnetes Level"}</h3>
               <p className="resume-hint">
-                Dein Level geht nicht verloren! Du kannst es direkt im Zeichenstudio weiterbearbeiten oder weiterspielen:
+                Dein Level geht nicht verloren! Du kannst es direkt im Zeichenstudio anpassen oder weiterspielen:
               </p>
             </div>
             <div className="resume-banner-actions">
@@ -670,7 +648,7 @@ export function App() {
           </section>
         )}
 
-        <section className="menu-cards-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", maxWidth: "860px", margin: "0 auto" }}>
+        <section className="menu-cards-grid">
           {/* 1. SPIELEN & WELTEN */}
           <div
             className="menu-card card-play-action"
@@ -678,19 +656,13 @@ export function App() {
             onClick={() => {
               setScreen("library");
             }}
-            style={{
-              background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-              color: "#ffffff",
-              border: "3px solid #047857",
-              boxShadow: "0 10px 25px rgba(16, 185, 129, 0.35)",
-            }}
           >
-            <div className="card-symbol" style={{ fontSize: "3.2rem" }}>🌍</div>
-            <h3 style={{ color: "#ffffff", fontSize: "1.8rem", margin: "6px 0" }}>Welten spielen</h3>
-            <p style={{ color: "#d1fae5", fontSize: "0.95rem" }}>
+            <div className="card-symbol">🌍</div>
+            <h3>Welten spielen</h3>
+            <p>
               Wähle eine Welt mit 8 Leveln zum Spielen oder verbinde deine eigenen gezeichneten Level zu einer 8er-Welt!
             </p>
-            <span className="card-cta" style={{ background: "#ffffff", color: "#065f46", fontWeight: "bold" }}>
+            <span className="card-cta">
               Welten-Bibliothek öffnen ▶
             </span>
           </div>
@@ -705,19 +677,13 @@ export function App() {
               setCurrentLevel(null);
               setScreen("draw");
             }}
-            style={{
-              background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
-              color: "#ffffff",
-              border: "3px solid #1d4ed8",
-              boxShadow: "0 10px 25px rgba(59, 130, 246, 0.35)",
-            }}
           >
-            <div className="card-symbol" style={{ fontSize: "3.2rem" }}>🎨</div>
-            <h3 style={{ color: "#ffffff", fontSize: "1.8rem", margin: "6px 0" }}>Level zeichnen</h3>
-            <p style={{ color: "#dbeafe", fontSize: "0.95rem" }}>
+            <div className="card-symbol">🎨</div>
+            <h3>Level zeichnen</h3>
+            <p>
               Erschaffe eigene Level im Zeichenstudio mit 9 magischen Spielfarben, Stiften oder Foto-Scan.
             </p>
-            <span className="card-cta" style={{ background: "#ffffff", color: "#1e40af", fontWeight: "bold" }}>
+            <span className="card-cta">
               Zeichenstudio öffnen ▶
             </span>
           </div>
