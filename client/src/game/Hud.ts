@@ -8,8 +8,9 @@ const HUD_DEPTH = 1000;
 export class Hud {
   private readonly collectibleText: Phaser.GameObjects.Text;
   private readonly bgBadge: Phaser.GameObjects.Graphics;
+  private readonly restartBtn?: Phaser.GameObjects.Container;
 
-  constructor(scene: Phaser.Scene) {
+  constructor(scene: Phaser.Scene, onRestart?: () => void) {
     // Dezentes, transparentes Hintergrund-Badge, das im Level nicht stört
     this.bgBadge = scene.add.graphics().setScrollFactor(0).setDepth(HUD_DEPTH - 1);
 
@@ -26,6 +27,57 @@ export class Hud {
       .setDepth(HUD_DEPTH);
 
     this.drawBadge(150);
+
+    // 🔄 Level resetten / Neustart-Button oben rechts (immer erreichbar, wenn man nicht weiterkommt)
+    if (onRestart) {
+      const btnW = 136;
+      const btnH = 32;
+      const btnX = 1200 - btnW - 16;
+      const btnY = 10;
+
+      const btnBg = scene.add.graphics();
+      btnBg.fillStyle(0x0f172a, 0.55);
+      btnBg.fillRoundedRect(0, 0, btnW, btnH, 8);
+      btnBg.lineStyle(1.5, 0xffffff, 0.35);
+      btnBg.strokeRoundedRect(0, 0, btnW, btnH, 8);
+
+      const btnText = scene.add
+        .text(btnW / 2, btnH / 2, "🔄 Neustart (R)", {
+          fontFamily: HAND_FONT,
+          fontSize: "15px",
+          color: "#ffffff",
+          stroke: "#18181b",
+          strokeThickness: 3,
+        })
+        .setOrigin(0.5);
+
+      const hitZone = scene.add
+        .zone(btnW / 2, btnH / 2, btnW, btnH)
+        .setInteractive({ useHandCursor: true });
+
+      hitZone.on("pointerover", () => {
+        btnBg.clear();
+        btnBg.fillStyle(0x2563eb, 0.85);
+        btnBg.fillRoundedRect(0, 0, btnW, btnH, 8);
+        btnBg.lineStyle(1.5, 0xffffff, 0.8);
+        btnBg.strokeRoundedRect(0, 0, btnW, btnH, 8);
+      });
+      hitZone.on("pointerout", () => {
+        btnBg.clear();
+        btnBg.fillStyle(0x0f172a, 0.55);
+        btnBg.fillRoundedRect(0, 0, btnW, btnH, 8);
+        btnBg.lineStyle(1.5, 0xffffff, 0.35);
+        btnBg.strokeRoundedRect(0, 0, btnW, btnH, 8);
+      });
+      hitZone.on("pointerdown", () => {
+        onRestart();
+      });
+
+      this.restartBtn = scene.add
+        .container(btnX, btnY, [btnBg, btnText, hitZone])
+        .setScrollFactor(0)
+        .setDepth(HUD_DEPTH);
+    }
   }
 
   private drawBadge(width: number) {

@@ -822,7 +822,7 @@ export class GameScene extends Phaser.Scene {
       });
     }
 
-    this.hud = new Hud(this);
+    this.hud = new Hud(this, () => this.restartLevel());
     this.hud.setCollectibles(this.collectedCount, this.totalCollectibles);
 
     const isTv = this.registry.get("tvMode") || false;
@@ -923,7 +923,7 @@ export class GameScene extends Phaser.Scene {
       (gp.restart && !this.lastGamepadRestart);
     this.lastGamepadRestart = gp.restart;
 
-    if (restartRequested && !this.dead && !this.intro) {
+    if (restartRequested && !this.intro) {
       this.restartLevel();
       return;
     }
@@ -1116,13 +1116,30 @@ export class GameScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(2402);
 
-    const editBtn = this.add
-      .text(cx, cy + 62, "✏️ Level im Studio bearbeiten (E)", {
+    const restartBtn = this.add
+      .text(cx - 130, cy + 62, "🔄 Neu starten (R)", {
         fontFamily: HAND_FONT,
-        fontSize: "26px",
+        fontSize: "22px",
+        color: "#ffffff",
+        backgroundColor: "#2563eb",
+        padding: { x: 14, y: 8 },
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(2403)
+      .setInteractive({ useHandCursor: true })
+      .on("pointerdown", () => {
+        this.togglePause();
+        this.restartLevel();
+      });
+
+    const editBtn = this.add
+      .text(cx + 130, cy + 62, "✏️ Bearbeiten (E)", {
+        fontFamily: HAND_FONT,
+        fontSize: "22px",
         color: "#ffffff",
         backgroundColor: "#9b51e0",
-        padding: { x: 16, y: 8 },
+        padding: { x: 14, y: 8 },
       })
       .setOrigin(0.5)
       .setScrollFactor(0)
@@ -1134,7 +1151,7 @@ export class GameScene extends Phaser.Scene {
 
     bg.setInteractive().on("pointerdown", () => this.togglePause());
 
-    this.pauseContainer = this.add.container(0, 0, [bg, card, title, hint, editBtn]);
+    this.pauseContainer = this.add.container(0, 0, [bg, card, title, hint, restartBtn, editBtn]);
   }
 
   /** Liest Tastatur, Touch und Gamepad gemeinsam aus */
