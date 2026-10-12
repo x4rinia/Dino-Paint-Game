@@ -433,10 +433,10 @@ export function DrawingCanvas({
         drawSolidRect(100, 420, 80, 24, "#2fb457");
         drawSolidRect(720, 120, 60, 24, "#2fb457");
 
-        // Blaue verschiebbare Kiste & Orange Gegner
+        // Blaue verschiebbare Kiste & Pinke Gegner
         drawSolidRect(520, 220, 48, 48, "#2a6df4");
-        drawCircle(340, 260, 18, "#e8590c");
-        drawCircle(880, 540, 18, "#e8590c");
+        drawCircle(340, 260, 18, "#ec4899");
+        drawCircle(880, 540, 18, "#ec4899");
 
         // 🌀 Genau 1 Vortex-Portal (Schleudert Dino durch die Wand in die Schatzkammer!)
         // Steht in der Mitte des Labyrinths – NICHT am Anfang!
@@ -469,8 +469,8 @@ export function DrawingCanvas({
         drawSolidRect(570, 160, 34, 70, "#2fb457");
         drawSolidRect(650, 520, 34, 70, "#2fb457");
 
-        drawCircle(300, 240, 18, "#e8590c");
-        drawCircle(960, 460, 18, "#e8590c");
+        drawCircle(300, 240, 18, "#ec4899");
+        drawCircle(960, 460, 18, "#ec4899");
 
         // Portale verbinden Kammer 1 und Kammer 4 (Fern vom Start!)
         drawPortal(440, 180, 38, 68);
@@ -497,7 +497,7 @@ export function DrawingCanvas({
         drawSolidRect(500, 650, 120, 22, "#d6453d");
 
         drawSolidRect(100, 400, 80, 24, "#2fb457");
-        drawCircle(700, 420, 18, "#e8590c");
+        drawCircle(700, 420, 18, "#ec4899");
 
         // Genau 1 Vortex-Portal in der Mitte
         drawPortal(640, 520, 38, 68);

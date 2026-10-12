@@ -47,24 +47,32 @@ test("classifyPixel erkennt die sechs Spielfarben und Papierhintergrund determin
   assert.equal(classifyPixel(255, 255, 255), "background");
   assert.equal(classifyPixel(245, 240, 230), "background"); // warmes Papier
 
-  // Rot (Gefahren)
+  // Rot (Gefahren / Stacheln #d6453d)
   assert.equal(classifyPixel(220, 40, 40), "red");
   assert.equal(classifyPixel(180, 30, 20), "red");
+  assert.equal(classifyPixel(214, 69, 61), "red"); // Editor Hex #d6453d
 
-  // Grün (Trampoline)
-  assert.equal(classifyPixel(40, 190, 60), "green");
+  // Pink (Fliegende Gegner #ec4899)
+  assert.equal(classifyPixel(236, 72, 153), "orange"); // Editor Hex #ec4899
+  assert.equal(classifyPixel(240, 80, 160), "orange");
+
+  // Braun (Bewegliche Lifte #8b5a2b)
+  assert.equal(classifyPixel(139, 90, 43), "brown"); // Editor Hex #8b5a2b
+
+  // Grün (Trampoline #2fb457)
+  assert.equal(classifyPixel(47, 180, 87), "green");
   assert.equal(classifyPixel(30, 150, 45), "green");
 
-  // Blau (Bewegliche Physikobjekte)
-  assert.equal(classifyPixel(35, 100, 240), "blue");
+  // Blau (Bewegliche Physikobjekte #2a6df4)
+  assert.equal(classifyPixel(42, 109, 244), "blue");
   assert.equal(classifyPixel(20, 70, 190), "blue");
 
-  // Gelb (Sammelobjekte)
-  assert.equal(classifyPixel(245, 200, 20), "yellow");
+  // Gelb (Sammelobjekte #f5c518)
+  assert.equal(classifyPixel(245, 197, 24), "yellow");
   assert.equal(classifyPixel(255, 220, 30), "yellow");
 
-  // Lila (Teleporter)
-  assert.equal(classifyPixel(155, 60, 210), "purple");
+  // Lila (Teleporter #9b51e0)
+  assert.equal(classifyPixel(155, 81, 224), "purple");
   assert.equal(classifyPixel(130, 40, 180), "purple");
 });
 

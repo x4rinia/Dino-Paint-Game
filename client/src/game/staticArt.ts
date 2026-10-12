@@ -71,23 +71,49 @@ function drawBouncer(g: Phaser.GameObjects.Graphics, b: Box) {
 function drawSpikes(g: Phaser.GameObjects.Graphics, h: Box) {
   const { x, y, w, h: height } = px(h);
   const rng = seededFor(h.id);
-  const teeth = Math.min(MAX_TEETH, Math.max(1, Math.round(w / TOOTH_PX)));
-  const tw = w / teeth;
-  const bottom = y + height;
-  for (let i = 0; i < teeth; i++) {
-    const x0 = x + i * tw;
-    const tri = jitterPoints(
-      [
-        { x: x0, y: bottom },
-        { x: x0 + tw / 2, y },
-        { x: x0 + tw, y: bottom },
-      ],
-      Math.min(2, tw * 0.1, height * 0.1),
-      rng
-    );
-    fillPoly(g, tri, 0xffd9d4, 0.55);
-    hatchPoly(g, tri, { color: INK.red, width: 1.8, alpha: 0.65 }, rng, 6, Math.PI / 3.2, 2);
-    sketchPoly(g, tri, { color: INK.red, width: 3.6, wobble: 1.6 }, rng);
+  const isVertical = height > w * 1.3;
+
+  if (isVertical) {
+    // Vertikale Stachelfallen an Wänden
+    const teeth = Math.min(MAX_TEETH, Math.max(1, Math.round(height / TOOTH_PX)));
+    const th = height / teeth;
+    const right = x + w;
+    for (let i = 0; i < teeth; i++) {
+      const y0 = y + i * th;
+      const tri = jitterPoints(
+        [
+          { x: right, y: y0 },
+          { x, y: y0 + th / 2 },
+          { x: right, y: y0 + th },
+        ],
+        Math.min(2, w * 0.1, th * 0.1),
+        rng
+      );
+      fillPoly(g, tri, INK.red, 0.92);
+      hatchPoly(g, tri, { color: 0x8b1515, width: 2.0, alpha: 0.75 }, rng, 5, Math.PI / 4, 2);
+      sketchPoly(g, tri, { color: 0x5a0b0b, width: 3.2, wobble: 1.2 }, rng);
+    }
+  } else {
+    // Horizontale Stacheln am Boden / auf Plattformen
+    const teeth = Math.min(MAX_TEETH, Math.max(1, Math.round(w / TOOTH_PX)));
+    const tw = w / teeth;
+    const bottom = y + height;
+    for (let i = 0; i < teeth; i++) {
+      const x0 = x + i * tw;
+      const tri = jitterPoints(
+        [
+          { x: x0, y: bottom },
+          { x: x0 + tw / 2, y },
+          { x: x0 + tw, y: bottom },
+        ],
+        Math.min(2, tw * 0.1, height * 0.1),
+        rng
+      );
+      fillPoly(g, tri, INK.red, 0.92);
+      hatchPoly(g, tri, { color: 0x8b1515, width: 2.0, alpha: 0.75 }, rng, 5, Math.PI / 3.2, 2);
+      sketchPoly(g, tri, { color: 0x5a0b0b, width: 3.2, wobble: 1.2 }, rng);
+    }
+    sketchLine(g, { x, y: bottom }, { x: x + w, y: bottom }, { color: 0x8b1515, width: 3.2, wobble: 1.0 }, rng);
   }
 }
 

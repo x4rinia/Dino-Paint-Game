@@ -132,17 +132,18 @@ export function classifyPixel(
     return "yellow";
   }
 
-  // LILA / VIOLETT: Hue 266° - 335° (gesättigt) ODER Rot & Blau dominant über Grün
+  // LILA / VIOLETT: Hue 255° - 315° (gesättigt) ODER Blau dominiert und Rot stark
+  // Wichtig: Strikte Obergrenze Hue 315°, damit Pink (Hue 320° - 350°) NIEMALS als Lila erkannt wird!
   if (
-    (s > 0.20 && h >= 266 && h <= 335 && v > 0.22) ||
-    (r > 70 && b > 80 && g < Math.max(r, b) - 25)
+    (s > 0.20 && h >= 255 && h <= 315 && v > 0.22) ||
+    (b > 85 && r > 65 && b >= r - 20 && g < Math.min(r, b) - 25)
   ) {
     return "purple";
   }
 
-  // BLAU: Hue 180° - 265° ODER Blaukanal dominiert deutlich
+  // BLAU: Hue 180° - 255° ODER Blaukanal dominiert deutlich
   if (
-    (s > 0.22 && h >= 180 && h <= 265 && v > 0.22) ||
+    (s > 0.22 && h >= 180 && h <= 255 && v > 0.22) ||
     (b > 70 && diffBR > 30 && diffBG > 20)
   ) {
     return "blue";
@@ -156,28 +157,41 @@ export function classifyPixel(
     return "green";
   }
 
-  // PINK / MAGENTA & ORANGE: Bewegliche fliegende Gegner
-  // Pink (z.B. #ec4899) Hue 320° - 355°, sowie klassisches Orange (Hue 14° - 38°)
-  if (
-    (s > 0.30 && h >= 320 && h <= 355 && v >= 0.50 && r > 160 && b > 70) ||
-    (s > 0.45 && h >= 14 && h <= 38 && v >= 0.60) ||
-    (r >= 180 && g >= 55 && g < r - 25 && b < 85)
-  ) {
+  // PINK / MAGENTA (und legacy Marker-Orange): Bewegliche fliegende Gegner
+  // Pink (Hex #ec4899: r:236, g:72, b:153 -> Hue ~330°, hoher Blauanteil b > 80, r deutlich dominant)
+  // Wichtig: Unterscheidung von Rot: Pink hat IMMER signifikanten Blauanteil (b >= 80 und b > g + 15)!
+  const isPink =
+    (s > 0.25 && h > 315 && h <= 352 && v >= 0.40 && r > 140 && b >= 80) ||
+    (r >= 150 && b >= 85 && diffRG > 35 && b > g + 15);
+
+  const isLegacyOrange =
+    (s > 0.50 && h >= 14 && h <= 38 && v >= 0.65 && g > 70 && b < 60) ||
+    (r >= 200 && g >= 80 && g < r - 40 && b < 50);
+
+  if (isPink || isLegacyOrange) {
     return "orange";
   }
 
-  // BRAUN: Hue 12° - 42°, dunkleres bis mittleres V (v < 0.60, r < 180) -> Bewegliche Lifte
+  // BRAUN: Hue 14° - 45°, warmes gedämpftes V (v < 0.60, r < 185) -> Bewegliche Lifte
+  // Brown ist dunkles Orange/Gelb: Hue ist immer >= 14° und g hat mindestens 35% von r
   if (
-    (s > 0.22 && h >= 12 && h <= 42 && v >= 0.16 && v < 0.60) ||
-    (r >= 60 && r < 180 && g >= 25 && g < r && b < g - 10)
+    s > 0.22 &&
+    h >= 14 &&
+    h <= 45 &&
+    v >= 0.16 &&
+    v < 0.65 &&
+    g >= 25 &&
+    g >= r * 0.35 &&
+    b < g
   ) {
     return "brown";
   }
 
-  // ROT: Hue 336° - 360° oder 0° - 34° ODER Rotkanal dominiert
+  // ROT: Hue 352° - 360° oder 0° - 32° ODER Rotkanal dominiert bei geringem Blau
+  // Reines Rot (#d6453d: r:214, g:69, b:61): Blau ist niedrig (b < 95), kein Pink!
   if (
-    (s > 0.25 && (h >= 336 || h <= 34) && v > 0.25) ||
-    (r > 75 && diffRG > 35 && diffRB > 35)
+    (s > 0.25 && (h >= 352 || h <= 32) && v > 0.25 && b < 95) ||
+    (r > 75 && diffRG > 30 && diffRB > 35 && b < 95)
   ) {
     return "red";
   }
@@ -680,8 +694,9 @@ export function analyzeDrawing(
           h: Math.round(r.h),
         });
       } else if (comp.color === 2) {
-        // Rot -> Gefahr (Breite Flächen oder bodennahe Zonen werden als animierte Lava gerendert)
-        const isLava = r.w >= 60 || r.y >= 620;
+        // Rot -> Gefahr (Stacheln sind der Standard für gezeichnete rote Linien/Fallen)
+        // Nur sehr breite Becken am tiefen Weltrand in Jump'n'Run gelten als Lava
+        const isLava = r.y >= 650 && r.w >= 300 && r.h >= 25;
         hazards.push({
           id: `hazard-${hId++}`,
           type: isLava ? "lava" : "spike",
@@ -764,7 +779,7 @@ export function analyzeDrawing(
   const teleporters: Teleporter[] = [];
   for (let i = 0; i < rawTeleporters.length; i++) {
     const tp = rawTeleporters[i];
-    const pairIndex = Math.floor(i / 2);
+    const pairIndex = Math.floor(i / 2) + 1;
     let targetId: string | undefined = undefined;
     if (i % 2 === 0 && i + 1 < rawTeleporters.length) {
       targetId = rawTeleporters[i + 1].id;
