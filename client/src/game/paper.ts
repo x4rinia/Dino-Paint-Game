@@ -3,7 +3,7 @@ import { WORLD_H, WORLD_W } from "@sketchquest/shared";
 import { makeRng } from "./sketch";
 import { DEPTH } from "./palette";
 
-export type BackgroundTheme = "paper" | "jungle" | "space";
+export type BackgroundTheme = "paper" | "jungle" | "space" | "volcano";
 
 export interface BackgroundThemeInfo {
   id: BackgroundTheme;
@@ -17,7 +17,7 @@ export const BACKGROUND_THEMES: BackgroundThemeInfo[] = [
   {
     id: "paper",
     name: "Notizheft",
-    subtitle: "Klassische Standard-Gravitation & liniertes Heftpapier",
+    subtitle: "Klassische Standard-Gravitation & liniertes Heftpapier (Einzelsprung)",
     icon: "📜",
     color: "#f7f2e3",
   },
@@ -31,9 +31,16 @@ export const BACKGROUND_THEMES: BackgroundThemeInfo[] = [
   {
     id: "space",
     name: "Kosmische Nacht (Schwerelos)",
-    subtitle: "Mond-Gravitation: Sanfte, weite & schwebende Sprünge",
+    subtitle: "Mond-Gravitation: Sanfte, weite & schwebende Sprünge 🌌",
     icon: "🌌",
     color: "#181f38",
+  },
+  {
+    id: "volcano",
+    name: "Vulkanlandschaft (Glutberg)",
+    subtitle: "Feurige Magma-Welt – Schaltet den DOPPELSPRUNG frei! 🌋",
+    icon: "🌋",
+    color: "#2a1515",
   },
 ];
 
@@ -47,10 +54,11 @@ function getTextureKey(theme: BackgroundTheme): string {
 }
 
 /**
- * Erzeugt eine der 3 wählbaren Hintergrund-Texturen für Phaser:
+ * Erzeugt eine der 4 wählbaren Hintergrund-Texturen für Phaser:
  * 1. "paper": Klassisches Notizheft mit roten und blauen Linien
  * 2. "jungle": Malerischer Urzeit-Dschungel mit Farnen, Bergen & Sonnenlicht
  * 3. "space": Kosmische Nacht mit funkelnden Sternen & Sichelmond
+ * 4. "volcano": Vulkanlandschaft mit glühender Lava & Doppelsprung
  */
 function ensureBackgroundTexture(scene: Phaser.Scene, theme: BackgroundTheme) {
   const key = getTextureKey(theme);
@@ -59,7 +67,9 @@ function ensureBackgroundTexture(scene: Phaser.Scene, theme: BackgroundTheme) {
   const tex = scene.textures.createCanvas(key, WORLD_W, WORLD_H);
   if (!tex) return;
   const ctx = tex.getContext();
-  const rng = makeRng(theme === "paper" ? 0x5ce7c4 : theme === "jungle" ? 0x7ab941 : 0x1f3c88);
+  const rng = makeRng(
+    theme === "paper" ? 0x5ce7c4 : theme === "jungle" ? 0x7ab941 : theme === "space" ? 0x1f3c88 : 0xdf382b
+  );
 
   if (theme === "paper") {
     drawPaperTexture(ctx, rng);
@@ -67,6 +77,8 @@ function ensureBackgroundTexture(scene: Phaser.Scene, theme: BackgroundTheme) {
     drawJungleTexture(ctx, rng);
   } else if (theme === "space") {
     drawSpaceTexture(ctx, rng);
+  } else if (theme === "volcano") {
+    drawVolcanoTexture(ctx, rng);
   }
 
   tex.refresh();
@@ -432,6 +444,111 @@ function drawSpaceTexture(ctx: CanvasRenderingContext2D, rng: () => number) {
   vig.addColorStop(1, "rgba(5, 7, 15, 0.35)");
   ctx.fillStyle = vig;
   ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+}
+
+/** 4. Vulkanlandschaft (Glutberg & Magma-Grotte) */
+function drawVolcanoTexture(ctx: CanvasRenderingContext2D, rng: () => number) {
+  // Dunkler Basalt- & Glut-Himmel
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, WORLD_H);
+  skyGrad.addColorStop(0, "#160b0e");
+  skyGrad.addColorStop(0.5, "#281216");
+  skyGrad.addColorStop(0.85, "#3b1512");
+  skyGrad.addColorStop(1, "#54190f");
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+
+  // Glutwolken & Rauch im Hintergrund
+  for (let i = 0; i < 18; i++) {
+    const rx = rng() * WORLD_W;
+    const ry = rng() * (WORLD_H * 0.7);
+    const radius = 100 + rng() * 220;
+    const smokeGrad = ctx.createRadialGradient(rx, ry, 0, rx, ry, radius);
+    smokeGrad.addColorStop(0, "rgba(80, 25, 20, 0.18)");
+    smokeGrad.addColorStop(0.6, "rgba(45, 15, 18, 0.08)");
+    smokeGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = smokeGrad;
+    ctx.beginPath();
+    ctx.arc(rx, ry, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Entfernte Vulkan-Bergkette (Silhouetten mit Glutkrater)
+  ctx.fillStyle = "#1e0c10";
+  ctx.beginPath();
+  ctx.moveTo(0, WORLD_H * 0.75);
+  ctx.lineTo(WORLD_W * 0.22, WORLD_H * 0.38);
+  ctx.lineTo(WORLD_W * 0.28, WORLD_H * 0.4);
+  ctx.lineTo(WORLD_W * 0.5, WORLD_H * 0.55);
+  ctx.lineTo(WORLD_W * 0.72, WORLD_H * 0.32); // Großer Vulkan
+  ctx.lineTo(WORLD_W * 0.77, WORLD_H * 0.33);
+  ctx.lineTo(WORLD_W, WORLD_H * 0.68);
+  ctx.lineTo(WORLD_W, WORLD_H);
+  ctx.lineTo(0, WORLD_H);
+  ctx.closePath();
+  ctx.fill();
+
+  // Krater-Glut-Schein auf dem großen Vulkan
+  const vx = WORLD_W * 0.745;
+  const vy = WORLD_H * 0.325;
+  const craterGlow = ctx.createRadialGradient(vx, vy, 0, vx, vy, 110);
+  craterGlow.addColorStop(0, "rgba(255, 120, 20, 0.75)");
+  craterGlow.addColorStop(0.4, "rgba(230, 60, 10, 0.35)");
+  craterGlow.addColorStop(1, "rgba(255, 60, 0, 0)");
+  ctx.fillStyle = craterGlow;
+  ctx.beginPath();
+  ctx.arc(vx, vy, 110, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Magma-Adern & Lava-Risse im unteren Bereich
+  for (let c = 0; c < 5; c++) {
+    let px = (c + 0.5) * (WORLD_W / 5) + (rng() - 0.5) * 120;
+    let py = WORLD_H * 0.85;
+    ctx.strokeStyle = "rgba(255, 140, 20, 0.5)";
+    ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.moveTo(px, WORLD_H);
+    for (let s = 0; s < 4; s++) {
+      px += (rng() - 0.5) * 80;
+      py -= 35 + rng() * 25;
+      ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+
+    // Glühender Kern der Ader
+    ctx.strokeStyle = "rgba(255, 230, 120, 0.8)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // Aufsteigende Glut- & Asche-Partikel
+  for (let i = 0; i < 90; i++) {
+    const ex = rng() * WORLD_W;
+    const ey = rng() * WORLD_H;
+    const er = 1.2 + rng() * 2.8;
+    const isBright = rng() > 0.4;
+    ctx.fillStyle = isBright ? "rgba(255, 180, 40, 0.75)" : "rgba(255, 75, 20, 0.6)";
+    ctx.beginPath();
+    ctx.arc(ex, ey, er, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Feine, warme Hilfslinien für Sprungdistanzen
+  ctx.lineWidth = 1.0;
+  ctx.strokeStyle = "rgba(255, 110, 40, 0.12)";
+  for (let y = FIRST_LINE_Y; y < WORLD_H; y += LINE_GAP) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    for (let x = 40; x <= WORLD_W + 40; x += 40) ctx.lineTo(x, y + (rng() - 0.5) * 0.8);
+    ctx.stroke();
+  }
+
+  // Magma-Boden-Glühen am unteren Bildschirmrand
+  const bottomGlow = ctx.createLinearGradient(0, WORLD_H - 120, 0, WORLD_H);
+  bottomGlow.addColorStop(0, "rgba(255, 60, 0, 0)");
+  bottomGlow.addColorStop(0.7, "rgba(220, 50, 10, 0.25)");
+  bottomGlow.addColorStop(1, "rgba(255, 100, 20, 0.45)");
+  ctx.fillStyle = bottomGlow;
+  ctx.fillRect(0, WORLD_H - 120, WORLD_W, 120);
 }
 
 /** Fügt den gewählten Hintergrund hinter alle Spielelemente ein. */

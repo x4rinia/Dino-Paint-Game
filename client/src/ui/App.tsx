@@ -12,7 +12,8 @@ import { useGamepadNav } from "./useGamepadNav";
 import { initStorage, saveLevel, getSetting, setSetting } from "../storage/db";
 import { setMusicEnabled, installAudioUnlock, startBgMusic, pauseBgMusic, isMusicPlaying } from "../game/audio";
 import { narrator } from "../game/narrator";
-import type { BackgroundTheme } from "../game/paper";
+import { BACKGROUND_THEMES, type BackgroundTheme } from "../game/paper";
+import type { GameMode } from "../game/Player";
 import "./App.css";
 
 type Screen = "menu" | "draw" | "camera" | "library" | "playing";
@@ -106,6 +107,7 @@ export function App() {
   const [isStandalone, setIsStandalone] = useState(false);
   const [isSmartphone, setIsSmartphone] = useState(false);
   const [selectedBackground, setSelectedBackground] = useState<BackgroundTheme>("paper");
+  const [gameMode, setGameModeState] = useState<GameMode>("jump_n_run");
 
   const gameContainerRef = useRef<HTMLDivElement | null>(null);
   const gameHandleRef = useRef<ReturnType<typeof mountGame> | null>(null);
@@ -114,12 +116,16 @@ export function App() {
   useEffect(() => {
     initStorage().catch(console.error);
 
-    // Audio-Freischaltung für das gesamte Spiel & dino.mp4
+    // Audio-Freischaltung für das gesamte Spiel & Sofortstart
     installAudioUnlock();
     startBgMusic();
 
     getSetting<BackgroundTheme>("selected_background", "paper").then((bg) => {
       setSelectedBackground(bg);
+    });
+
+    getSetting<GameMode>("game_mode", "jump_n_run").then((mode) => {
+      setGameModeState(mode);
     });
 
     getSetting<boolean>("tv_mode", false).then((val) => {
@@ -187,7 +193,11 @@ export function App() {
       if (gameHandleRef.current) {
         gameHandleRef.current.destroy();
       }
-      const handle = mountGame(gameContainerRef.current, { tvMode, background: selectedBackground });
+      const handle = mountGame(gameContainerRef.current, {
+        tvMode,
+        background: selectedBackground,
+        gameMode,
+      });
       gameHandleRef.current = handle;
       handle.loadLevel(currentLevel);
 
@@ -196,7 +206,7 @@ export function App() {
         gameHandleRef.current = null;
       };
     }
-  }, [screen, currentLevel, tvMode, selectedBackground]);
+  }, [screen, currentLevel, tvMode, selectedBackground, gameMode]);
 
   const handleEditCurrentLevel = () => {
     if (!currentLevel) return;
@@ -260,6 +270,11 @@ export function App() {
         }}
         initialImage={initialDrawingForStudio}
         backgroundTheme={selectedBackground}
+        gameMode={gameMode}
+        onGameModeChange={(newMode) => {
+          setGameModeState(newMode);
+          void setSetting("game_mode", newMode);
+        }}
       />
     );
   }
@@ -615,18 +630,12 @@ export function App() {
 
       <footer className="home-footer">
         <div className="footer-credits">
-          <strong>Dino Paint Game</strong> • by X4rinia und Dino • Version 2.2
+          <strong>Dino Paint Game</strong> • Version 2.5 (Erweiterte Edition) • by X4rinia & Dino
         </div>
-        <div className="footer-links">
-          <button className="link-button" type="button" onClick={() => setShowGuide(true)}>
-            📖 Zeichen-Tipps
-          </button>
-          <button className="link-button" type="button" onClick={() => setShowTvModal(true)}>
-            📺 TV-Anleitung
-          </button>
-          <button className="link-button" type="button" onClick={() => setShowSettings(true)}>
-            ⚙️ Einstellungen & Info
-          </button>
+        <div className="footer-status-pill">
+          <span>🎮 {gameMode === "rpg_labyrinth" ? "Modus: RPG-Labyrinth 🧭" : "Modus: Jump 'n' Run 🏃‍♂️"}</span>
+          <span style={{ opacity: 0.4 }}>•</span>
+          <span>🎨 Welt: {BACKGROUND_THEMES.find((t) => t.id === selectedBackground)?.name || "Notizheft"}</span>
         </div>
       </footer>
 
@@ -635,6 +644,11 @@ export function App() {
           onClose={() => setShowSettings(false)}
           currentBackground={selectedBackground}
           onBackgroundChange={setSelectedBackground}
+          currentGameMode={gameMode}
+          onGameModeChange={(m) => {
+            setGameModeState(m);
+            void setSetting("game_mode", m);
+          }}
         />
       )}
       {showTvModal && (

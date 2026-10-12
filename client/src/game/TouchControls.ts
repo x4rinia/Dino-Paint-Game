@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import type { MoveInput } from "./Player";
+import type { MoveInput, GameMode } from "./Player";
 import { INK } from "./palette";
 import { fillPoly, jitterPoints, rectCorners, seededFor, sketchLine, sketchPoly } from "./sketch";
 
@@ -11,8 +11,16 @@ const BUTTON_GAP = 30;
 const HIT_PADDING = 20;
 const MIN_TOUCH_POINTERS = 3;
 
-type ActionKind = keyof MoveInput | "pause";
-type Button = { kind: ActionKind; x: number; y: number; w: number; h: number; art: Phaser.GameObjects.Graphics; pressed: boolean };
+type ActionKind = "left" | "right" | "up" | "down" | "jump" | "pause";
+type Button = {
+  kind: ActionKind;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  art: Phaser.GameObjects.Graphics;
+  pressed: boolean;
+};
 
 /** True on touch devices, or anywhere with ?touch=1 (for testing on desktop). */
 export function touchControlsEnabled(scene: Phaser.Scene): boolean {
@@ -23,30 +31,50 @@ export function touchControlsEnabled(scene: Phaser.Scene): boolean {
 
 /**
  * On-Screen Touch-Steuerung für Smartphone und Tablet.
- * Große Tasten links/rechts, Sprungtaste rechts unten, Pause-Taste oben rechts.
+ * - Jump 'n' Run: Links, Rechts, Sprung, Pause
+ * - RPG Maker: 4-Wege D-Pad (Hoch, Runter, Links, Rechts) + Ausweichen/Dash
  */
 export class TouchControls {
   private readonly scene: Phaser.Scene;
   private readonly buttons: Button[];
-  private pauseTriggered = false;
+  private readonly gameMode: GameMode;
   private visible = true;
 
-  constructor(scene: Phaser.Scene) {
+  constructor(scene: Phaser.Scene, gameMode: GameMode = "jump_n_run") {
     this.scene = scene;
+    this.gameMode = gameMode;
 
     const missing = MIN_TOUCH_POINTERS - (scene.input.manager.pointers.length - 1);
     if (missing > 0) scene.input.addPointer(missing);
 
     const { width, height } = scene.scale;
     const y = height - EDGE_MARGIN - BUTTON_SIZE / 2;
-    const leftX = EDGE_MARGIN + BUTTON_SIZE / 2;
 
-    this.buttons = [
-      this.createButton("left", leftX, y, BUTTON_SIZE, BUTTON_SIZE),
-      this.createButton("right", leftX + BUTTON_SIZE + BUTTON_GAP, y, BUTTON_SIZE, BUTTON_SIZE),
-      this.createButton("jump", width - EDGE_MARGIN - BUTTON_SIZE / 2, y, BUTTON_SIZE, BUTTON_SIZE),
-      this.createButton("pause", width - 60, 60, 64, 64),
-    ];
+    if (gameMode === "rpg_labyrinth") {
+      // 🧭 RPG Maker Modus: Kompaktes 4-Wege Kreuz
+      const cx = EDGE_MARGIN + 120;
+      const cy = height - EDGE_MARGIN - 110;
+      const step = 82;
+      const btnSize = 80;
+
+      this.buttons = [
+        this.createButton("up", cx, cy - step, btnSize, btnSize),
+        this.createButton("down", cx, cy + step, btnSize, btnSize),
+        this.createButton("left", cx - step, cy, btnSize, btnSize),
+        this.createButton("right", cx + step, cy, btnSize, btnSize),
+        this.createButton("jump", width - EDGE_MARGIN - BUTTON_SIZE / 2, y, BUTTON_SIZE, BUTTON_SIZE),
+        this.createButton("pause", width - 60, 60, 64, 64),
+      ];
+    } else {
+      // 🏃‍♂️ Klassischer Platformer Modus
+      const leftX = EDGE_MARGIN + BUTTON_SIZE / 2;
+      this.buttons = [
+        this.createButton("left", leftX, y, BUTTON_SIZE, BUTTON_SIZE),
+        this.createButton("right", leftX + BUTTON_SIZE + BUTTON_GAP, y, BUTTON_SIZE, BUTTON_SIZE),
+        this.createButton("jump", width - EDGE_MARGIN - BUTTON_SIZE / 2, y, BUTTON_SIZE, BUTTON_SIZE),
+        this.createButton("pause", width - 60, 60, 64, 64),
+      ];
+    }
   }
 
   /** Blendet die Touch-Steuerung ein oder aus (z.B. wenn ein Controller aktiv verwendet wird) */
@@ -64,7 +92,7 @@ export class TouchControls {
 
   /** Which buttons are held right now. Call every frame. */
   read(): MoveInput & { pause: boolean } {
-    const held = { left: false, right: false, jump: false, pause: false };
+    const held = { left: false, right: false, up: false, down: false, jump: false, pause: false };
 
     for (const pointer of this.scene.input.manager.pointers) {
       if (!pointer.isDown) continue;
@@ -73,23 +101,21 @@ export class TouchControls {
         this.setVisible(true);
       }
       for (const b of this.buttons) {
-        if (Math.abs(pointer.x - b.x) <= b.w / 2 + HIT_PADDING && Math.abs(pointer.y - b.y) <= b.h / 2 + HIT_PADDING) {
-          if (b.kind === "left" || b.kind === "right" || b.kind === "jump") {
+        if (
+          Math.abs(pointer.x - b.x) <= b.w / 2 + HIT_PADDING &&
+          Math.abs(pointer.y - b.y) <= b.h / 2 + HIT_PADDING
+        ) {
+          if (b.kind === "pause") {
+            if (!b.pressed) held.pause = true;
+          } else {
             held[b.kind] = true;
-          } else if (b.kind === "pause" && !b.pressed) {
-            held.pause = true;
           }
         }
       }
     }
 
     for (const b of this.buttons) {
-      const isDown =
-        b.kind === "left" ? held.left :
-        b.kind === "right" ? held.right :
-        b.kind === "jump" ? held.jump :
-        held.pause;
-
+      const isDown = held[b.kind];
       if (b.pressed !== isDown) {
         b.pressed = isDown;
         this.draw(b);
@@ -124,14 +150,25 @@ export class TouchControls {
       return;
     }
 
-    // Pfeile für Links/Rechts/Sprung
-    const dir = kind === "left" ? [-1, 0] : kind === "right" ? [1, 0] : [0, -1];
+    // Pfeile für Links/Rechts/Hoch/Runter/Sprung
+    let dir: [number, number] = [0, -1];
+    if (kind === "left") dir = [-1, 0];
+    else if (kind === "right") dir = [1, 0];
+    else if (kind === "down") dir = [0, 1];
+    else if (kind === "up") dir = [0, -1];
+    else if (kind === "jump") {
+      dir = this.gameMode === "rpg_labyrinth" ? [1, 0] : [0, -1];
+    }
+
     const [dx, dy] = dir;
     const px = -dy;
     const py = dx;
+    const arrowLen = Math.min(28, w * 0.32);
+    const arrowHead = Math.min(20, w * 0.25);
     const at = (along: number, across: number) => ({ x: dx * along + px * across, y: dy * along + py * across });
-    sketchLine(art, at(-28, 0), at(28, 0), ink, rng);
-    sketchLine(art, at(28, 0), at(6, -22), ink, rng);
-    sketchLine(art, at(28, 0), at(6, 22), ink, rng);
+
+    sketchLine(art, at(-arrowLen, 0), at(arrowLen, 0), ink, rng);
+    sketchLine(art, at(arrowLen, 0), at(arrowLen - arrowHead, -arrowHead), ink, rng);
+    sketchLine(art, at(arrowLen, 0), at(arrowLen - arrowHead, arrowHead), ink, rng);
   }
 }

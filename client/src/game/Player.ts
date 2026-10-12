@@ -17,9 +17,10 @@ const JUMP_CUTOFF_FACTOR = 0.5;
 const SQUASH_STRETCH_MS = 120;
 
 /** Held-state of the three player controls, from keyboard and/or touch. */
-export type MoveInput = { left: boolean; right: boolean; jump: boolean };
+export type MoveInput = { left: boolean; right: boolean; up?: boolean; down?: boolean; jump: boolean };
 
 export type GravityMode = "normal" | "low";
+export type GameMode = "jump_n_run" | "rpg_labyrinth";
 
 /** The player rectangle plus its arcade body, movement, and jump feel. */
 export class Player {
@@ -28,6 +29,8 @@ export class Player {
 
   private readonly scene: Phaser.Scene;
   private gravityMode: GravityMode = "normal";
+  private gameMode: GameMode = "jump_n_run";
+  private allowDoubleJump = false;
   private lastGroundedAt = -Infinity;
   private lastJumpPressedAt = -Infinity;
   private wasJumpDown = false;
@@ -46,6 +49,20 @@ export class Player {
     scene.physics.add.existing(this.rect);
     this.body = this.rect.body as Phaser.Physics.Arcade.Body;
     this.body.setCollideWorldBounds(true);
+  }
+
+  setGameMode(mode: GameMode) {
+    this.gameMode = mode;
+    if (mode === "rpg_labyrinth") {
+      this.body.setAllowGravity(false);
+      this.body.setGravity(0, 0);
+    } else {
+      this.body.setAllowGravity(true);
+    }
+  }
+
+  setAllowDoubleJump(allow: boolean) {
+    this.allowDoubleJump = allow;
   }
 
   setGravityMode(mode: GravityMode) {
@@ -81,6 +98,42 @@ export class Player {
 
   handleInput(input: MoveInput, locked: boolean) {
     const now = this.scene.time.now;
+
+    // 🧭 RPG MAKER / TOP-DOWN LABYRINTH MODUS
+    if (this.gameMode === "rpg_labyrinth") {
+      if (locked) {
+        this.body.setVelocity(0, 0);
+        this.wasJumpDown = false;
+        return;
+      }
+
+      const { left, right, up = false, down = false, jump: jumpDown } = input;
+      const jumpJustPressed = jumpDown && !this.wasJumpDown;
+
+      const vx = (Number(right) - Number(left)) * RUN_SPEED;
+      const vy = (Number(down) - Number(up)) * RUN_SPEED;
+
+      if (left && !right) this.facing = -1;
+      else if (right && !left) this.facing = 1;
+
+      if (jumpJustPressed) {
+        // 💨 RPG Maker Hopser / Dash: Dino springt federnd zur Seite oder in Laufrichtung
+        const dashDirX = vx !== 0 ? Math.sign(vx) : this.facing;
+        const dashDirY = vy !== 0 ? Math.sign(vy) : 0;
+        const dashSpeed = RUN_SPEED * 1.85;
+        this.body.setVelocity(dashDirX * dashSpeed, dashDirY * dashSpeed);
+        this.playJumpSquash();
+        playJump();
+        this.onJump?.();
+      } else {
+        this.body.setVelocity(vx, vy);
+      }
+
+      this.wasJumpDown = jumpDown;
+      return;
+    }
+
+    // 🏃‍♂️ KLASSISCHER JUMP 'N' RUN MODUS (MIT SCHWERKRAFT)
     const grounded = this.grounded;
     if (grounded) {
       this.lastGroundedAt = now;
@@ -117,8 +170,8 @@ export class Player {
       this.playJumpSquash();
       playJump();
       this.onJump?.();
-    } else if (jumpJustPressed && !withinCoyote && this.canDoubleJump) {
-      // 🦖 DINO DOPPELSPRUNG: Macht knifflige Sprünge kinderleicht!
+    } else if (jumpJustPressed && !withinCoyote && this.canDoubleJump && this.allowDoubleJump) {
+      // 🌋 DINO DOPPELSPRUNG: Nur auf der Vulkanlandschaft freigeschaltet!
       this.canDoubleJump = false;
       this.lastJumpPressedAt = -Infinity;
       this.body.setVelocityY(-jumpVel);
@@ -239,6 +292,14 @@ export class Player {
 
   private pose() {
     const { body } = this;
+    if (this.gameMode === "rpg_labyrinth") {
+      const moving = Math.hypot(body.velocity.x, body.velocity.y) > 10;
+      return {
+        running: moving,
+        airborne: false,
+        rising: false,
+      };
+    }
     const airborne = !this.grounded;
     const rising = airborne && body.velocity.y < 0;
     return {

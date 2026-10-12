@@ -3,19 +3,29 @@ import { isMuted, toggleMute, isMusicEnabled, setMusicEnabled } from "../game/au
 import { narrator } from "../game/narrator";
 import { getStorageQuota, requestPersistentStorage, getSetting, setSetting } from "../storage/db";
 import { BACKGROUND_THEMES, type BackgroundTheme } from "../game/paper";
+import type { GameMode } from "../game/Player";
 
 interface SettingsModalProps {
   onClose: () => void;
   currentBackground?: BackgroundTheme;
   onBackgroundChange?: (bg: BackgroundTheme) => void;
+  currentGameMode?: GameMode;
+  onGameModeChange?: (mode: GameMode) => void;
 }
 
-export function SettingsModal({ onClose, currentBackground, onBackgroundChange }: SettingsModalProps) {
+export function SettingsModal({
+  onClose,
+  currentBackground,
+  onBackgroundChange,
+  currentGameMode,
+  onGameModeChange,
+}: SettingsModalProps) {
   const [muted, setMuted] = useState(isMuted());
   const [musicOn, setMusicOn] = useState(isMusicEnabled());
   const [narratorOn, setNarratorOn] = useState(narrator.isEnabled());
   const [spawnMode, setSpawnMode] = useState<"manual" | "auto">("manual");
   const [selectedBg, setSelectedBg] = useState<BackgroundTheme>(currentBackground || "paper");
+  const [gameMode, setGameMode] = useState<GameMode>(currentGameMode || "jump_n_run");
   const [gamepads, setGamepads] = useState<string[]>([]);
   const [storageInfo, setStorageInfo] = useState<{
     usedBytes: number;
@@ -40,6 +50,9 @@ export function SettingsModal({ onClose, currentBackground, onBackgroundChange }
     });
     getSetting<BackgroundTheme>("selected_background", "paper").then((bg) => {
       setSelectedBg(bg);
+    });
+    getSetting<GameMode>("game_mode", "jump_n_run").then((mode) => {
+      setGameMode(mode);
     });
 
     const updateGamepads = () => {
@@ -100,6 +113,12 @@ export function SettingsModal({ onClose, currentBackground, onBackgroundChange }
     if (onBackgroundChange) onBackgroundChange(theme);
   };
 
+  const handleSelectGameMode = (mode: GameMode) => {
+    setGameMode(mode);
+    void setSetting("game_mode", mode);
+    if (onGameModeChange) onGameModeChange(mode);
+  };
+
   const handleRequestPersistence = async () => {
     setPersisting(true);
     await requestPersistentStorage();
@@ -122,13 +141,112 @@ export function SettingsModal({ onClose, currentBackground, onBackgroundChange }
           </button>
         </div>
 
+        {/* 🎮 SPIELMODI */}
+        <div className="settings-section">
+          <h4>🎮 Spielmodus</h4>
+          <p style={{ margin: "4px 0 12px", fontSize: "0.9rem", color: "#b0b5c5" }}>
+            Wähle dein bevorzugtes Spielerlebnis für alle gezeichneten Welten:
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "12px" }}>
+            <button
+              className={`button ${gameMode === "jump_n_run" ? "button-primary" : "button-secondary"}`}
+              type="button"
+              onClick={() => handleSelectGameMode("jump_n_run")}
+              style={{
+                textAlign: "left",
+                padding: "14px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "6px",
+                borderColor: gameMode === "jump_n_run" ? "#4ade80" : undefined,
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <strong style={{ fontSize: "1.02rem" }}>🏃‍♂️ Jump 'n' Run (Platformer)</strong>
+                {gameMode === "jump_n_run" && <span style={{ color: "#4ade80", fontWeight: "bold" }}>✓ Aktiv</span>}
+              </div>
+              <span style={{ fontSize: "0.82rem", opacity: 0.88, lineHeight: 1.35 }}>
+                Klassischer 2D-Platformer mit Schwerkraft nach unten, Klettern auf Plattformen & hohen Trampolinsprüngen.
+              </span>
+            </button>
+
+            <button
+              className={`button ${gameMode === "rpg_labyrinth" ? "button-primary" : "button-secondary"}`}
+              type="button"
+              onClick={() => handleSelectGameMode("rpg_labyrinth")}
+              style={{
+                textAlign: "left",
+                padding: "14px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "6px",
+                borderColor: gameMode === "rpg_labyrinth" ? "#4ade80" : undefined,
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <strong style={{ fontSize: "1.02rem" }}>🧭 RPG Maker (Labyrinth & Dungeon)</strong>
+                {gameMode === "rpg_labyrinth" && <span style={{ color: "#4ade80", fontWeight: "bold" }}>✓ Aktiv</span>}
+              </div>
+              <span style={{ fontSize: "0.82rem", opacity: 0.88, lineHeight: 1.35 }}>
+                4-Wege-Bewegung wie im RPG Maker: Dino läuft frei nach Oben ⬆️, Unten ⬇️, Links & Rechts! Sprungtaste macht einen Ausweich-Hopser.
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* 🎨 HINTERGRUND & SPIELWELT */}
+        <div className="settings-section">
+          <h4>🎨 Hintergrund & Spielwelt</h4>
+          <p style={{ margin: "4px 0 10px", fontSize: "0.9rem", color: "#b0b5c5" }}>
+            Wähle das Design der Spielwelt (4 Atmosphären verfügbar):
+          </p>
+          <div className="background-choices-grid">
+            {BACKGROUND_THEMES.map((theme) => {
+              const isSelected = selectedBg === theme.id;
+              return (
+                <button
+                  key={theme.id}
+                  className={`bg-choice-card ${isSelected ? "active" : ""}`}
+                  type="button"
+                  onClick={() => handleSelectBackground(theme.id)}
+                >
+                  <div className={`bg-choice-preview preview-${theme.id}`}>
+                    <span className="bg-preview-icon">{theme.icon}</span>
+                  </div>
+                  <div className="bg-choice-content">
+                    <strong>{theme.name}</strong>
+                    <span className="bg-choice-sub">{theme.subtitle}</span>
+                  </div>
+                  {isSelected && <span className="bg-choice-check">✓ Aktiv</span>}
+                </button>
+              );
+            })}
+          </div>
+
+          <div
+            style={{
+              marginTop: "12px",
+              padding: "10px 14px",
+              borderRadius: "8px",
+              backgroundColor: "rgba(239, 68, 68, 0.12)",
+              border: "1px solid rgba(239, 68, 68, 0.35)",
+              fontSize: "0.84rem",
+              lineHeight: 1.4,
+              color: "#fca5a5",
+            }}
+          >
+            <strong>🌋 Doppelsprung-Regel:</strong> Der Dino-Doppelsprung funktioniert <em>ausschließlich</em> auf der{" "}
+            <strong>Vulkanlandschaft</strong>! Auf Karopapier/Notizheft und anderen Welten gilt der klassische Einzelsprung. Im RPG-Labyrinth-Modus sind alle Welten frei ohne Schwerkraftbarrieren spielbar.
+          </div>
+        </div>
+
         {/* AUDIO & MUSIK */}
         <div className="settings-section">
           <h4>🎵 Audio, Musik & Sprache</h4>
           <div className="setting-row">
             <div>
               <strong>Dino-Hintergrundmusik</strong>
-              <small style={{ display: "block", color: "#a0a5b5" }}>Fröhliche Hintergrundmusik im Spiel</small>
+              <small style={{ display: "block", color: "#a0a5b5" }}>Startet direkt beim Laden der App</small>
             </div>
             <button
               className={`button ${musicOn ? "button-primary" : "button-secondary"}`}
@@ -170,36 +288,6 @@ export function SettingsModal({ onClose, currentBackground, onBackgroundChange }
           </div>
         </div>
 
-        {/* 🎨 HINTERGRUND & SPIELWELT */}
-        <div className="settings-section">
-          <h4>🎨 Hintergrund & Spielwelt</h4>
-          <p style={{ margin: "4px 0 12px", fontSize: "0.9rem", color: "#b0b5c5" }}>
-            Wähle das Design der Spielwelt für alle Level aus (3 verschiedene Welten verfügbar):
-          </p>
-          <div className="background-choices-grid">
-            {BACKGROUND_THEMES.map((theme) => {
-              const isSelected = selectedBg === theme.id;
-              return (
-                <button
-                  key={theme.id}
-                  className={`bg-choice-card ${isSelected ? "active" : ""}`}
-                  type="button"
-                  onClick={() => handleSelectBackground(theme.id)}
-                >
-                  <div className={`bg-choice-preview preview-${theme.id}`}>
-                    <span className="bg-preview-icon">{theme.icon}</span>
-                  </div>
-                  <div className="bg-choice-content">
-                    <strong>{theme.name}</strong>
-                    <span className="bg-choice-sub">{theme.subtitle}</span>
-                  </div>
-                  {isSelected && <span className="bg-choice-check">✓ Aktiv</span>}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         {/* START & ZIEL PLATZIERUNG */}
         <div className="settings-section">
           <h4>🚩🏁 Start & Ziel Modus</h4>
@@ -234,7 +322,7 @@ export function SettingsModal({ onClose, currentBackground, onBackgroundChange }
 
         {/* STEUERUNG */}
         <div className="settings-section">
-          <h4>🕹️ Steuerung & Doppelsprung</h4>
+          <h4>🕹️ Steuerung</h4>
           <table className="controls-table">
             <thead>
               <tr>
@@ -246,16 +334,28 @@ export function SettingsModal({ onClose, currentBackground, onBackgroundChange }
             </thead>
             <tbody>
               <tr>
-                <td>Laufen (Links / Rechts)</td>
-                <td><kbd>A</kbd> / <kbd>D</kbd> oder <kbd>◀</kbd> <kbd>▶</kbd></td>
-                <td>Linker Stick / Steuerkreuz</td>
-                <td>Touch-Pfeile</td>
+                <td>Bewegung ({gameMode === "rpg_labyrinth" ? "4 Richtungen" : "Links/Rechts"})</td>
+                <td>
+                  {gameMode === "rpg_labyrinth" ? (
+                    <>
+                      <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> / <kbd>▲</kbd> <kbd>▼</kbd> <kbd>◀</kbd> <kbd>▶</kbd>
+                    </>
+                  ) : (
+                    <>
+                      <kbd>A</kbd> / <kbd>D</kbd> oder <kbd>◀</kbd> <kbd>▶</kbd>
+                    </>
+                  )}
+                </td>
+                <td>Linker Stick / 4-Wege-Steuerkreuz</td>
+                <td>Touch D-Pad Pfeile</td>
               </tr>
               <tr>
-                <td>Springen & <strong>Doppelsprung</strong></td>
-                <td><kbd>Leertaste</kbd> / <kbd>W</kbd> (2x drücken)</td>
-                <td><kbd>A</kbd>-Taste (2x drücken)</td>
-                <td>Sprungtaste (2x)</td>
+                <td>
+                  {gameMode === "rpg_labyrinth" ? "Ausweichen / Dash" : "Sprung (Doppelsprung auf 🌋)"}
+                </td>
+                <td><kbd>Leertaste</kbd> {gameMode !== "rpg_labyrinth" && "/ W"}</td>
+                <td><kbd>A</kbd>-Taste</td>
+                <td>Aktionstaste rechts</td>
               </tr>
               <tr>
                 <td>Pause</td>
@@ -281,82 +381,52 @@ export function SettingsModal({ onClose, currentBackground, onBackgroundChange }
 
         {/* CONTROLLER STATUS */}
         <div className="settings-section">
-          <h4>🎮 Controller-Status</h4>
+          <h4>🎮 Angeschlossene Controller</h4>
           {gamepads.length === 0 ? (
-            <div className="gamepad-status-empty">
-              <span>Kein Controller erkannt.</span>
-              <small>
-                Verbinde einen Xbox-, PlayStation- oder Bluetooth-Controller und drücke eine beliebige Taste.
-              </small>
-            </div>
+            <p style={{ margin: "4px 0", fontSize: "0.9rem", color: "#a0a5b5" }}>
+              Kein Controller erkannt. Schließe einen Xbox, PlayStation oder Bluetooth Controller an und drücke eine Taste!
+            </p>
           ) : (
-            <div className="gamepad-status-list">
-              {gamepads.map((name, idx) => (
-                <div key={idx} className="gamepad-item active">
-                  <span className="gamepad-icon">🎮</span>
-                  <div>
-                    <strong>Controller verbunden</strong>
-                    <div className="gamepad-name">{name}</div>
-                  </div>
-                </div>
+            <ul style={{ margin: "6px 0 0 16px", padding: 0 }}>
+              {gamepads.map((name, i) => (
+                <li key={i} style={{ color: "#4ade80", fontSize: "0.9rem" }}>
+                  ✓ {name}
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
 
-        {/* SPIELSTÄNDE & SPEICHER */}
+        {/* SPEICHERSTATUS & OFFLINE-DATEN */}
         <div className="settings-section">
-          <h4>💾 Spielstände & Speicher</h4>
-          <div className="storage-status-card">
-            <div className="setting-row">
-              <span>Speicher-Status:</span>
-              <span className={`status-pill ${storageInfo.persisted ? "pill-success" : "pill-warning"}`}>
-                {storageInfo.persisted ? "✓ Dauerhaft gesichert" : "Standard"}
-              </span>
+          <h4>💾 Offline-Speicher (IndexedDB)</h4>
+          <p style={{ margin: "4px 0 8px", fontSize: "0.9rem", color: "#a0a5b5" }}>
+            Alle deine gezeichneten Level werden lokal und offline auf deinem Gerät gespeichert.
+          </p>
+          <div className="storage-meter-box">
+            <div className="storage-meter-bar">
+              <div
+                className="storage-meter-fill"
+                style={{ width: `${Math.max(2, Math.min(100, storageInfo.percentage))}%` }}
+              />
             </div>
-            {storageInfo.quotaBytes > 0 && (
-              <div className="storage-meter">
-                <div className="meter-label">
-                  <span>Belegter Speicher: {formatMB(storageInfo.usedBytes)}</span>
-                  <span>Verfügbar: {formatMB(storageInfo.quotaBytes)}</span>
-                </div>
-                <div className="meter-bar">
-                  <div
-                    className="meter-fill"
-                    style={{ width: `${Math.max(2, Math.min(100, storageInfo.percentage))}%` }}
-                  />
-                </div>
-              </div>
-            )}
-            {!storageInfo.persisted && (
+            <div className="storage-meter-labels">
+              <span>Belegt: {formatMB(storageInfo.usedBytes)}</span>
+              <span>Verfügbar: {formatMB(storageInfo.quotaBytes)}</span>
+            </div>
+          </div>
+          {!storageInfo.persisted && (
+            <div style={{ marginTop: "12px" }}>
               <button
-                className="button button-secondary-small"
-                style={{ marginTop: "10px" }}
+                className="button button-secondary"
                 type="button"
                 onClick={handleRequestPersistence}
                 disabled={persisting}
               >
-                {persisting ? "Wird gesichert…" : "🛡️ Dauerhaften Speicher anfordern"}
+                {persisting ? "Sichere Speicher…" : "🛡️ Dauerhaften Speicher anfordern (Browser-Bereinigung verhindern)"}
               </button>
-            )}
-          </div>
-        </div>
-
-        {/* ℹ️ INFO & CREDITS */}
-        <div className="settings-section" style={{ background: "rgba(255, 255, 255, 0.04)", padding: "16px", borderRadius: "10px", textAlign: "center", border: "1px solid rgba(255, 255, 255, 0.1)" }}>
-          <h4 style={{ margin: "0 0 8px 0", color: "#3cb371", fontSize: "1.2rem" }}>🦖 Dino Paint Game</h4>
-          <p style={{ margin: "4px 0", fontSize: "1.05rem", color: "#ffffff", fontWeight: 600 }}>
-            by <strong>X4rinia</strong> und <strong>Dino</strong>
-          </p>
-          <p style={{ margin: "8px 0 0", fontSize: "0.85rem", color: "#9ca3af" }}>
-            Version 2.2
-          </p>
-        </div>
-
-        <div className="modal-actions" style={{ marginTop: "20px" }}>
-          <button className="button button-primary" type="button" onClick={onClose} style={{ padding: "10px 28px", fontSize: "1.05rem" }}>
-            Fertig
-          </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

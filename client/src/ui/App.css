@@ -1672,6 +1672,11 @@ html, body {
   font-weight: 700;
 }
 
+.preview-volcano {
+  background: linear-gradient(180deg, #1f1116 0%, #3d1519 50%, #7f1d1d 100%);
+  border-color: #ef4444;
+}
+
 /* Stage container background matching selected theme */
 .game-stage-container.bg-stage-paper {
   background-color: #f7f2e3;
@@ -1683,5 +1688,57 @@ html, body {
 
 .game-stage-container.bg-stage-space {
   background-color: #131728;
+}
+
+.game-stage-container.bg-stage-volcano {
+  background-color: #200e12;
+}
+
+/* Home Footer & Status Pill */
+.home-footer {
+  margin-top: 48px;
+  padding: 24px 20px 32px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: #8b92a5;
+  font-size: 0.88rem;
+}
+
+.footer-credits {
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+
+.footer-credits strong {
+  color: #e2e8f0;
+}
+
+.footer-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 9999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  backdrop-filter: blur(8px);
+}
+
+/* Laptop and Responsive Enhancements for Studio Editor */
+@media (max-height: 900px), (max-width: 1200px) {
+  .canvas-viewport {
+    padding: 8px;
+    min-height: 0;
+  }
+  .drawing-board {
+    max-height: calc(100vh - 170px);
+  }
 }
 

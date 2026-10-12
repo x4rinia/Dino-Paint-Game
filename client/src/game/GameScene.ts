@@ -13,7 +13,7 @@ import {
   type Platform,
   type WinEvent,
 } from "@sketchquest/shared";
-import { Player, type MoveInput } from "./Player";
+import { Player, type MoveInput, type GameMode } from "./Player";
 import { Enemy } from "./Enemy";
 import { AttemptState } from "./AttemptState";
 import { playDeathEffect } from "./deathEffects";
@@ -159,6 +159,7 @@ export class GameScene extends Phaser.Scene {
   private pauseContainer?: Phaser.GameObjects.Container;
   private fallThreshold = WORLD_H + FALL_MARGIN;
   private bgTheme: BackgroundTheme = "paper";
+  private gameMode: GameMode = "jump_n_run";
 
   // Dschungel-Wind-System (Dynamische tropische Windböen)
   private windSpeed = 0;
@@ -178,7 +179,7 @@ export class GameScene extends Phaser.Scene {
   }> = [];
 
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
-  private keys!: Record<"W" | "A" | "D", Phaser.Input.Keyboard.Key>;
+  private keys!: Record<"W" | "A" | "S" | "D", Phaser.Input.Keyboard.Key>;
   private restartKey!: Phaser.Input.Keyboard.Key;
   private muteKey!: Phaser.Input.Keyboard.Key;
   private helperKey!: Phaser.Input.Keyboard.Key;
@@ -235,22 +236,26 @@ export class GameScene extends Phaser.Scene {
     resetParticleBudget(this);
     this.physics.world.setBounds(0, 0, WORLD_W, WORLD_H + FALL_MARGIN + 50);
 
-    // Visuelle Ebenen: Gewählter Hintergrund (Notizheft, Dschungel, Kosmos)
+    // Visuelle Ebenen: Gewählter Hintergrund (Notizheft, Dschungel, Kosmos, Vulkan)
     const bgTheme = (this.game.registry.get("backgroundTheme") as BackgroundTheme) || "paper";
+    const gameMode = (this.game.registry.get("gameMode") as GameMode) || "jump_n_run";
     this.bgTheme = bgTheme;
+    this.gameMode = gameMode;
     addBackground(this, bgTheme);
 
-    // Welt-Gravitation basierend auf Hintergrund-Thema:
-    // - Kosmos ("space"): Sanftere, schwebende Mondgravitation (520)
-    // - Dschungel ("jungle"): Klassische Gravitation (1200) mit dynamischen Windböen!
-    // - Notizheft ("paper"): Klassische Standardgravitation (1200)
-    if (bgTheme === "space") {
+    // Welt-Gravitation basierend auf Spielmodus & Hintergrund:
+    // - RPG Maker Modus: Keine Abwärts-Gravitation (0) – 4-Wege Labyrinth-Bewegung!
+    // - Jump 'n' Run: Kosmos ("space") = 520, Dschungel/Notizheft/Vulkan = 1200
+    if (gameMode === "rpg_labyrinth") {
+      this.physics.world.gravity.y = 0;
+    } else if (bgTheme === "space") {
       this.physics.world.gravity.y = 520;
     } else {
       this.physics.world.gravity.y = 1200;
     }
 
-    if (bgTheme === "jungle") {
+    // Dschungelwind nur im Jump 'n' Run (im RPG-Labyrinth frei erkundbar)
+    if (bgTheme === "jungle" && gameMode === "jump_n_run") {
       this.initJungleWind();
     }
 
@@ -501,6 +506,8 @@ export class GameScene extends Phaser.Scene {
     const startY = sy(level.start.y);
     this.player = new Player(this, startX, startY);
     this.player.setGravityMode(bgTheme === "space" ? "low" : "normal");
+    this.player.setGameMode(gameMode);
+    this.player.setAllowDoubleJump(bgTheme === "volcano");
     this.player.onJump = () => this.recorder.addJump(this.time.now);
 
     // Kollisionen: Spieler mit Plattformen
@@ -587,7 +594,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     const touch = touchControlsEnabled(this);
-    this.touchControls = touch ? new TouchControls(this) : undefined;
+    this.touchControls = touch ? new TouchControls(this, gameMode) : undefined;
     if (isTv && this.touchControls) {
       // Im TV-Modus standardmäßig Touch ausblenden
       this.touchControls.setVisible(false);
@@ -621,7 +628,7 @@ export class GameScene extends Phaser.Scene {
 
     const kb = this.input.keyboard!;
     this.cursors = kb.createCursorKeys();
-    this.keys = kb.addKeys("W,A,D") as typeof this.keys;
+    this.keys = kb.addKeys("W,A,S,D") as typeof this.keys;
     this.restartKey = kb.addKey("R");
     this.muteKey = kb.addKey("M");
     this.helperKey = kb.addKey("H");
@@ -865,20 +872,33 @@ export class GameScene extends Phaser.Scene {
 
   /** Liest Tastatur, Touch und Gamepad gemeinsam aus */
   private readCombinedInput(
-    gp: { left: boolean; right: boolean; jump: boolean },
-    touch?: { left: boolean; right: boolean; jump: boolean }
+    gp: { left: boolean; right: boolean; up?: boolean; down?: boolean; jump: boolean },
+    touch?: { left: boolean; right: boolean; up?: boolean; down?: boolean; jump: boolean }
   ): MoveInput {
     const { cursors, keys } = this;
+    const isRpg = this.gameMode === "rpg_labyrinth";
     return {
       left: cursors.left.isDown || keys.A.isDown || !!touch?.left || gp.left,
       right: cursors.right.isDown || keys.D.isDown || !!touch?.right || gp.right,
-      jump: cursors.up.isDown || cursors.space.isDown || keys.W.isDown || !!touch?.jump || gp.jump,
+      up: cursors.up.isDown || keys.W.isDown || !!touch?.up || !!gp.up,
+      down: cursors.down.isDown || keys.S.isDown || !!touch?.down || !!gp.down,
+      jump: isRpg
+        ? cursors.space.isDown || !!touch?.jump || gp.jump
+        : cursors.up.isDown || cursors.space.isDown || keys.W.isDown || !!touch?.jump || gp.jump,
     };
   }
 
   /** Pollt die Browser Gamepad API für Xbox / Bluetooth Controller */
-  private readGamepad(): { left: boolean; right: boolean; jump: boolean; restart: boolean; pause: boolean } {
-    const res = { left: false, right: false, jump: false, restart: false, pause: false };
+  private readGamepad(): {
+    left: boolean;
+    right: boolean;
+    up: boolean;
+    down: boolean;
+    jump: boolean;
+    restart: boolean;
+    pause: boolean;
+  } {
+    const res = { left: false, right: false, up: false, down: false, jump: false, restart: false, pause: false };
     if (typeof navigator.getGamepads !== "function") return res;
 
     const gamepads = navigator.getGamepads();
@@ -887,14 +907,19 @@ export class GameScene extends Phaser.Scene {
       if (!g || !g.connected) continue;
 
       const stickX = g.axes[0] ?? 0;
+      const stickY = g.axes[1] ?? 0;
       const dpadLeft = g.buttons[14]?.pressed ?? false;
       const dpadRight = g.buttons[15]?.pressed ?? false;
+      const dpadUp = g.buttons[12]?.pressed ?? false;
+      const dpadDown = g.buttons[13]?.pressed ?? false;
 
       if (stickX < -0.28 || dpadLeft) res.left = true;
       if (stickX > 0.28 || dpadRight) res.right = true;
+      if (stickY < -0.28 || dpadUp) res.up = true;
+      if (stickY > 0.28 || dpadDown) res.down = true;
 
-      // Button 0 (A) oder Button 12 (D-Pad Up) -> Springen
-      if (g.buttons[0]?.pressed || g.buttons[12]?.pressed) res.jump = true;
+      // Button 0 (A) -> Springen / Dash
+      if (g.buttons[0]?.pressed || (this.gameMode !== "rpg_labyrinth" && dpadUp)) res.jump = true;
       // Button 3 (Y) -> Neustart
       if (g.buttons[3]?.pressed) res.restart = true;
       // Button 9 (Start) -> Pause
@@ -1097,18 +1122,18 @@ export class GameScene extends Phaser.Scene {
     }
 
     const prevVy = this.player.body.velocity.y;
-    const isHardImpact = prevVy > 220 || this.cursors?.up.isDown || this.keys?.W.isDown;
-    const bounceVelocity = isHardImpact ? BOUNCE_VELOCITY * 1.08 : BOUNCE_VELOCITY * 0.76;
+    const isHardImpact = prevVy > 200 || this.cursors?.up.isDown || this.keys?.W.isDown;
+    const bounceVelocity = isHardImpact ? BOUNCE_VELOCITY * 1.18 : BOUNCE_VELOCITY * 0.95;
 
     const burstY = this.player.bottom;
     this.player.trampolineBounce(bounceVelocity, () => {
       playJump();
       burstParticles(this, this.player.x, burstY, {
         color: INK.green,
-        count: 18,
-        speed: [90, 270],
-        size: 9,
-        duration: 450,
+        count: 24,
+        speed: [100, 320],
+        size: 10,
+        duration: 480,
       });
     });
   }

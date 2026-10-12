@@ -5,7 +5,16 @@
  */
 
 const MASTER_VOLUME = 0.12;
-const UNLOCK_EVENTS = ["keydown", "pointerdown", "pointerup", "touchend", "click"] as const;
+const UNLOCK_EVENTS = [
+  "pointerdown",
+  "pointerup",
+  "mousedown",
+  "mouseup",
+  "touchstart",
+  "touchend",
+  "keydown",
+  "click",
+] as const;
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -14,14 +23,21 @@ let listening = false;
 let musicEnabled = true;
 
 /**
- * Call once at startup. The first key/pointer/touch input creates and
- * resumes the AudioContext (iOS only unlocks it on pointerup/touchend, so
- * the listeners stay until the context is actually running).
+ * Call once at startup. Versucht sofortige Wiedergabe und schaltet Audio
+ * bei der allerersten Nutzerinteraktion (Klick/Touch/Taste) sofort frei.
  */
 export function installAudioUnlock() {
-  if (listening || typeof window === "undefined") return;
+  if (typeof window === "undefined") return;
+
+  // Versuche direkten Sofortstart (falls Browser Autoplay bereits erlaubt)
+  unlock();
+
+  if (listening) return;
   listening = true;
-  for (const type of UNLOCK_EVENTS) window.addEventListener(type, unlock, true);
+  for (const type of UNLOCK_EVENTS) {
+    window.addEventListener(type, unlock, { capture: true, passive: true });
+    document.addEventListener(type, unlock, { capture: true, passive: true });
+  }
 }
 
 function unlock() {
@@ -30,16 +46,23 @@ function unlock() {
   if (music && !muted && musicEnabled && music.paused) {
     music.play().catch(() => {});
   }
-  if (!context) return removeUnlockListeners();
-  void context.resume().then(() => {
-    if (context.state === "running" && (!music || !music.paused)) {
-      removeUnlockListeners();
-    }
-  });
+  if (!context) return;
+  if (context.state === "suspended") {
+    void context.resume().then(() => {
+      if (context.state === "running" && music && !music.paused) {
+        removeUnlockListeners();
+      }
+    });
+  } else if (context.state === "running" && music && !music.paused) {
+    removeUnlockListeners();
+  }
 }
 
 function removeUnlockListeners() {
-  for (const type of UNLOCK_EVENTS) window.removeEventListener(type, unlock, true);
+  for (const type of UNLOCK_EVENTS) {
+    window.removeEventListener(type, unlock, true);
+    document.removeEventListener(type, unlock, true);
+  }
   listening = false;
 }
 

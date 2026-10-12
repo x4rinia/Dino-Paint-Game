@@ -13,6 +13,8 @@ interface DrawingCanvasProps {
   onBackToMenu: (currentDrawing?: string) => void;
   initialImage?: string;
   backgroundTheme?: BackgroundTheme;
+  gameMode?: "jump_n_run" | "rpg_labyrinth";
+  onGameModeChange?: (mode: "jump_n_run" | "rpg_labyrinth") => void;
 }
 
 const COLORS: Record<ColorTool, { hex: string; label: string; desc: string }> = {
@@ -33,15 +35,23 @@ const BRUSH_SIZES = [
   { size: 28, label: "Breit" },
 ];
 
-export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage, backgroundTheme }: DrawingCanvasProps) {
+export function DrawingCanvas({
+  onPlayLevel,
+  onBackToMenu,
+  initialImage,
+  backgroundTheme,
+  gameMode = "jump_n_run",
+  onGameModeChange,
+}: DrawingCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  const [activeMode, setActiveMode] = useState<"jump_n_run" | "rpg_labyrinth">(gameMode);
   const [tool, setTool] = useState<Tool>("black");
   const [brushSize, setBrushSize] = useState<number>(14);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoom] = useState(0.85);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanMode, setIsPanMode] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -69,6 +79,36 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage, backgro
 
   const CANVAS_WIDTH = 1280;
   const CANVAS_HEIGHT = 720;
+
+  // 🔍 Responsiver Zoom & Skalierung für Laptop- und Desktop-Bildschirme
+  const fitToScreen = useCallback(() => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const padX = 24;
+    const padY = 24;
+    const availW = Math.max(200, rect.width - padX);
+    const availH = Math.max(200, rect.height - padY);
+    const scaleX = availW / CANVAS_WIDTH;
+    const scaleY = availH / CANVAS_HEIGHT;
+    // Perfekt einpassen: Maximiert die sichtbare Fläche ohne Abschneiden
+    const bestZoom = Math.min(scaleX, scaleY, 1.0);
+    setZoom(Number(Math.max(0.2, bestZoom).toFixed(2)));
+    setPan({ x: 0, y: 0 });
+  }, []);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const timer = setTimeout(fitToScreen, 40);
+    const ro = new ResizeObserver(() => fitToScreen());
+    ro.observe(el);
+    window.addEventListener("resize", fitToScreen);
+    return () => {
+      clearTimeout(timer);
+      ro.disconnect();
+      window.removeEventListener("resize", fitToScreen);
+    };
+  }, [fitToScreen]);
 
   // Initialisieren & weißer Hintergrund
   useEffect(() => {
@@ -355,153 +395,153 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage, backgro
     const isJungle = backgroundTheme === "jungle";
     const choice = Math.floor(Math.random() * 3);
 
-    if (isJungle) {
-      // 🌴 DYNAMISCHE URWALD-WELTEN (Aufrecht mit Baumwipfeln, Lianen & Windgängen)
+    if (activeMode === "rpg_labyrinth") {
+      // 🧭 RPG MAKER / TOP-DOWN LABYRINTH MODUS
+      // Stabile dicke Außenmauern
+      drawSolidRect(20, 20, 1240, 24, "#1d1d24"); // Oben
+      drawSolidRect(20, 676, 1240, 24, "#1d1d24"); // Unten
+      drawSolidRect(20, 20, 24, 680, "#1d1d24"); // Links
+      drawSolidRect(1236, 20, 24, 680, "#1d1d24"); // Rechts
+
       if (choice === 0) {
-        // Dschungel-Layout 1: Baumwipfel & Lianen-Brücken
-        drawSolidRect(30, 560, 340, 140, "#1d1d24");
-        drawSolidRect(940, 520, 310, 180, "#1d1d24");
+        // Labyrinth 1: Irrgarten der 8 Farben mit 1 Vortex-Katapult (weit weg vom Start!)
+        drawSolidRect(220, 20, 24, 460, "#1d1d24");
+        drawSolidRect(220, 480, 260, 24, "#1d1d24");
+        drawSolidRect(460, 160, 24, 340, "#1d1d24");
+        drawSolidRect(460, 160, 260, 24, "#1d1d24");
+        drawSolidRect(700, 160, 24, 380, "#1d1d24");
+        drawSolidRect(220, 580, 500, 24, "#1d1d24");
+        drawSolidRect(800, 240, 24, 460, "#1d1d24");
+        drawSolidRect(800, 360, 300, 24, "#1d1d24");
+        drawSolidRect(980, 100, 24, 280, "#1d1d24");
+        drawSolidRect(980, 480, 180, 24, "#1d1d24");
 
-        // Aufsteigende Ast-Plattformen
-        drawSolidRect(220, 430, 200, 28, "#1d1d24");
-        drawSolidRect(460, 340, 220, 28, "#1d1d24");
-        drawSolidRect(720, 250, 200, 28, "#1d1d24");
-        drawSolidRect(580, 480, 180, 28, "#1d1d24");
+        // Rote Gefahren (Lava / Stacheln in Abzweigungen)
+        drawSolidRect(320, 450, 100, 22, "#d6453d");
+        drawSolidRect(880, 330, 80, 22, "#d6453d");
+        drawSolidRect(540, 650, 140, 22, "#d6453d");
 
-        // Trampoline für den weiten Flug mit Rückenwind
-        drawSolidRect(240, 540, 90, 20, "#2fb457");
-        drawSolidRect(640, 460, 80, 20, "#2fb457");
+        // Grüne Speed-Booster (Trampolin-Impulse)
+        drawSolidRect(100, 420, 80, 24, "#2fb457");
+        drawSolidRect(720, 120, 60, 24, "#2fb457");
 
-        // Schwebender Lianen-Lift zwischen den Baumkronen
-        drawSolidRect(360, 530, 140, 25, "#8b5a2b");
+        // Blaue verschiebbare Kiste & Orange Gegner
+        drawSolidRect(520, 220, 48, 48, "#2a6df4");
+        drawCircle(340, 260, 18, "#e8590c");
+        drawCircle(880, 540, 18, "#e8590c");
 
-        // Dornen / Treibsand im tiefen Dschungeltal
-        drawSolidRect(380, 680, 540, 35, "#d6453d");
-
-        // Physikbox & Urwald-Gegner
-        drawSolidRect(500, 290, 48, 48, "#2a6df4");
-        drawCircle(800, 235, 18, "#e8590c");
-
-        // Geheimportale
-        drawPortal(70, 480, 38, 70);
-        drawPortal(1080, 440, 38, 70);
+        // 🌀 Genau 1 Vortex-Portal (Schleudert Dino durch die Wand in die Schatzkammer!)
+        // Steht in der Mitte des Labyrinths – NICHT am Anfang!
+        drawPortal(580, 490, 40, 68);
 
         // Dino-Eier
-        drawEgg(300, 380);
-        drawEgg(560, 290);
-        drawEgg(810, 200);
-        drawEgg(670, 430);
+        drawEgg(120, 600);
+        drawEgg(340, 100);
+        drawEgg(600, 250);
+        drawEgg(1120, 200);
+        drawEgg(900, 620);
 
-        setStartPos({ x: 110, y: 520 });
-        setGoalPos({ x: 1120, y: 470 });
+        setStartPos({ x: 90, y: 90 });
+        setGoalPos({ x: 1160, y: 600 });
       } else if (choice === 1) {
-        // Dschungel-Layout 2: Tempel-Ruinen & Felsklippen
-        drawSolidRect(30, 600, 360, 110, "#1d1d24");
-        drawSolidRect(880, 600, 370, 110, "#1d1d24");
-        drawSolidRect(400, 680, 470, 35, "#d6453d");
+        // Labyrinth 2: Die 4 Tempel-Kammern mit Raum-Portalen (fern vom Start)
+        drawSolidRect(620, 20, 24, 300, "#1d1d24");
+        drawSolidRect(620, 400, 24, 300, "#1d1d24");
+        drawSolidRect(20, 340, 520, 24, "#1d1d24");
+        drawSolidRect(720, 340, 540, 24, "#1d1d24");
 
-        drawSolidRect(250, 470, 190, 28, "#1d1d24");
-        drawSolidRect(100, 340, 210, 28, "#1d1d24");
-        drawSolidRect(360, 260, 240, 28, "#1d1d24");
-        drawSolidRect(680, 200, 220, 28, "#1d1d24");
-        drawSolidRect(950, 320, 240, 28, "#1d1d24");
+        drawSolidRect(200, 140, 160, 24, "#1d1d24");
+        drawSolidRect(200, 520, 160, 24, "#1d1d24");
+        drawSolidRect(880, 140, 160, 24, "#1d1d24");
+        drawSolidRect(880, 520, 160, 24, "#1d1d24");
 
-        drawSolidRect(300, 580, 100, 20, "#2fb457");
-        drawSolidRect(520, 240, 80, 20, "#2fb457");
+        drawSolidRect(380, 310, 80, 22, "#d6453d");
+        drawSolidRect(800, 370, 80, 22, "#d6453d");
 
-        drawSolidRect(160, 290, 48, 48, "#2a6df4");
-        drawSolidRect(470, 440, 160, 26, "#8b5a2b");
+        drawSolidRect(570, 160, 34, 70, "#2fb457");
+        drawSolidRect(650, 520, 34, 70, "#2fb457");
 
-        drawCircle(440, 240, 18, "#e8590c");
-        drawCircle(1040, 295, 18, "#e8590c");
+        drawCircle(300, 240, 18, "#e8590c");
+        drawCircle(960, 460, 18, "#e8590c");
 
-        drawPortal(70, 260, 38, 70);
-        drawPortal(1140, 520, 38, 70);
+        // Portale verbinden Kammer 1 und Kammer 4 (Fern vom Start!)
+        drawPortal(440, 180, 38, 68);
+        drawPortal(1060, 500, 38, 68);
 
-        drawEgg(160, 420);
-        drawEgg(470, 210);
-        drawEgg(780, 150);
-        drawEgg(1080, 550);
+        drawEgg(240, 240);
+        drawEgg(240, 600);
+        drawEgg(1000, 220);
+        drawEgg(1000, 600);
 
-        setStartPos({ x: 120, y: 560 });
-        setGoalPos({ x: 1040, y: 270 });
+        setStartPos({ x: 90, y: 90 });
+        setGoalPos({ x: 1160, y: 600 });
       } else {
-        // Dschungel-Layout 3: Riesen-Bäume & Doppel-Schwebelifte
-        drawSolidRect(30, 540, 310, 160, "#1d1d24");
-        drawSolidRect(460, 580, 340, 120, "#1d1d24");
-        drawSolidRect(920, 520, 330, 180, "#1d1d24");
+        // Labyrinth 3: Das Wandelnde Schloss mit 1 Vortex
+        drawSolidRect(200, 120, 840, 24, "#1d1d24");
+        drawSolidRect(200, 240, 24, 400, "#1d1d24");
+        drawSolidRect(320, 240, 720, 24, "#1d1d24");
+        drawSolidRect(1020, 240, 24, 380, "#1d1d24");
+        drawSolidRect(320, 360, 24, 260, "#1d1d24");
+        drawSolidRect(440, 360, 480, 24, "#1d1d24");
+        drawSolidRect(440, 480, 480, 24, "#1d1d24");
 
-        drawSolidRect(340, 680, 110, 35, "#d6453d");
-        drawSolidRect(810, 680, 100, 35, "#d6453d");
+        drawSolidRect(600, 210, 80, 24, "#d6453d");
+        drawSolidRect(500, 650, 120, 22, "#d6453d");
 
-        drawSolidRect(180, 380, 190, 28, "#1d1d24");
-        drawSolidRect(520, 320, 220, 28, "#1d1d24");
-        drawSolidRect(860, 330, 180, 28, "#1d1d24");
+        drawSolidRect(100, 400, 80, 24, "#2fb457");
+        drawCircle(700, 420, 18, "#e8590c");
 
-        drawSolidRect(260, 520, 80, 20, "#2fb457");
-        drawSolidRect(720, 560, 80, 20, "#2fb457");
+        // Genau 1 Vortex-Portal in der Mitte
+        drawPortal(640, 520, 38, 68);
 
-        drawSolidRect(350, 430, 120, 25, "#8b5a2b");
-        drawSolidRect(790, 420, 120, 25, "#8b5a2b");
+        drawEgg(120, 240);
+        drawEgg(520, 180);
+        drawEgg(840, 300);
+        drawEgg(640, 420);
 
-        drawSolidRect(500, 530, 46, 46, "#2a6df4");
-        drawCircle(640, 555, 18, "#e8590c");
-
-        drawPortal(80, 460, 38, 70);
-        drawPortal(1120, 440, 38, 70);
-
-        drawEgg(230, 330);
-        drawEgg(600, 270);
-        drawEgg(910, 280);
-        drawEgg(650, 530);
-
-        setStartPos({ x: 110, y: 500 });
-        setGoalPos({ x: 1080, y: 470 });
+        setStartPos({ x: 90, y: 90 });
+        setGoalPos({ x: 1160, y: 200 });
       }
     } else {
-      // 📜 KLASSISCHE DYNAMISCHE PLATFORMER-WELTEN (Notizheft / Kosmos)
+      // 🏃‍♂️ JUMP 'N' RUN MODUS (Platformer)
       if (choice === 0) {
-        // Layout 1: Canyons & Himmelsinseln (Ausgewogene Stepping-Pfade)
+        // Layout 1: Canyons & Himmelsinseln (1 einzelnes Vortex-Portal statt 2!)
         drawSolidRect(30, 580, 320, 120, "#1d1d24");
         drawSolidRect(940, 520, 310, 180, "#1d1d24");
 
-        // Schwebende Stufen ins Himmelsreich
         drawSolidRect(260, 440, 180, 28, "#1d1d24");
         drawSolidRect(480, 340, 200, 28, "#1d1d24");
         drawSolidRect(740, 260, 180, 28, "#1d1d24");
         drawSolidRect(620, 480, 180, 28, "#1d1d24");
 
-        // Schwebelift über den Canyon
         drawSolidRect(360, 560, 140, 25, "#8b5a2b");
 
-        // Trampolin für den Riesensprung
+        // Trampoline für den weiten Sprung
         drawSolidRect(220, 560, 90, 20, "#2fb457");
         drawSolidRect(680, 460, 80, 20, "#2fb457");
 
         // Lava im Tal
         drawSolidRect(360, 680, 560, 35, "#d6453d");
 
-        // Physik-Box & Gegner
         drawSolidRect(510, 290, 48, 48, "#2a6df4");
         drawCircle(820, 245, 18, "#e8590c");
 
-        // Portale
-        drawPortal(70, 500, 38, 70);
-        drawPortal(1080, 440, 38, 70);
+        // 🌀 Genau 1 Vortex-Katapult-Portal in der Mitte! (NICHT am Anfang!)
+        // Katapultiert Dino hoch zu den schwebenden Himmels-Eiern
+        drawPortal(640, 440, 38, 70);
 
-        // Dino-Eier entlang des Sprungbogens
         drawEgg(340, 390);
         drawEgg(570, 290);
-        drawEgg(830, 210);
-        drawEgg(720, 430);
+        drawEgg(780, 210);
+        drawEgg(1050, 470);
 
         setStartPos({ x: 120, y: 540 });
         setGoalPos({ x: 1120, y: 470 });
       } else if (choice === 1) {
-        // Layout 2: Stufen-Pyramide & Doppel-Trampolin
+        // Layout 2: Stufen-Pyramide & Vulkanfelsen (Portale weit weg vom Start!)
         drawSolidRect(30, 620, 360, 90, "#1d1d24");
         drawSolidRect(880, 620, 370, 90, "#1d1d24");
-        drawSolidRect(400, 680, 470, 35, "#d6453d"); // Lava
+        drawSolidRect(400, 680, 470, 35, "#d6453d");
 
         drawSolidRect(260, 490, 180, 28, "#1d1d24");
         drawSolidRect(100, 360, 200, 28, "#1d1d24");
@@ -518,7 +558,8 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage, backgro
         drawCircle(440, 260, 18, "#e8590c");
         drawCircle(1050, 315, 18, "#e8590c");
 
-        drawPortal(70, 280, 38, 70);
+        // Portale: Oben in der Pyramide & unten rechts (Fern vom Start bei x:120!)
+        drawPortal(460, 240, 38, 70);
         drawPortal(1140, 540, 38, 70);
 
         drawEgg(160, 440);
@@ -529,7 +570,7 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage, backgro
         setStartPos({ x: 120, y: 580 });
         setGoalPos({ x: 1040, y: 290 });
       } else {
-        // Layout 3: Tal der Brücken & Schwebelifte
+        // Layout 3: Tal der Brücken mit 1 Vortex-Katapult
         drawSolidRect(30, 540, 300, 160, "#1d1d24");
         drawSolidRect(460, 580, 340, 120, "#1d1d24");
         drawSolidRect(920, 520, 330, 180, "#1d1d24");
@@ -550,8 +591,8 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage, backgro
         drawSolidRect(500, 530, 46, 46, "#2a6df4");
         drawCircle(640, 555, 18, "#e8590c");
 
-        drawPortal(90, 460, 38, 70);
-        drawPortal(1160, 440, 38, 70);
+        // 🌀 Genau 1 Vortex-Portal (Schleudert Dino über die Schlucht!)
+        drawPortal(530, 290, 38, 70);
 
         drawEgg(270, 340);
         drawEgg(630, 280);
@@ -565,9 +606,11 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage, backgro
 
     saveHistory();
     setSaveToast(
-      isJungle
-        ? "🌴 Kopfüber-Dschungel-Level gezeichnet! (Dino läuft an der Decke)"
-        : "🎲 Neues Zufalls-Level gezeichnet!"
+      activeMode === "rpg_labyrinth"
+        ? "🧭 Neues RPG-Labyrinth gezeichnet! (4-Wege-Steuerung)"
+        : isJungle
+        ? "🌴 Dschungel-Level gezeichnet! (Wind & Lianen)"
+        : "🎲 Neues Jump 'n' Run Level gezeichnet!"
     );
     setTimeout(() => setSaveToast(null), 3000);
   };
@@ -808,6 +851,32 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage, backgro
         </div>
         <div className="studio-header-actions">
           <button
+            className="button"
+            type="button"
+            onClick={() => {
+              const nextMode = activeMode === "rpg_labyrinth" ? "jump_n_run" : "rpg_labyrinth";
+              setActiveMode(nextMode);
+              if (onGameModeChange) onGameModeChange(nextMode);
+              setSaveToast(
+                nextMode === "rpg_labyrinth"
+                  ? "Modus: RPG-Labyrinth (4-Wege-Bewegung)"
+                  : "Modus: Jump 'n' Run (Platformer)"
+              );
+              setTimeout(() => setSaveToast(null), 2500);
+            }}
+            title="Klicken, um zwischen Jump 'n' Run und RPG Maker Labyrinth zu wechseln"
+            style={{
+              backgroundColor: activeMode === "rpg_labyrinth" ? "#4338ca" : "#1e293b",
+              color: "#ffffff",
+              border: "1px solid rgba(255, 255, 255, 0.25)",
+              fontSize: "0.85rem",
+              fontWeight: 600,
+            }}
+          >
+            {activeMode === "rpg_labyrinth" ? "🧭 RPG-Labyrinth" : "🏃‍♂️ Jump 'n' Run"}
+          </button>
+
+          <button
             className="button button-secondary"
             type="button"
             onClick={generateRandomLevel}
@@ -993,6 +1062,36 @@ export function DrawingCanvas({ onPlayLevel, onBackToMenu, initialImage, backgro
             title="Alles löschen"
           >
             🗑
+          </button>
+        </div>
+
+        <div className="tool-group zoom-group" style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <button
+            type="button"
+            className="tool-btn-marker"
+            onClick={fitToScreen}
+            title="Leinwand automatisch optimal an den Laptop-Bildschirm anpassen"
+            style={{ fontSize: "0.8rem", padding: "6px 9px", background: "#3b4252" }}
+          >
+            🔍 Anpassen ({Math.round(zoom * 100)}%)
+          </button>
+          <button
+            type="button"
+            className="tool-btn"
+            style={{ width: 34, height: 34, fontSize: "1rem" }}
+            onClick={() => setZoom((z) => Math.min(2.5, Number((z + 0.1).toFixed(2))))}
+            title="Vergrößern (+)"
+          >
+            +
+          </button>
+          <button
+            type="button"
+            className="tool-btn"
+            style={{ width: 34, height: 34, fontSize: "1rem" }}
+            onClick={() => setZoom((z) => Math.max(0.2, Number((z - 0.1).toFixed(2))))}
+            title="Verkleinern (−)"
+          >
+            −
           </button>
         </div>
       </div>

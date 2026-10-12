@@ -6,6 +6,7 @@ import { DEBUG } from "./debug";
 import { installAudioUnlock } from "./audio";
 import { lockTouchBehavior } from "./touchLock";
 import type { BackgroundTheme } from "./paper";
+import type { GameMode } from "./Player";
 
 export type GameHandle = {
   game: Phaser.Game;
@@ -21,10 +22,23 @@ export type GameHandle = {
 
 let current: GameHandle | null = null;
 
-export function mountGame(el: HTMLElement, options?: { tvMode?: boolean; background?: BackgroundTheme }): GameHandle {
+export function mountGame(
+  el: HTMLElement,
+  options?: { tvMode?: boolean; background?: BackgroundTheme; gameMode?: GameMode }
+): GameHandle {
   installAudioUnlock();
   const bgTheme = options?.background || "paper";
-  const bgColor = bgTheme === "space" ? "#131728" : bgTheme === "jungle" ? "#d8ece0" : "#f7f2e3";
+  const gameMode = options?.gameMode || "jump_n_run";
+  const bgColor =
+    bgTheme === "space"
+      ? "#131728"
+      : bgTheme === "jungle"
+      ? "#d8ece0"
+      : bgTheme === "volcano"
+      ? "#200e12"
+      : "#f7f2e3";
+
+  const arcadeGravity = gameMode === "rpg_labyrinth" ? 0 : GRAVITY;
 
   const game = new Phaser.Game({
     type: Phaser.AUTO,
@@ -33,12 +47,13 @@ export function mountGame(el: HTMLElement, options?: { tvMode?: boolean; backgro
     height: WORLD_H,
     backgroundColor: bgColor,
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    physics: { default: "arcade", arcade: { gravity: { x: 0, y: GRAVITY }, debug: DEBUG } },
+    physics: { default: "arcade", arcade: { gravity: { x: 0, y: arcadeGravity }, debug: DEBUG } },
     scene: [GameScene],
   });
 
   game.registry.set("tvMode", !!options?.tvMode);
   game.registry.set("backgroundTheme", bgTheme);
+  game.registry.set("gameMode", gameMode);
 
   // The canvas exists once Phaser has booted (immediately, if the DOM was already ready).
   const lockCanvas = () => lockTouchBehavior(game.canvas);
