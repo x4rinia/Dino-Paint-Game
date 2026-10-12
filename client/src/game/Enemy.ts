@@ -35,6 +35,7 @@ export class Enemy {
   private direction: 1 | -1 = 1;
   private readonly scene: Phaser.Scene;
   private readonly art: Phaser.GameObjects.Graphics;
+  private readonly sprite?: Phaser.GameObjects.Image;
   private lastTick = -1;
   private lastX: number;
   private lastY: number;
@@ -47,6 +48,15 @@ export class Enemy {
     this.rect = scene.add.rectangle(x, y, ENEMY_SIZE, ENEMY_SIZE, ENEMY_COLOR).setAlpha(0);
     this.art = scene.add.graphics().setDepth(DEPTH.enemy);
     this.rect.setData("id", id);
+
+    const enemyTextures = ["enemy_snail", "enemy_plant", "enemy_bug"];
+    const hash = Math.abs(id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0));
+    const tex = enemyTextures[hash % enemyTextures.length];
+    if (scene.textures.exists(tex)) {
+      this.sprite = scene.add.image(x, y, tex).setDepth(DEPTH.enemy);
+      this.sprite.setDisplaySize(ENEMY_SIZE * 1.3, ENEMY_SIZE * 1.15);
+      this.art.setVisible(false);
+    }
 
     scene.physics.add.existing(this.rect);
     this.body = this.rect.body as Phaser.Physics.Arcade.Body;
@@ -93,16 +103,25 @@ export class Enemy {
   draw(tick: number) {
     if (!this.alive) return;
     const { art, body } = this;
-    art.setPosition(body.center.x, body.center.y).setScale(this.direction, 1);
-    if (tick === this.lastTick) return;
-    this.lastTick = tick;
-    redrawEnemy(art, this.id, tick);
+    if (this.sprite) {
+      this.sprite.setPosition(body.center.x, body.center.y);
+      this.sprite.setScale(
+        (this.direction * ENEMY_SIZE * 1.3) / (this.sprite.width || 100),
+        (ENEMY_SIZE * 1.15) / (this.sprite.height || 100)
+      );
+    } else {
+      art.setPosition(body.center.x, body.center.y).setScale(this.direction, 1);
+      if (tick === this.lastTick) return;
+      this.lastTick = tick;
+      redrawEnemy(art, this.id, tick);
+    }
   }
 
   /** Replay mode: hide the live enemy (and stop its body) while recorded ghosts play; show it again after. */
   setReplayHidden(hidden: boolean) {
     if (!this.alive) return;
-    this.art.setVisible(!hidden);
+    this.art.setVisible(!hidden && !this.sprite);
+    this.sprite?.setVisible(!hidden);
     this.body.enable = !hidden;
   }
 
@@ -122,6 +141,7 @@ export class Enemy {
     this.lastX = this.rect.x;
     this.lastY = this.rect.y;
     enemyDeathBurst(this.scene, this.rect.x, this.rect.y);
+    this.sprite?.destroy();
     this.art.destroy();
     this.rect.destroy();
   }

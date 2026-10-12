@@ -25,7 +25,7 @@ import { ReplayController } from "./Replay";
 import { LevelIntro } from "./LevelIntro";
 import { TouchControls, touchControlsEnabled } from "./TouchControls";
 import { RotateBanner } from "./RotateBanner";
-import { isMuted, playCoin, playDeath, playHelper, playJump, playStomp, playWin, toggleMute, startBgMusic, pauseBgMusic, resumeBgMusic, stopBgMusic } from "./audio";
+import { isMuted, playCoin, playDeath, playHelper, playJump, playStomp, playTeleport, playWin, toggleMute, startBgMusic, pauseBgMusic, resumeBgMusic, stopBgMusic } from "./audio";
 import { DebugOverlay } from "./DebugOverlay";
 import { DEBUG } from "./debug";
 import { prepareLevel } from "./prepareLevel";
@@ -61,7 +61,7 @@ const STOMP_BOUNCE_VELOCITY = JUMP_VELOCITY * 0.8;
 type MoverEntity = {
   rect: Phaser.GameObjects.Rectangle;
   body: Phaser.Physics.Arcade.Body;
-  art: Phaser.GameObjects.Graphics;
+  art: Phaser.GameObjects.Graphics | Phaser.GameObjects.Image;
   w: number;
   h: number;
   id: string;
@@ -69,7 +69,7 @@ type MoverEntity = {
 
 type BouncerEntity = {
   rect: Phaser.GameObjects.Rectangle;
-  art: Phaser.GameObjects.Graphics;
+  art: Phaser.GameObjects.Graphics | Phaser.GameObjects.Image;
   x: number;
   y: number;
   w: number;
@@ -79,7 +79,7 @@ type BouncerEntity = {
 
 type CollectibleEntity = {
   rect: Phaser.GameObjects.Rectangle;
-  art: Phaser.GameObjects.Graphics;
+  art: Phaser.GameObjects.Graphics | Phaser.GameObjects.Image;
   id: string;
   collected: boolean;
 };
@@ -202,6 +202,23 @@ export class GameScene extends Phaser.Scene {
     return this.dead || this.won || this.intro || this.isPaused;
   }
 
+  preload() {
+    this.load.image("dino_idle", "./sprites/dino_idle.png");
+    this.load.image("dino_walk", "./sprites/dino_walk.png");
+    this.load.image("dino_jump", "./sprites/dino_jump.png");
+    this.load.image("dino_run", "./sprites/dino_run.png");
+    this.load.image("block_crate", "./sprites/block_crate.png");
+    this.load.image("trampoline_mushroom", "./sprites/trampoline_mushroom.png");
+    this.load.image("coin_egg", "./sprites/coin_egg.png");
+    this.load.image("coin_footprint", "./sprites/coin_footprint.png");
+    this.load.image("enemy_snail", "./sprites/enemy_snail.png");
+    this.load.image("enemy_plant", "./sprites/enemy_plant.png");
+    this.load.image("enemy_bug", "./sprites/enemy_bug.png");
+    this.load.image("hazard_spikes", "./sprites/hazard_spikes.png");
+    this.load.image("goal_flag", "./sprites/goal_flag.png");
+    this.load.image("platform_moss", "./sprites/platform_moss.png");
+  }
+
   create() {
     const { level } = this;
 
@@ -277,6 +294,7 @@ export class GameScene extends Phaser.Scene {
     // 2. GRÜN: Sprungflächen / Trampoline
     this.bouncers = this.physics.add.staticGroup();
     this.bouncersList = [];
+    // 2. GRÜN: Sprungfedern & Trampoline (Pilz-Feder)
     for (const b of (level.bouncers ?? [])) {
       const bw = sx(b.w);
       const bh = sy(b.h);
@@ -287,14 +305,20 @@ export class GameScene extends Phaser.Scene {
       this.physics.add.existing(rect, true);
       this.bouncers.add(rect);
 
-      const art = this.add.graphics().setDepth(DEPTH.staticLevel + 2);
-      this.drawBouncerArt(art, bw, bh, b.id);
-      art.setPosition(bx, by);
+      let art: Phaser.GameObjects.Graphics | Phaser.GameObjects.Image;
+      if (this.textures.exists("trampoline_mushroom")) {
+        art = this.add.image(bx, by, "trampoline_mushroom").setDisplaySize(bw * 1.1, bh * 1.1).setDepth(DEPTH.staticLevel + 2);
+      } else {
+        const g = this.add.graphics().setDepth(DEPTH.staticLevel + 2);
+        this.drawBouncerArt(g, bw, bh, b.id);
+        g.setPosition(bx, by);
+        art = g;
+      }
 
       this.bouncersList.push({ rect, art, x: bx, y: by, w: bw, h: bh, id: b.id });
     }
 
-    // 3. BLAU: Bewegliche Physikobjekte
+    // 3. BLAU: Bewegliche Physikobjekte (Holz-Kisten)
     this.moversGroup = this.physics.add.group();
     for (const m of (level.movers ?? [])) {
       const mw = sx(m.w);
@@ -305,14 +329,21 @@ export class GameScene extends Phaser.Scene {
       this.physics.add.existing(rect, false);
       const body = rect.body as Phaser.Physics.Arcade.Body;
       body.setCollideWorldBounds(true);
-      body.setBounce(0.1);
-      body.setDrag(80, 0);
-      body.setFriction(0.3, 0);
-      body.setMass(0.8);
+      body.setBounce(0.0);
+      // Hoher Reibungswiderstand: Block stoppt sofort bei Wänden oder wenn Dino aufhört zu schieben!
+      body.setDrag(1200, this.gameMode === "rpg_labyrinth" ? 1200 : 0);
+      body.setFriction(1, 1);
+      body.setMass(2.0);
 
-      const art = this.add.graphics().setDepth(DEPTH.staticLevel + 3);
-      this.drawMoverArt(art, mw, mh, m.id);
-      art.setPosition(mx, my);
+      let art: Phaser.GameObjects.Graphics | Phaser.GameObjects.Image;
+      if (this.textures.exists("block_crate")) {
+        art = this.add.image(mx, my, "block_crate").setDisplaySize(mw, mh).setDepth(DEPTH.staticLevel + 3);
+      } else {
+        const g = this.add.graphics().setDepth(DEPTH.staticLevel + 3);
+        this.drawMoverArt(g, mw, mh, m.id);
+        g.setPosition(mx, my);
+        art = g;
+      }
 
       this.moversGroup.add(rect);
       this.moversList.push({ rect, body, art, w: mw, h: mh, id: m.id });
@@ -355,9 +386,15 @@ export class GameScene extends Phaser.Scene {
       this.physics.add.existing(rect, true);
       this.collectiblesGroup.add(rect);
 
-      const art = this.add.graphics().setDepth(DEPTH.collectible);
-      this.drawEggArt(art, cw, ch, c.id);
-      art.setPosition(cx, cy);
+      let art: Phaser.GameObjects.Graphics | Phaser.GameObjects.Image;
+      if (this.textures.exists("coin_egg")) {
+        art = this.add.image(cx, cy, "coin_egg").setDisplaySize(cw, ch).setDepth(DEPTH.collectible);
+      } else {
+        const g = this.add.graphics().setDepth(DEPTH.collectible);
+        this.drawEggArt(g, cw, ch, c.id);
+        g.setPosition(cx, cy);
+        art = g;
+      }
 
       // Sanftes Schweben (Bobbing)
       this.tweens.add({
@@ -483,6 +520,14 @@ export class GameScene extends Phaser.Scene {
     this.goal = this.rectTopLeft(level.goal, COLORS.goal);
     this.physics.add.existing(this.goal, true);
 
+    if (this.textures.exists("goal_flag")) {
+      const gw = sx(level.goal.w);
+      const gh = sy(level.goal.h);
+      const gx = sx(level.goal.x) + gw / 2;
+      const gy = sy(level.goal.y) + gh / 2;
+      this.add.image(gx, gy, "goal_flag").setDisplaySize(gw * 1.1, gh * 1.1).setDepth(DEPTH.staticLevel + 2);
+    }
+
     this.coins = [];
     this.doodles = new LevelDoodles(this, level, this.coins);
 
@@ -548,14 +593,35 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.collider(this.player.rect, this.moversGroup, (pObj, mObj) => {
       const pBody = (pObj as Phaser.GameObjects.Rectangle).body as Phaser.Physics.Arcade.Body;
       const mBody = (mObj as Phaser.GameObjects.Rectangle).body as Phaser.Physics.Arcade.Body;
-      if (pBody.touching.right && mBody.touching.left) {
-        mBody.setVelocityX(Math.max(140, pBody.velocity.x * 0.95));
-      } else if (pBody.touching.left && mBody.touching.right) {
-        mBody.setVelocityX(Math.min(-140, pBody.velocity.x * 0.95));
+
+      if (this.gameMode === "rpg_labyrinth") {
+        // Sokoban-Schieben in alle 4 Richtungen:
+        const pushForce = 210;
+        if (pBody.velocity.x > 15 && this.player.x < mBody.x) {
+          mBody.setVelocityX(pushForce);
+        } else if (pBody.velocity.x < -15 && this.player.x > mBody.x) {
+          mBody.setVelocityX(-pushForce);
+        }
+        if (pBody.velocity.y > 15 && this.player.y < mBody.y) {
+          mBody.setVelocityY(pushForce);
+        } else if (pBody.velocity.y < -15 && this.player.y > mBody.y) {
+          mBody.setVelocityY(-pushForce);
+        }
+      } else {
+        if (pBody.touching.right && mBody.touching.left) {
+          mBody.setVelocityX(Math.max(140, pBody.velocity.x * 0.95));
+        } else if (pBody.touching.left && mBody.touching.right) {
+          mBody.setVelocityX(Math.min(-140, pBody.velocity.x * 0.95));
+        }
+        if (pBody.touching.down) {
+          this.lastGrounded = { x: this.player.x, feetY: this.player.bottom };
+        }
       }
-      if (pBody.touching.down) {
-        this.lastGrounded = { x: this.player.x, feetY: this.player.bottom };
-      }
+    });
+
+    // Overlap: Blaue Kisten mit Teleportern (Beamen & Vortex-Flug!)
+    this.physics.add.overlap(this.moversGroup, this.teleportersGroup, (mObj, tpRect) => {
+      this.handleMoverTeleporter(mObj as Phaser.GameObjects.Rectangle, tpRect as Phaser.GameObjects.Rectangle);
     });
 
     // Kollisionen: Gefahren, Münzen, Ziel, Gegner
@@ -1269,7 +1335,7 @@ export class GameScene extends Phaser.Scene {
       size: 9,
       duration: 450,
     });
-    playHelper();
+    playTeleport();
 
     // Spieler versetzen
     this.player.teleport(dest.x, dest.y - PLAYER_H / 2 + 5);
@@ -1291,6 +1357,43 @@ export class GameScene extends Phaser.Scene {
       duration: 220,
       ease: "Back.easeOut",
     });
+  }
+
+  private handleMoverTeleporter(mRect: Phaser.GameObjects.Rectangle, tpRect: Phaser.GameObjects.Rectangle) {
+    const now = this.time.now;
+    const lastTp = (mRect.getData("lastTeleportAt") as number) || 0;
+    if (now - lastTp < 800) return;
+
+    const tpId = tpRect.getData("id");
+    const currentTp = this.teleportersList.find((t) => t.id === tpId);
+    if (!currentTp) return;
+
+    mRect.setData("lastTeleportAt", now);
+    const mBody = mRect.body as Phaser.Physics.Arcade.Body;
+
+    // Falls genau 1 Portal existiert -> Magischer Vortex-Katapult!
+    if (this.teleportersList.length === 1) {
+      playTeleport();
+      mBody.setVelocity(520, this.gameMode === "rpg_labyrinth" ? -350 : -800);
+      burstParticles(this, mRect.x, mRect.y, {
+        color: INK.purple,
+        count: 24,
+        speed: [150, 420],
+        size: 10,
+        duration: 480,
+      });
+      return;
+    }
+
+    // Andernfalls: Teleportiere zum Partner-Portal
+    const targetTp = this.teleportersList.find((t) => t.id !== tpId);
+    if (targetTp) {
+      playTeleport();
+      burstParticles(this, mRect.x, mRect.y, { color: INK.purple, count: 16 });
+      mRect.setPosition(targetTp.x, targetTp.y);
+      mBody.reset(targetTp.x, targetTp.y);
+      burstParticles(this, targetTp.x, targetTp.y, { color: INK.purple, count: 18 });
+    }
   }
 
   private loadOriginalBackdrop(dataUrl: string) {

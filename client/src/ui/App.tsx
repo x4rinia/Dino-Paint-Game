@@ -259,23 +259,34 @@ export function App() {
   // 1. DIGITALES ZEICHENSTUDIO
   if (screen === "draw") {
     return (
-      <DrawingCanvas
-        onPlayLevel={handleStartPlaying}
-        onBackToMenu={(currentDrawing) => {
-          if (currentDrawing) {
-            setInitialDrawingForStudio(currentDrawing);
-            setCurrentDrawingUrl(currentDrawing);
-          }
-          setScreen("menu");
-        }}
-        initialImage={initialDrawingForStudio}
-        backgroundTheme={selectedBackground}
-        gameMode={gameMode}
-        onGameModeChange={(newMode) => {
-          setGameModeState(newMode);
-          void setSetting("game_mode", newMode);
-        }}
-      />
+      <>
+        <DrawingCanvas
+          onPlayLevel={handleStartPlaying}
+          onBackToMenu={(currentDrawing) => {
+            if (currentDrawing) {
+              setInitialDrawingForStudio(currentDrawing);
+              setCurrentDrawingUrl(currentDrawing);
+            }
+            setScreen("menu");
+          }}
+          initialImage={initialDrawingForStudio}
+          backgroundTheme={selectedBackground}
+          gameMode={gameMode}
+          onOpenSettings={() => setShowSettings(true)}
+        />
+        {showSettings && (
+          <SettingsModal
+            onClose={() => setShowSettings(false)}
+            currentBackground={selectedBackground}
+            onBackgroundChange={setSelectedBackground}
+            currentGameMode={gameMode}
+            onGameModeChange={(newMode) => {
+              setGameModeState(newMode);
+              void setSetting("game_mode", newMode);
+            }}
+          />
+        )}
+      </>
     );
   }
 

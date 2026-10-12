@@ -240,3 +240,10 @@ export function playHelper() {
   tone({ freq: 660, endFreq: 880, type: "triangle", duration: 0.09, volume: 0.22 });
   tone({ freq: 990, type: "triangle", delay: 0.08, duration: 0.16, volume: 0.2 });
 }
+
+/** Sci-fi / magic chime for teleporters and vortex. */
+export function playTeleport() {
+  tone({ freq: 440, endFreq: 880, type: "sine", duration: 0.15, volume: 0.35 });
+  tone({ freq: 880, endFreq: 1320, type: "triangle", delay: 0.08, duration: 0.18, volume: 0.3 });
+}
+

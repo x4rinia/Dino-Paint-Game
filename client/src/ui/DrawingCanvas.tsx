@@ -15,6 +15,7 @@ interface DrawingCanvasProps {
   backgroundTheme?: BackgroundTheme;
   gameMode?: "jump_n_run" | "rpg_labyrinth";
   onGameModeChange?: (mode: "jump_n_run" | "rpg_labyrinth") => void;
+  onOpenSettings?: () => void;
 }
 
 const COLORS: Record<ColorTool, { hex: string; label: string; desc: string }> = {
@@ -42,6 +43,7 @@ export function DrawingCanvas({
   backgroundTheme,
   gameMode = "jump_n_run",
   onGameModeChange,
+  onOpenSettings,
 }: DrawingCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -850,31 +852,23 @@ export function DrawingCanvas({
           <span className="studio-subtitle">Zeichne mit allen 8 Spielfarben deine Welt</span>
         </div>
         <div className="studio-header-actions">
-          <button
-            className="button"
-            type="button"
-            onClick={() => {
-              const nextMode = activeMode === "rpg_labyrinth" ? "jump_n_run" : "rpg_labyrinth";
-              setActiveMode(nextMode);
-              if (onGameModeChange) onGameModeChange(nextMode);
-              setSaveToast(
-                nextMode === "rpg_labyrinth"
-                  ? "Modus: RPG-Labyrinth (4-Wege-Bewegung)"
-                  : "Modus: Jump 'n' Run (Platformer)"
-              );
-              setTimeout(() => setSaveToast(null), 2500);
-            }}
-            title="Klicken, um zwischen Jump 'n' Run und RPG Maker Labyrinth zu wechseln"
-            style={{
-              backgroundColor: activeMode === "rpg_labyrinth" ? "#4338ca" : "#1e293b",
-              color: "#ffffff",
-              border: "1px solid rgba(255, 255, 255, 0.25)",
-              fontSize: "0.85rem",
-              fontWeight: 600,
-            }}
-          >
-            {activeMode === "rpg_labyrinth" ? "🧭 RPG-Labyrinth" : "🏃‍♂️ Jump 'n' Run"}
-          </button>
+          {onOpenSettings && (
+            <button
+              className="button button-secondary"
+              type="button"
+              onClick={onOpenSettings}
+              title="Einstellungen, Spielmodus & Hintergründe ändern"
+              style={{
+                backgroundColor: "#253048",
+                color: "#e2e8f0",
+                border: "1px solid rgba(255, 255, 255, 0.25)",
+                fontSize: "0.88rem",
+                fontWeight: 600,
+              }}
+            >
+              ⚙️ Einstellungen & Welt
+            </button>
+          )}
 
           <button
             className="button button-secondary"
@@ -1101,6 +1095,14 @@ export function DrawingCanvas({
         ref={containerRef}
         onWheel={handleWheel}
         style={{
+          backgroundColor:
+            backgroundTheme === "space"
+              ? "#131728"
+              : backgroundTheme === "jungle"
+              ? "#1d2922"
+              : backgroundTheme === "volcano"
+              ? "#200e12"
+              : "#1a1c23",
           cursor:
             isPanMode
               ? "grab"
@@ -1209,35 +1211,35 @@ export function DrawingCanvas({
       <footer className="studio-legend">
         <div className="legend-item">
           <span className="legend-pill" style={{ backgroundColor: COLORS.black.hex }} />
-          <strong>Schwarz:</strong> Boden & Plattformen
+          <strong>Schwarz:</strong> 🧱 Wände & Böden
         </div>
         <div className="legend-item">
           <span className="legend-pill" style={{ backgroundColor: COLORS.red.hex }} />
-          <strong>Rot:</strong> Gefahren (Neustart)
+          <strong>Rot:</strong> ⚠️ Stacheln & Gefahren
         </div>
         <div className="legend-item">
           <span className="legend-pill" style={{ backgroundColor: COLORS.green.hex }} />
-          <strong>Grün:</strong> Trampolin (Hochsprung)
+          <strong>Grün:</strong> 🍄 Pilz-Trampolin / Bumper
         </div>
         <div className="legend-item">
           <span className="legend-pill" style={{ backgroundColor: COLORS.blue.hex }} />
-          <strong>Blau:</strong> Physikblöcke (Schiebbar)
+          <strong>Blau:</strong> 📦 Holz-Kiste (Schiebbar)
         </div>
         <div className="legend-item">
           <span className="legend-pill" style={{ backgroundColor: COLORS.yellow.hex }} />
-          <strong>Gelb:</strong> Dino-Eier (Sammeln)
+          <strong>Gelb:</strong> 🪙 Dino-Ei-Münzen (Sammeln)
         </div>
         <div className="legend-item">
           <span className="legend-pill" style={{ backgroundColor: COLORS.purple.hex }} />
-          <strong>Lila:</strong> Portale (Teleport / Vortex)
+          <strong>Lila:</strong> 🌀 Portale & Vortex
         </div>
         <div className="legend-item">
           <span className="legend-pill" style={{ backgroundColor: COLORS.brown.hex }} />
-          <strong>Braun:</strong> Bewegliche Lifte
+          <strong>Braun:</strong> 🪵 Bewegliche Lifte
         </div>
         <div className="legend-item">
           <span className="legend-pill" style={{ backgroundColor: COLORS.orange.hex }} />
-          <strong>Orange:</strong> Gegner (Patrouille)
+          <strong>Orange:</strong> 🐌 Gegner (Patrouille)
         </div>
       </footer>
 

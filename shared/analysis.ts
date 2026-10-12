@@ -488,8 +488,11 @@ export function decomposeComponentToRects(
   gridW: number,
   gridH: number
 ): Array<{ x: number; y: number; w: number; h: number }> {
-  // 1. Innenraum geschlossener Konturen füllen (verhindert das Zerhacken von gezeichneten Kästchen)
-  fillComponentHoles(comp, gridW, gridH);
+  // 1. Innenraum geschlossener Konturen füllen – ABER NICHT bei schwarzen Wänden/Plattformen,
+  // da im Labyrinth Striche als Wände gelten und nicht Räume mit Gestein gefüllt werden dürfen!
+  if (comp.color !== 1) {
+    fillComponentHoles(comp, gridW, gridH);
+  }
 
   const width = comp.maxX - comp.minX + 1;
   const height = comp.maxY - comp.minY + 1;
@@ -497,8 +500,8 @@ export function decomposeComponentToRects(
   const rawW = ((comp.maxX - comp.minX + 1) / gridW) * 1000;
   const rawH = ((comp.maxY - comp.minY + 1) / gridH) * 1000;
 
-  // Wenn ein Kästchen oder kompakter Block vorliegt (oder Interaktions-Objekt):
-  // Immer ein einzelner, sauberer Körper!
+  // Wenn ein Interaktionsobjekt (Farben 3-8) vorliegt, oder ein kleiner kompakter Block:
+  // Für schwarze Wände (color === 1) wird die exakte Linien-Segmentierung weiter unten genutzt!
   if (
     comp.color === 3 || // Grün (Trampolin)
     comp.color === 4 || // Blau (Physikblock)
@@ -506,7 +509,7 @@ export function decomposeComponentToRects(
     comp.color === 6 || // Lila (Teleporter-Portal)
     comp.color === 7 || // Braun (Bewegliche Plattform)
     comp.color === 8 || // Orange (Gegner)
-    fillRatio > 0.40 || // Geschlossenes gezeichnetes Kästchen / solider Block
+    (comp.color !== 1 && fillRatio > 0.40) ||
     (width <= 8 && height <= 8)
   ) {
     if (comp.color === 5) {

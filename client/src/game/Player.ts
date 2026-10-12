@@ -37,6 +37,7 @@ export class Player {
   private wasGrounded = true;
   private canDoubleJump = true;
   readonly art: Phaser.GameObjects.Graphics;
+  readonly sprite: Phaser.GameObjects.Image;
   facing: 1 | -1 = 1;
   private artKey = "";
   private knockbackUntil = 0;
@@ -48,6 +49,11 @@ export class Player {
     this.scene = scene;
     this.rect = scene.add.rectangle(x, y, PLAYER_W, PLAYER_H, PLAYER_COLOR).setAlpha(0);
     this.art = scene.add.graphics().setDepth(DEPTH.player);
+    const hasTexture = scene.textures.exists("dino_idle");
+    this.sprite = scene.add.image(x, y, hasTexture ? "dino_idle" : "__DEFAULT").setDepth(DEPTH.player);
+    this.sprite.setDisplaySize(PLAYER_W * 1.35, PLAYER_H * 1.35);
+    this.sprite.setVisible(hasTexture);
+    this.art.setVisible(!hasTexture);
     scene.physics.add.existing(this.rect);
     this.body = this.rect.body as Phaser.Physics.Arcade.Body;
     this.body.setCollideWorldBounds(true);
@@ -272,7 +278,9 @@ export class Player {
   setActive(active: boolean) {
     this.body.enable = active;
     this.rect.setVisible(active);
-    this.art.setVisible(active);
+    const hasTexture = this.scene.textures.exists("dino_idle");
+    this.sprite.setVisible(active && hasTexture);
+    this.art.setVisible(active && !hasTexture);
   }
 
   /** Fills `out` with everything a replay needs to redraw this exact frame. */
@@ -313,17 +321,61 @@ export class Player {
   draw(tick: number) {
     const { body, rect } = this;
     this.facing = this.facingFor(body.velocity.x);
-    this.paint(tick, body.center.x, body.center.y, rect.scaleX, rect.scaleY, this.pose());
+    const hasTexture = this.scene.textures.exists("dino_idle");
+    if (hasTexture) {
+      this.sprite.setVisible(true);
+      this.art.setVisible(false);
+      this.sprite.setPosition(body.center.x, body.center.y - 2);
+      this.sprite.setScale(
+        (rect.scaleX * this.facing * 50) / (this.sprite.width || 200),
+        (rect.scaleY * 42) / (this.sprite.height || 200)
+      );
+      const pose = this.pose();
+      let tex = "dino_idle";
+      if (pose.airborne) {
+        tex = "dino_jump";
+      } else if (pose.running) {
+        tex = Math.floor(tick / 5) % 2 === 0 ? "dino_walk" : "dino_run";
+      }
+      if (this.sprite.texture.key !== tex && this.scene.textures.exists(tex)) {
+        this.sprite.setTexture(tex);
+      }
+    } else {
+      this.sprite.setVisible(false);
+      this.art.setVisible(true);
+      this.paint(tick, body.center.x, body.center.y, rect.scaleX, rect.scaleY, this.pose());
+    }
   }
 
   /** Same doodle and cache as `draw`, positioned and posed from a recorded (interpolated) frame. */
   drawReplay(tick: number, f: PlayerFrame) {
     this.facing = f.flags & PF_FACING_LEFT ? -1 : 1;
-    this.paint(tick, f.x, f.y, f.scaleX, f.scaleY, {
-      running: (f.flags & PF_RUNNING) !== 0,
-      airborne: (f.flags & PF_AIRBORNE) !== 0,
-      rising: (f.flags & PF_RISING) !== 0,
-    });
+    const hasTexture = this.scene.textures.exists("dino_idle");
+    if (hasTexture) {
+      this.sprite.setVisible(true);
+      this.art.setVisible(false);
+      this.sprite.setPosition(f.x, f.y - 2);
+      this.sprite.setScale(
+        (f.scaleX * this.facing * 50) / (this.sprite.width || 200),
+        (f.scaleY * 42) / (this.sprite.height || 200)
+      );
+      const isAirborne = (f.flags & PF_AIRBORNE) !== 0;
+      const isRunning = (f.flags & PF_RUNNING) !== 0;
+      let tex = "dino_idle";
+      if (isAirborne) tex = "dino_jump";
+      else if (isRunning) tex = Math.floor(tick / 5) % 2 === 0 ? "dino_walk" : "dino_run";
+      if (this.sprite.texture.key !== tex && this.scene.textures.exists(tex)) {
+        this.sprite.setTexture(tex);
+      }
+    } else {
+      this.sprite.setVisible(false);
+      this.art.setVisible(true);
+      this.paint(tick, f.x, f.y, f.scaleX, f.scaleY, {
+        running: (f.flags & PF_RUNNING) !== 0,
+        airborne: (f.flags & PF_AIRBORNE) !== 0,
+        rising: (f.flags & PF_RISING) !== 0,
+      });
+    }
   }
 
   private facingFor(vx: number): 1 | -1 {

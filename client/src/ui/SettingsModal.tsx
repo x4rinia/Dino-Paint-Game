@@ -109,14 +109,22 @@ export function SettingsModal({
 
   const handleSelectBackground = (theme: BackgroundTheme) => {
     setSelectedBg(theme);
-    void setSetting("selected_background", theme);
-    if (onBackgroundChange) onBackgroundChange(theme);
   };
 
   const handleSelectGameMode = (mode: GameMode) => {
     setGameMode(mode);
-    void setSetting("game_mode", mode);
-    if (onGameModeChange) onGameModeChange(mode);
+  };
+
+  const handleSaveAndClose = () => {
+    void setSetting("selected_background", selectedBg);
+    void setSetting("game_mode", gameMode);
+    if (onBackgroundChange) onBackgroundChange(selectedBg);
+    if (onGameModeChange) onGameModeChange(gameMode);
+    onClose();
+  };
+
+  const handleCancel = () => {
+    onClose();
   };
 
   const handleRequestPersistence = async () => {
@@ -411,6 +419,40 @@ export function SettingsModal({
               </button>
             </div>
           )}
+        </div>
+
+        {/* MODAL FOOTER AKTIONEN: OK & ABBRECHEN */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            alignItems: "center",
+            gap: "12px",
+            marginTop: "24px",
+            paddingTop: "16px",
+            borderTop: "1px solid rgba(255, 255, 255, 0.12)",
+            position: "sticky",
+            bottom: 0,
+            background: "#1a1d26",
+            zIndex: 10,
+          }}
+        >
+          <button
+            className="button button-secondary"
+            type="button"
+            onClick={handleCancel}
+            style={{ padding: "10px 20px" }}
+          >
+            ✕ Abbrechen
+          </button>
+          <button
+            className="button button-primary"
+            type="button"
+            onClick={handleSaveAndClose}
+            style={{ padding: "10px 28px", fontWeight: "bold" }}
+          >
+            ✓ OK / Übernehmen
+          </button>
         </div>
       </div>
     </div>
