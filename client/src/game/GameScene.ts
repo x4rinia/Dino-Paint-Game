@@ -160,6 +160,23 @@ export class GameScene extends Phaser.Scene {
   private fallThreshold = WORLD_H + FALL_MARGIN;
   private bgTheme: BackgroundTheme = "paper";
 
+  // Dschungel-Wind-System (Dynamische tropische Windböen)
+  private windSpeed = 0;
+  private targetWindSpeed = 0;
+  private nextWindChangeAt = 0;
+  private windLeavesGraphics?: Phaser.GameObjects.Graphics;
+  private windLeaves: Array<{
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    angle: number;
+    spin: number;
+    size: number;
+    color: number;
+    alpha: number;
+  }> = [];
+
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private keys!: Record<"W" | "A" | "D", Phaser.Input.Keyboard.Key>;
   private restartKey!: Phaser.Input.Keyboard.Key;
@@ -205,6 +222,12 @@ export class GameScene extends Phaser.Scene {
       this.pauseContainer = undefined;
     }
 
+    if (this.windLeavesGraphics) {
+      this.windLeavesGraphics.destroy();
+      this.windLeavesGraphics = undefined;
+    }
+    this.windLeaves = [];
+
     this.physics.world.resume();
     this.attemptState.reset(this);
     this.recorder = new RunRecorder(level.enemies.length);
@@ -217,16 +240,18 @@ export class GameScene extends Phaser.Scene {
     this.bgTheme = bgTheme;
     addBackground(this, bgTheme);
 
-    // Welt-Gravitation basierend auf Hintergrund-Thema (Mario Maker Stil):
+    // Welt-Gravitation basierend auf Hintergrund-Thema:
     // - Kosmos ("space"): Sanftere, schwebende Mondgravitation (520)
-    // - Dschungel ("jungle"): Alles steht kopf! Gravitation nach oben (-1200)
+    // - Dschungel ("jungle"): Klassische Gravitation (1200) mit dynamischen Windböen!
     // - Notizheft ("paper"): Klassische Standardgravitation (1200)
-    if (bgTheme === "jungle") {
-      this.physics.world.gravity.y = -1200;
-    } else if (bgTheme === "space") {
+    if (bgTheme === "space") {
       this.physics.world.gravity.y = 520;
     } else {
       this.physics.world.gravity.y = 1200;
+    }
+
+    if (bgTheme === "jungle") {
+      this.initJungleWind();
     }
 
     // Falls eine Originalzeichnung existiert, zeichne sie als Hintergrund
@@ -242,11 +267,6 @@ export class GameScene extends Phaser.Scene {
     this.platforms = this.physics.add.staticGroup();
     for (const p of level.platforms) {
       this.platforms.add(this.rectTopLeft(p, COLORS.platform));
-    }
-    if (bgTheme === "jungle") {
-      // Oberes Blätterdach als durchgehende Deckenplattform für die Kopfüber-Welt
-      const canopy = this.rectTopLeft({ id: "jungle-canopy-top", x: 0, y: 0, w: 1000, h: 26 }, COLORS.platform);
-      this.platforms.add(canopy);
     }
 
     // 2. GRÜN: Sprungflächen / Trampoline
@@ -370,13 +390,8 @@ export class GameScene extends Phaser.Scene {
       body.friction.y = 0;
 
       // Einweg-Kollision: Verhindert seitliches Hängenbleiben und Ruckeln
-      if (bgTheme === "jungle") {
-        body.checkCollision.up = false;
-        body.checkCollision.down = true;
-      } else {
-        body.checkCollision.up = true;
-        body.checkCollision.down = false;
-      }
+      body.checkCollision.up = true;
+      body.checkCollision.down = false;
       body.checkCollision.left = false;
       body.checkCollision.right = false;
 
@@ -482,15 +497,10 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Spieler (Dino)
-    let startX = sx(level.start.x);
-    let startY = sy(level.start.y);
-    if (bgTheme === "jungle" && level.start.y > 600) {
-      // Falls ein klassisches Level ohne Kopfüber-Spiegelung geladen wird,
-      // starte Dino sicher oben am Blätterdach statt im leeren Himmel
-      startY = Math.min(startY, 80);
-    }
+    const startX = sx(level.start.x);
+    const startY = sy(level.start.y);
     this.player = new Player(this, startX, startY);
-    this.player.setGravityMode(bgTheme === "jungle" ? "inverted" : bgTheme === "space" ? "low" : "normal");
+    this.player.setGravityMode(bgTheme === "space" ? "low" : "normal");
     this.player.onJump = () => this.recorder.addJump(this.time.now);
 
     // Kollisionen: Spieler mit Plattformen
@@ -498,9 +508,7 @@ export class GameScene extends Phaser.Scene {
 
     // Kollisionen: Spieler mit grünen Trampolinen (verbessertes elastisches Verhalten)
     this.physics.add.collider(this.player.rect, this.bouncers, (_p, bouncerRect) => {
-      const isBounceHit = this.bgTheme === "jungle"
-        ? (this.player.body.touching.up || this.player.isFalling)
-        : (this.player.body.touching.down || this.player.isFalling);
+      const isBounceHit = this.player.body.touching.down || this.player.isFalling;
       if (isBounceHit) {
         this.handleTrampolineBounce(bouncerRect as Phaser.GameObjects.Rectangle);
       }
@@ -721,42 +729,22 @@ export class GameScene extends Phaser.Scene {
 
       if (this.player && !this.locked) {
         const platTop = targetY - mp.h / 2;
-        const platBottom = targetY + mp.h / 2;
         const platLeft = targetX - mp.w / 2;
         const platRight = targetX + mp.w / 2;
         const playerX = this.player.x;
+        const playerBottom = this.player.bottom;
 
-        if (this.bgTheme === "jungle") {
-          // Im umgekehrten Dschungel steht Dino kopfüber an der Unterseite
-          const playerTop = this.player.top;
-          const isUnderPlat =
-            Math.abs(playerTop - platBottom) <= 12 &&
-            playerX >= platLeft - 8 &&
-            playerX <= platRight + 8;
+        const isOnPlat =
+          Math.abs(playerBottom - platTop) <= 12 &&
+          playerX >= platLeft - 8 &&
+          playerX <= platRight + 8;
 
-          if (isUnderPlat) {
-            this.lastGrounded = { x: playerX, feetY: playerTop };
-            if (dy < 0) {
-              // Plattform hebt sich Richtung Decke: halte Dino an der Unterseite
-              this.player.rect.y += dy;
-              this.player.body.y += dy;
-            }
-          }
-        } else {
-          // Normal / Space: Dino steht oben auf dem Lift
-          const playerBottom = this.player.bottom;
-          const isOnPlat =
-            Math.abs(playerBottom - platTop) <= 12 &&
-            playerX >= platLeft - 8 &&
-            playerX <= platRight + 8;
-
-          if (isOnPlat) {
-            this.lastGrounded = { x: playerX, feetY: playerBottom };
-            if (dy > 0) {
-              // Vertikaler Abstieg: sanft auf der Plattform halten
-              this.player.rect.y += dy;
-              this.player.body.y += dy;
-            }
+        if (isOnPlat) {
+          this.lastGrounded = { x: playerX, feetY: playerBottom };
+          if (dy > 0) {
+            // Vertikaler Abstieg: sanft auf der Plattform halten
+            this.player.rect.y += dy;
+            this.player.body.y += dy;
           }
         }
       }
@@ -765,25 +753,20 @@ export class GameScene extends Phaser.Scene {
     const input = this.readCombinedInput(gp, touchInput);
     this.player.handleInput(input, this.locked);
 
-    if (!this.locked) {
-      if (this.bgTheme === "jungle" && this.player.body.blocked.up) {
-        this.lastGrounded = { x: this.player.x, feetY: this.player.top };
-      } else if (this.player.body.blocked.down) {
-        this.lastGrounded = { x: this.player.x, feetY: this.player.bottom };
-      }
+    // Dschungel: Dynamische tropische Windböen & herumwirbelnde Blätter
+    if (this.bgTheme === "jungle") {
+      this.updateJungleWind(time, delta);
+    }
+
+    if (!this.locked && this.player.body.blocked.down) {
+      this.lastGrounded = { x: this.player.x, feetY: this.player.bottom };
     }
     this.rotateBanner?.update();
     if (!this.locked) this.recorder.update(this.time.now, this.player, this.enemies);
 
     if (!this.locked) {
-      if (this.bgTheme === "jungle") {
-        if (this.player.y < -70) {
-          this.triggerDeath("fall", this.player.x, this.player.y);
-        }
-      } else {
-        if (this.player.y > this.fallThreshold) {
-          this.triggerDeath("fall", this.player.x, this.player.y);
-        }
+      if (this.player.y > this.fallThreshold) {
+        this.triggerDeath("fall", this.player.x, this.player.y);
       }
     }
 
@@ -1114,12 +1097,10 @@ export class GameScene extends Phaser.Scene {
     }
 
     const prevVy = this.player.body.velocity.y;
-    const isHardImpact = this.bgTheme === "jungle"
-      ? (prevVy < -220 || this.cursors?.down.isDown || this.keys?.W.isDown)
-      : (prevVy > 220 || this.cursors?.up.isDown || this.keys?.W.isDown);
+    const isHardImpact = prevVy > 220 || this.cursors?.up.isDown || this.keys?.W.isDown;
     const bounceVelocity = isHardImpact ? BOUNCE_VELOCITY * 1.08 : BOUNCE_VELOCITY * 0.76;
 
-    const burstY = this.bgTheme === "jungle" ? this.player.top : this.player.bottom;
+    const burstY = this.player.bottom;
     this.player.trampolineBounce(bounceVelocity, () => {
       playJump();
       burstParticles(this, this.player.x, burstY, {
@@ -1286,9 +1267,7 @@ export class GameScene extends Phaser.Scene {
   private handleEnemyOverlap(enemy: Enemy) {
     if (this.locked || !enemy.alive) return;
 
-    const isStomp = this.bgTheme === "jungle"
-      ? (this.player.isFalling && this.player.top >= enemy.midY)
-      : (this.player.isFalling && this.player.bottom <= enemy.midY);
+    const isStomp = this.player.isFalling && this.player.bottom <= enemy.midY;
     if (isStomp) {
       enemy.kill();
       this.recorder.addStomp(this.time.now, this.enemies.indexOf(enemy));
@@ -1480,6 +1459,134 @@ export class GameScene extends Phaser.Scene {
     this.hud.setCollectibles(this.collectedCount, this.totalCollectibles);
 
     this.player.teleport(sx(this.level.start.x), sy(this.level.start.y));
+
+    // Wind im Dschungel zurücksetzen
+    this.windSpeed = 0;
+    this.targetWindSpeed = 0;
+    this.nextWindChangeAt = this.time.now + 2000;
+  }
+
+  private initJungleWind() {
+    this.windSpeed = 0;
+    this.targetWindSpeed = 0;
+    this.nextWindChangeAt = this.time.now + 2500;
+    this.windLeaves = [];
+
+    this.windLeavesGraphics = this.add.graphics().setDepth(DEPTH.player + 4);
+
+    const leafColors = [
+      0x2e7d32, // Dunkles Tropengrün
+      0x43a047, // Frisches Blattgrün
+      0x81c784, // Helles Farnblatt
+      0xaed581, // Limetten-Blatt
+      0xfbc02d, // Tropisches Sonnenblatt
+    ];
+
+    // Erzeuge 36 fliegende Blätter gleichmäßig über den Spielbereich
+    for (let i = 0; i < 36; i++) {
+      this.windLeaves.push({
+        x: Math.random() * WORLD_W,
+        y: Math.random() * WORLD_H,
+        vx: -15 + Math.random() * 30,
+        vy: 25 + Math.random() * 45,
+        angle: Math.random() * 360,
+        spin: -2.5 + Math.random() * 5,
+        size: 5 + Math.random() * 6,
+        color: leafColors[Math.floor(Math.random() * leafColors.length)],
+        alpha: 0.45 + Math.random() * 0.45,
+      });
+    }
+  }
+
+  private updateJungleWind(time: number, delta: number) {
+    const dt = Math.max(0.001, Math.min(delta / 1000, 0.05));
+
+    // Windwechsel in zufälligen Intervallen (alle 4 bis 7.5 Sekunden)
+    if (time >= this.nextWindChangeAt) {
+      const roll = Math.random();
+      if (roll < 0.25) {
+        // Windstille / Leichte Brise
+        this.targetWindSpeed = 0;
+        this.nextWindChangeAt = time + 2500 + Math.random() * 2500;
+      } else if (roll < 0.62) {
+        // Böe von links nach rechts (schiebt Dino nach vorne)
+        this.targetWindSpeed = 70 + Math.random() * 30; // +70 bis +100 px/s
+        this.nextWindChangeAt = time + 4000 + Math.random() * 3500;
+      } else {
+        // Böe von rechts nach links (drückt Dino nach hinten)
+        this.targetWindSpeed = -(70 + Math.random() * 30); // -70 bis -100 px/s
+        this.nextWindChangeAt = time + 4000 + Math.random() * 3500;
+      }
+    }
+
+    // Sanfte Übergangs-Interpolation der Windgeschwindigkeit
+    const lerp = Math.min(1, dt * 2.2);
+    this.windSpeed += (this.targetWindSpeed - this.windSpeed) * lerp;
+
+    // Physikalische Wirkung auf den Dino:
+    // Schiebt Dino je nach Windrichtung sanft nach vorn oder bremst/wirft ihn zurück
+    if (this.player && !this.locked) {
+      const body = this.player.body;
+      const airborne = !this.player.grounded;
+      // In der Luft greift der Wind deutlich stärker als mit festem Bodenkontakt
+      const windForce = airborne ? this.windSpeed * 0.95 : this.windSpeed * 0.55;
+      body.velocity.x += windForce;
+    }
+
+    // Partikel-Darstellung: Dschungelblätter wirbeln dynamisch mit dem Wind
+    if (this.windLeavesGraphics && this.windLeaves.length > 0) {
+      const g = this.windLeavesGraphics;
+      g.clear();
+
+      for (const leaf of this.windLeaves) {
+        // Horizontale Bewegung: Eigengeschwindigkeit + Winddrift
+        leaf.x += (leaf.vx + this.windSpeed * 1.5) * dt;
+        // Vertikales Absinken mit flatternder Wellenbewegung
+        leaf.y += leaf.vy * dt + Math.sin(time / 240 + leaf.x * 0.05) * 0.45;
+        // Drehung durch den Wind
+        leaf.angle += (leaf.spin + this.windSpeed * 0.035) * dt * 60;
+
+        // Rand-Umbruch (Wrapping)
+        if (leaf.x < -25) {
+          leaf.x = WORLD_W + 20;
+          leaf.y = Math.random() * WORLD_H;
+        } else if (leaf.x > WORLD_W + 25) {
+          leaf.x = -20;
+          leaf.y = Math.random() * WORLD_H;
+        }
+
+        if (leaf.y > WORLD_H + 20) {
+          leaf.y = -20;
+          leaf.x = Math.random() * WORLD_W;
+        } else if (leaf.y < -25) {
+          leaf.y = WORLD_H + 20;
+        }
+
+        // Zeichne stilisiertes Dschungelblatt
+        const rad = Phaser.Math.DegToRad(leaf.angle);
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+        const hw = leaf.size * 1.6;
+        const hh = leaf.size * 0.8;
+
+        g.fillStyle(leaf.color, leaf.alpha);
+        // Angespitzte Blattform (Raute)
+        g.beginPath();
+        g.moveTo(leaf.x + cos * hw, leaf.y + sin * hw);
+        g.lineTo(leaf.x - sin * hh, leaf.y + cos * hh);
+        g.lineTo(leaf.x - cos * hw, leaf.y - sin * hw);
+        g.lineTo(leaf.x + sin * hh, leaf.y - cos * hh);
+        g.closePath();
+        g.fillPath();
+
+        // Feine Blattrippe in der Mitte
+        g.lineStyle(1.2, 0x1b5e20, leaf.alpha * 0.7);
+        g.beginPath();
+        g.moveTo(leaf.x - cos * hw, leaf.y - sin * hw);
+        g.lineTo(leaf.x + cos * hw, leaf.y + sin * hw);
+        g.strokePath();
+      }
+    }
   }
 
   private rectTopLeft(r: { id: string; x: number; y: number; w: number; h: number }, color: number) {

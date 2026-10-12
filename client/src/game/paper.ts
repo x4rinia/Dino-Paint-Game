@@ -23,8 +23,8 @@ export const BACKGROUND_THEMES: BackgroundThemeInfo[] = [
   },
   {
     id: "jungle",
-    name: "Urzeit-Dschungel (Kopfüber)",
-    subtitle: "Upside-Down Welt: Dino steht kopf & läuft an der Decke!",
+    name: "Urzeit-Dschungel (Tropischer Wind)",
+    subtitle: "Dynamische Windböen wehen Dino mal vor, mal zurück! 🍃",
     icon: "🌴",
     color: "#e2ede2",
   },

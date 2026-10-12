@@ -173,10 +173,6 @@ export function PhotoCapture({ onPlayLevel, onBackToMenu, backgroundTheme }: Pho
       ctx.save();
       ctx.translate(canvas.width / 2, canvas.height / 2);
       ctx.rotate((rotAngle * Math.PI) / 180);
-      if (backgroundTheme === "jungle") {
-        // Im Dschungel-Modus (Kopfüber-Welt) automatisch vertikal spiegeln
-        ctx.scale(1, -1);
-      }
       ctx.drawImage(img, -targetW / 2, -targetH / 2, targetW, targetH);
       ctx.restore();
 
@@ -318,7 +314,7 @@ export function PhotoCapture({ onPlayLevel, onBackToMenu, backgroundTheme }: Pho
 
       {backgroundTheme === "jungle" && (
         <div style={{ margin: "10px 16px", padding: "10px 16px", background: "rgba(46, 125, 50, 0.22)", border: "1px solid rgba(76, 175, 80, 0.45)", borderRadius: "10px", fontSize: "0.9rem", color: "#a5d6a7", textAlign: "center" }}>
-          🌴 <strong>Urzeit-Dschungel aktiv:</strong> Dein Foto wird automatisch kopfüber gedreht, damit deine gezeichneten Plattformen zum Decken-Baldachin werden und mit umgekehrter Schwerkraft gespielt werden können!
+          🌴 <strong>Urzeit-Dschungel aktiv:</strong> Deine gezeichnete Welt wird in den dichten Urwald eingebettet mit lebendigen Dschungel-Windböen! 🍃
         </div>
       )}
 
