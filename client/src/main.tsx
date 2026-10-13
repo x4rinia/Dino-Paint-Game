@@ -8,26 +8,14 @@ createRoot(document.getElementById("root")!).render(
   </StrictMode>,
 );
 
-// PWA Service Worker Registration & Sofortiges Cache-Update
+// PWA Service Worker Registration & Cache-Update
 if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
   window.addEventListener("load", () => {
     navigator.serviceWorker
       .register("./sw.js")
       .then((reg) => {
-        // Prüfe auf Aktualisierungen bei jedem Seitenaufruf
+        // Prüfe auf Aktualisierungen im Hintergrund (ohne störenden Reload mitten im Spiel!)
         reg.update().catch(() => {});
-        reg.addEventListener("updatefound", () => {
-          const newWorker = reg.installing;
-          if (newWorker) {
-            newWorker.addEventListener("statechange", () => {
-              if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-                // Neuer Service Worker ist bereit – Seite automatisch neu laden
-                console.log("[PWA] Neue Version verfügbar. Lade neu...");
-                window.location.reload();
-              }
-            });
-          }
-        });
       })
       .catch((err) => {
         console.warn("[PWA] Service Worker Registrierung fehlgeschlagen:", err);

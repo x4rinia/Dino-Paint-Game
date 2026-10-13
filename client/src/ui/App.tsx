@@ -104,6 +104,7 @@ export function App() {
   const [showGameModeModal, setShowGameModeModal] = useState(false);
   const [showTvModal, setShowTvModal] = useState(false);
   const [showInstallModal, setShowInstallModal] = useState(false);
+  const [showMobileBurger, setShowMobileBurger] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState(false);
 
@@ -784,11 +785,13 @@ export function App() {
           <img
             src="./sprites/dino_mascot.png"
             alt="Dino"
-            style={{ width: "42px", height: "42px", objectFit: "contain" }}
+            style={{ width: "38px", height: "38px", objectFit: "contain" }}
           />
           <span className="brand-text">Dino Paint Game</span>
         </div>
-        <div className="topbar-actions">
+        
+        {/* Desktop Menü (auf Bildschirmen > 680px) */}
+        <div className="topbar-actions topbar-actions-desktop">
           {!isStandalone && (
             <button
               className="button button-install-pill"
@@ -816,6 +819,17 @@ export function App() {
             ⚙️ Einstellungen
           </button>
         </div>
+
+        {/* Smartphone Burger Menü Button (auf Bildschirmen <= 680px) */}
+        <button
+          className="button button-mobile-burger"
+          type="button"
+          onClick={() => setShowMobileBurger(true)}
+          aria-label="Menü öffnen"
+          title="Menü öffnen"
+        >
+          ☰
+        </button>
       </header>
 
       <main className="home-main">
@@ -915,6 +929,77 @@ export function App() {
           </div>
         </section>
       </main>
+
+      {/* Mobile Burger Menü Dropdown */}
+      {showMobileBurger && (
+        <div className="modal-backdrop mobile-burger-backdrop" onClick={() => setShowMobileBurger(false)}>
+          <div className="mobile-burger-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="mobile-burger-header">
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <img src="./sprites/dino_mascot.png" alt="Dino" style={{ width: "28px", height: "28px", objectFit: "contain" }} />
+                <strong style={{ fontSize: "1.1rem", color: "#f8fafc" }}>Dino Menü</strong>
+              </div>
+              <button
+                type="button"
+                className="button button-burger-close"
+                onClick={() => setShowMobileBurger(false)}
+                aria-label="Menü schließen"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mobile-burger-links">
+              {!isStandalone && (
+                <button
+                  type="button"
+                  className="mobile-burger-item"
+                  onClick={() => {
+                    setShowMobileBurger(false);
+                    setShowInstallModal(true);
+                  }}
+                >
+                  <span className="burger-item-icon">📲</span>
+                  <div className="burger-item-text">
+                    <span className="burger-item-title">App installieren</span>
+                    <span className="burger-item-desc">Auf dem Smartphone installieren</span>
+                  </div>
+                </button>
+              )}
+
+              <button
+                type="button"
+                className={`mobile-burger-item ${tvMode ? "active" : ""}`}
+                onClick={() => {
+                  setShowMobileBurger(false);
+                  setShowTvModal(true);
+                }}
+              >
+                <span className="burger-item-icon">📡</span>
+                <div className="burger-item-text">
+                  <span className="burger-item-title">Streamen & TV</span>
+                  <span className="burger-item-desc">Auf Fernseher streamen & TV-Modus</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className="mobile-burger-item"
+                onClick={() => {
+                  setShowMobileBurger(false);
+                  setShowSettings(true);
+                }}
+              >
+                <span className="burger-item-icon">⚙️</span>
+                <div className="burger-item-text">
+                  <span className="burger-item-title">Einstellungen</span>
+                  <span className="burger-item-desc">Audio, Steuerung & App-Info</span>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showSettings && (
         <SettingsModal

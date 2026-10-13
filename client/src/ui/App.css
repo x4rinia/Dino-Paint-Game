@@ -187,11 +187,14 @@ body {
   overflow: hidden; /* Hauptbild ohne Scrollbalken */
 }
 
-@media (max-height: 580px) {
+@media (max-width: 680px), (max-height: 580px) {
   .dino-app-home {
-    overflow-y: auto;
-    height: auto;
-    min-height: 100vh;
+    overflow-y: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+    padding-bottom: 24px;
   }
 }
 
@@ -351,6 +354,166 @@ body {
 
 .topbar-actions .button-install-pill:hover {
   background: rgba(16, 185, 129, 0.45);
+}
+
+/* Mobile Burger Button */
+.button-mobile-burger {
+  display: none;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  font-size: 1.45rem;
+  line-height: 1;
+  padding: 8px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: all 0.15s ease;
+}
+
+.button-mobile-burger:hover,
+.button-mobile-burger:active {
+  background: rgba(255, 255, 255, 0.28);
+  transform: scale(1.05);
+}
+
+@media (max-width: 680px) {
+  .home-topbar {
+    padding: 8px 14px !important;
+    border-radius: 0 0 12px 12px !important;
+  }
+  .topbar-actions-desktop {
+    display: none !important;
+  }
+  .button-mobile-burger {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+  .brand-text {
+    font-size: 1.2rem !important;
+  }
+}
+
+/* Mobile Burger Menu Sheet / Drawer */
+.mobile-burger-backdrop {
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.mobile-burger-sheet {
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 18px 16px;
+  width: 100%;
+  max-width: 330px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.65);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: slideDownMenu 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideDownMenu {
+  from {
+    transform: translateY(-16px) scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.mobile-burger-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.button-burger-close {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #cbd5e1;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.button-burger-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.mobile-burger-links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobile-burger-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: 100%;
+}
+
+.mobile-burger-item:hover,
+.mobile-burger-item:active {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateX(3px);
+}
+
+.mobile-burger-item.active {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(52, 211, 153, 0.4);
+}
+
+.burger-item-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.burger-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.burger-item-title {
+  font-weight: 700;
+  font-size: 0.98rem;
+  color: #f8fafc;
+}
+
+.burger-item-desc {
+  font-size: 0.78rem;
+  color: #94a3b8;
 }
 
 .home-main {
@@ -2174,14 +2337,29 @@ html, body {
   color: #e2e8f0;
 }
 
-/* Laptop and Responsive Enhancements for Studio Editor */
-@media (max-height: 900px), (max-width: 1200px) {
-  .canvas-viewport {
-    padding: 8px;
-    min-height: 0;
+/* Mobile & Smartphone Optimierungen */
+@media (max-width: 680px) {
+  .studio-header {
+    padding: 8px 12px;
+    gap: 10px;
+    flex-wrap: wrap;
   }
-  .drawing-board {
-    max-height: calc(100vh - 170px);
+  .studio-title h2 {
+    font-size: 1.15rem;
+  }
+  .studio-subtitle {
+    display: none;
+  }
+  .game-play-nav {
+    padding: 8px 12px;
+  }
+  .nav-level-name {
+    font-size: 1.1rem;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
+
 
