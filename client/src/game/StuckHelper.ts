@@ -42,9 +42,11 @@ export class StuckHelper {
     this.scene = scene;
     this.hint = this.buildHint();
     if (showBulb) {
-      this.bulb = this.buildBulb();
+      const bulbX = scene.scale.width - (scene.scale.width <= 1000 ? 54 : 100);
+      const bulbY = scene.scale.height - (scene.scale.height <= 600 ? 170 : 260);
+      this.bulb = this.buildBulb(bulbX, bulbY);
       const zone = scene.add
-        .zone(BULB_X, BULB_Y, BULB_SIZE + 24, BULB_SIZE + 24)
+        .zone(bulbX, bulbY, BULB_SIZE + 24, BULB_SIZE + 24)
         .setScrollFactor(0)
         .setDepth(HINT_DEPTH + 1)
         .setInteractive();
@@ -126,15 +128,16 @@ export class StuckHelper {
     sketchPoly(card, corners, { color: INK.black, width: 3.4, alpha: 0.75, wobble: 2 }, rng);
     sketchLine(card, { x: -w / 2 + 26, y: h / 2 - 7 }, { x: w / 2 - 26, y: h / 2 - 8 }, { color: INK.blue, width: 2.6, alpha: 0.6, wobble: 1.4 }, rng);
 
+    const hintY = this.scene.scale.height - (this.scene.scale.height <= 600 ? 34 : 52);
     return this.scene.add
-      .container(this.scene.scale.width / 2, HINT_Y, [card, text])
+      .container(this.scene.scale.width / 2, hintY, [card, text])
       .setScrollFactor(0)
       .setDepth(HINT_DEPTH)
       .setRotation(-0.01);
   }
 
   /** Hand-drawn light bulb on a paper button, drawn once. */
-  private buildBulb(): Phaser.GameObjects.Container {
+  private buildBulb(x: number, y: number): Phaser.GameObjects.Container {
     const rng = seededFor("stuck-bulb");
     const art = this.scene.add.graphics();
     const half = BULB_SIZE / 2;
@@ -152,6 +155,6 @@ export class StuckHelper {
     sketchLine(art, { x: -25, y: -22 }, { x: -31, y: -27 }, ray, rng);
     sketchLine(art, { x: 25, y: -22 }, { x: 31, y: -27 }, ray, rng);
 
-    return this.scene.add.container(BULB_X, BULB_Y, [art]).setScrollFactor(0).setDepth(HINT_DEPTH);
+    return this.scene.add.container(x, y, [art]).setScrollFactor(0).setDepth(HINT_DEPTH);
   }
 }

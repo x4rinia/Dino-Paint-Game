@@ -474,21 +474,21 @@ export function LevelLibrary({
         position: "relative",
       }}
     >
-      <header className="studio-header">
-        <button className="button button-secondary" type="button" onClick={onBackToMenu}>
+      <header className="studio-header library-header">
+        <button className="button button-secondary studio-back-btn" type="button" onClick={onBackToMenu}>
           ◀ Menü
         </button>
         <div className="studio-title">
-          <h2>🌍 Welten & Level-Bibliothek</h2>
+          <h2>🌍 Welten & Level</h2>
           <span className="studio-subtitle">Verbinde deine gezeichneten Level zu kompletten Welten!</span>
         </div>
         <div className="studio-header-actions" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
           <label
-            className="button button-secondary"
+            className="button button-secondary library-import-btn"
             style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
             title="Level-Datei (.json) oder Bild (.png / .jpg) importieren"
           >
-            {importSuccessMsg ? importSuccessMsg : "📥 Level importieren"}
+            {importSuccessMsg ? importSuccessMsg : "📥 Import"}
             <input
               type="file"
               accept=".json,application/json,.dino.json,image/png,image/jpeg,image/webp"
@@ -500,34 +500,22 @@ export function LevelLibrary({
       </header>
 
       {/* HAUPT-TABS: WELTEN vs. ALLE LEVEL */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          gap: "12px",
-          padding: "16px 20px 0",
-          maxWidth: "1140px",
-          margin: "0 auto",
-          width: "100%",
-          position: "relative",
-          zIndex: 5,
-        }}
-      >
+      <div className="library-tabs-container">
         <button
           type="button"
-          className={`button ${activeTab === "worlds" ? "button-primary" : "button-secondary"}`}
+          className={`button library-tab-btn ${activeTab === "worlds" ? "button-primary" : "button-secondary"}`}
           onClick={() => setActiveTab("worlds")}
-          style={{ fontSize: "1.1rem", padding: "10px 24px", fontWeight: "bold" }}
         >
-          🌍 Spielwelten (8 Level pro Welt)
+          <span className="tab-desktop-text">🌍 Spielwelten (8 Level pro Welt)</span>
+          <span className="tab-mobile-text">🌍 Spielwelten</span>
         </button>
         <button
           type="button"
-          className={`button ${activeTab === "levels" ? "button-primary" : "button-secondary"}`}
+          className={`button library-tab-btn ${activeTab === "levels" ? "button-primary" : "button-secondary"}`}
           onClick={() => setActiveTab("levels")}
-          style={{ fontSize: "1.1rem", padding: "10px 24px", fontWeight: "bold" }}
         >
-          📁 Alle Einzel-Level ({levels.length})
+          <span className="tab-desktop-text">📁 Alle Einzel-Level ({levels.length})</span>
+          <span className="tab-mobile-text">📁 Einzel-Level ({levels.length})</span>
         </button>
       </div>
 
@@ -542,34 +530,18 @@ export function LevelLibrary({
             {/* 1. HAUPTANSICHT: ALLE WELTEN ALS KACHELN */}
             {!selectedWorldId && (
               <div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: "18px",
-                    flexWrap: "wrap",
-                    gap: "12px",
-                    background: "rgba(255, 255, 255, 0.92)",
-                    backdropFilter: "blur(12px)",
-                    WebkitBackdropFilter: "blur(12px)",
-                    padding: "16px 22px",
-                    borderRadius: "18px",
-                    boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
-                  }}
-                >
+                <div className="library-section-header">
                   <div>
-                    <h3 style={{ margin: 0, fontSize: "1.5rem", color: "#0f172a" }}>🗺️ Spielwelten-Übersicht</h3>
-                    <p style={{ margin: "4px 0 0", color: "#475569", fontSize: "0.95rem" }}>
+                    <h3 className="library-section-title">🗺️ Spielwelten-Übersicht</h3>
+                    <p className="library-section-desc">
                       Wähle eine Welt, um ihre 8 Level zu bearbeiten, oder starte direkt eine Kampagne!
                     </p>
                   </div>
                   <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
                     <button
                       type="button"
-                      className="button button-primary"
+                      className="button button-primary library-create-btn"
                       onClick={() => setShowCreateWorldModal(true)}
-                      style={{ fontSize: "1rem", padding: "10px 20px", fontWeight: "bold" }}
                     >
                       ➕ Neue Welt erstellen
                     </button>
@@ -577,13 +549,7 @@ export function LevelLibrary({
                 </div>
 
                 {/* KACHEL-GRID */}
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-                    gap: "22px",
-                  }}
-                >
+                <div className="library-worlds-grid">
                   {worlds.map((w) => {
                     const assignedCount = w.levelIds.filter(Boolean).length;
                     return (
@@ -651,21 +617,20 @@ export function LevelLibrary({
                           </div>
                         </div>
 
-                        <div style={{ display: "flex", gap: "8px", marginTop: "auto", alignItems: "center" }}>
+                        <div className="world-card-actions">
                           <button
                             type="button"
-                            className="button button-primary"
+                            className="button button-primary world-action-btn"
                             onClick={() => handleStartCampaign(w)}
-                            style={{ flex: 1, padding: "10px 14px", fontSize: "0.94rem", fontWeight: "bold" }}
+                            style={{ fontWeight: "bold" }}
                             title="Spielt alle belegten Level dieser Welt in zufälliger Reihenfolge!"
                           >
                             ▶ Spielen
                           </button>
                           <button
                             type="button"
-                            className="button button-secondary"
+                            className="button button-secondary world-action-btn"
                             onClick={() => setSelectedWorldId(w.id)}
-                            style={{ padding: "10px 14px", fontSize: "0.94rem" }}
                             title="8 Level dieser Welt ansehen und bearbeiten"
                           >
                             📂 Level
@@ -750,25 +715,11 @@ export function LevelLibrary({
                 </div>
 
                 {/* AUSGEWÄHLTE WELT KOPFBEREICH */}
-                <div
-                  style={{
-                    background: "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)",
-                    border: "2px solid #cbd5e1",
-                    borderRadius: "16px",
-                    padding: "20px 24px",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                    gap: "16px",
-                    boxShadow: "0 6px 16px rgba(0,0,0,0.06)",
-                    marginBottom: "24px",
-                  }}
-                >
+                <div className="active-world-header">
                   <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px", flexWrap: "wrap" }}>
+                    <div className="active-world-title-row">
                       <span style={{ fontSize: "2rem" }}>{activeWorld.icon || "🌍"}</span>
-                      <h3 style={{ margin: 0, fontSize: "1.6rem", color: "#0f172a" }}>{activeWorld.name}</h3>
+                      <h3 className="active-world-name">{activeWorld.name}</h3>
                       {renderThemeBadge(activeWorld.theme)}
                     </div>
                     <p style={{ margin: 0, color: "#475569", fontSize: "0.95rem" }}>
@@ -794,19 +745,19 @@ export function LevelLibrary({
                     </div>
                   </div>
 
-                  <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                  <div className="active-world-buttons">
                     <button
                       type="button"
                       className="button button-primary"
                       onClick={() => handleStartCampaign(activeWorld)}
                       style={{
-                        fontSize: "1.1rem",
-                        padding: "12px 24px",
+                        fontSize: "1.05rem",
+                        padding: "10px 20px",
                         fontWeight: "bold",
                         boxShadow: "0 6px 14px rgba(16, 185, 129, 0.4)",
                       }}
                     >
-                      ▶️ Welt spielen (Zufällige Reihenfolge)
+                      ▶️ Welt spielen
                     </button>
 
                     <button
@@ -816,7 +767,7 @@ export function LevelLibrary({
                       title="Diese komplette Welt mit allen 8 Leveln als .world.json Datei herunterladen"
                       style={{ fontSize: "0.92rem", padding: "10px 16px" }}
                     >
-                      💾 Welt (JSON) herunterladen
+                      💾 Download (JSON)
                     </button>
 
                     <label
@@ -824,7 +775,7 @@ export function LevelLibrary({
                       style={{ fontSize: "0.92rem", padding: "10px 16px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}
                       title="Eine gespeicherte Welt (.world.json oder .json) von deinem PC hochladen"
                     >
-                      📥 Welt (JSON) hochladen
+                      📥 Upload (JSON)
                       <input
                         type="file"
                         accept=".json,application/json,.world.json"
@@ -841,7 +792,7 @@ export function LevelLibrary({
                         title="Diese Welt löschen"
                         style={{ padding: "10px 14px", color: "#dc2626" }}
                       >
-                        🗑 Welt löschen
+                        🗑 Löschen
                       </button>
                     )}
                   </div>
@@ -858,13 +809,7 @@ export function LevelLibrary({
                 </span>
               </div>
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-                  gap: "16px",
-                }}
-              >
+              <div className="library-slots-grid">
                 {Array.from({ length: 8 }).map((_, index) => {
                   const resolved = worldResolvedLevels[index];
                   const hasLevel = Boolean(resolved);
@@ -873,21 +818,7 @@ export function LevelLibrary({
                   return (
                     <div
                       key={index}
-                      style={{
-                        background: hasLevel ? "#ffffff" : "rgba(241, 245, 249, 0.7)",
-                        border: isBossSlot
-                          ? "3px solid #eab308"
-                          : hasLevel
-                          ? "2px solid #94a3b8"
-                          : "2px dashed #cbd5e1",
-                        borderRadius: "14px",
-                        padding: "14px",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "10px",
-                        boxShadow: hasLevel ? "0 4px 10px rgba(0,0,0,0.06)" : "none",
-                        position: "relative",
-                      }}
+                      className={`library-slot-card ${isBossSlot ? "is-boss" : ""} ${hasLevel ? "has-level" : "empty"}`}
                     >
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <span
@@ -910,15 +841,9 @@ export function LevelLibrary({
                       </div>
 
                       <div
+                        className="library-slot-thumbnail"
                         style={{
-                          height: "90px",
                           background: hasLevel ? "#f8fafc" : "#f1f5f9",
-                          borderRadius: "8px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          overflow: "hidden",
-                          border: "1px solid #e2e8f0",
                         }}
                       >
                         {hasLevel ? (
@@ -951,7 +876,7 @@ export function LevelLibrary({
                         )}
                       </div>
 
-                      <div style={{ display: "flex", gap: "8px", marginTop: "auto" }}>
+                      <div className="library-slot-actions">
                         {hasLevel ? (
                           <>
                             <button

@@ -261,6 +261,7 @@ export function App() {
         background: selectedBackground,
         gameMode,
         gamepadSwapAB,
+        isSmartphone,
       });
       gameHandleRef.current = handle;
       handle.loadLevel(currentLevel);
@@ -270,7 +271,7 @@ export function App() {
         gameHandleRef.current = null;
       };
     }
-  }, [screen, currentLevel, selectedBackground, gameMode, gamepadSwapAB]);
+  }, [screen, currentLevel, selectedBackground, gameMode, gamepadSwapAB, isSmartphone]);
 
   // TV-Modus dynamisch weiterleiten ohne das Spiel neu zu starten
   useEffect(() => {

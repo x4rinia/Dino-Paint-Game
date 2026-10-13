@@ -32,7 +32,7 @@ export class RotateBanner {
     pill.fillStyle(0x000000, 0.65).fillRoundedRect(-w / 2, 0, w, h, h / 2);
 
     this.container = scene.add
-      .container(WORLD_W / 2, TOP_MARGIN, [pill, label])
+      .container(scene.scale.width / 2, TOP_MARGIN, [pill, label])
       .setScrollFactor(0)
       .setDepth(DEPTH)
       .setVisible(false);

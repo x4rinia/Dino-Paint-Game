@@ -19,7 +19,10 @@ export class WinOverlay {
     this.container.setScrollFactor(0);
     this.container.setDepth(DEPTH);
 
-    this.tapZone = scene.add.zone(WORLD_W / 2, WORLD_H / 2, WORLD_W, WORLD_H).setScrollFactor(0).setDepth(DEPTH);
+    this.tapZone = scene.add
+      .zone(scene.scale.width / 2, scene.scale.height / 2, scene.scale.width, scene.scale.height)
+      .setScrollFactor(0)
+      .setDepth(DEPTH);
     this.enterKey = scene.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
 
     this.tapTimer = scene.time.delayedCall(TAP_DELAY_MS, () => {
@@ -38,8 +41,8 @@ export class WinOverlay {
   }
 
   private buildFull(scene: Phaser.Scene, payload: WinEvent) {
-    const cx = WORLD_W / 2;
-    const cy = WORLD_H / 2;
+    const cx = scene.scale.width / 2;
+    const cy = scene.scale.height / 2;
     const rng = seededFor("win-card");
     const card = scene.add.graphics();
     const corners = jitterPoints(rectCorners(cx - 290, cy - 140, 580, 280), 3, rng);

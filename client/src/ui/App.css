@@ -1009,6 +1009,10 @@ body {
   border-bottom: 2px solid #3a3f4e;
   gap: 12px;
   flex-shrink: 0;
+  position: relative;
+  z-index: 200;
+  touch-action: manipulation;
+  pointer-events: auto;
 }
 
 .studio-title h2 {
@@ -2461,18 +2465,38 @@ html, body {
   }
 
   /* 2. ZEICHENSTUDIO / LEVEL-EDITOR */
+  /* 2. ZEICHENSTUDIO / LEVEL-EDITOR */
   .studio-header {
-    padding: 4px 10px !important;
-    padding-top: max(4px, var(--safe-top)) !important;
-    min-height: 38px !important;
+    padding: 6px 10px !important;
+    padding-top: max(8px, var(--safe-top)) !important;
+    min-height: calc(46px + var(--safe-top, 0px)) !important;
     gap: 8px !important;
     flex-shrink: 0 !important;
+    position: relative !important;
+    z-index: 200 !important;
+    touch-action: manipulation !important;
+    pointer-events: auto !important;
+  }
+
+  .studio-back-btn,
+  .button-editor-mobile-burger,
+  .studio-header-actions .button-play-big,
+  .library-import-btn {
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+    cursor: pointer !important;
+    -webkit-tap-highlight-color: rgba(255, 255, 255, 0.2);
+    user-select: none;
+    -webkit-user-select: none;
+    position: relative !important;
+    z-index: 205 !important;
   }
 
   .studio-back-btn {
-    padding: 4px 10px !important;
-    font-size: 0.82rem !important;
+    padding: 6px 12px !important;
+    font-size: 0.88rem !important;
     border-radius: 8px !important;
+    min-height: 36px !important;
   }
 
   .studio-title {
@@ -2500,17 +2524,19 @@ html, body {
     display: flex !important;
     align-items: center;
     justify-content: center;
-    padding: 4px 10px !important;
-    font-size: 1.15rem !important;
+    padding: 6px 12px !important;
+    font-size: 1.25rem !important;
     border-radius: 8px !important;
-    min-height: 32px !important;
+    min-height: 36px !important;
+    min-width: 38px !important;
   }
 
   .studio-header-actions .button-play-big {
-    padding: 5px 12px !important;
-    font-size: 0.85rem !important;
+    padding: 6px 14px !important;
+    font-size: 0.88rem !important;
     border-radius: 8px !important;
-    min-height: 32px !important;
+    min-height: 36px !important;
+    font-weight: 700 !important;
   }
 
   .studio-toolbar {
@@ -2631,9 +2657,13 @@ html, body {
   .studio-header {
     padding-left: max(10px, var(--safe-left)) !important;
     padding-right: max(10px, var(--safe-right)) !important;
-    padding-top: 3px !important;
-    padding-bottom: 3px !important;
-    min-height: 34px !important;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+    min-height: 38px !important;
+    position: relative !important;
+    z-index: 200 !important;
+    touch-action: manipulation !important;
+    pointer-events: auto !important;
   }
 
   .studio-toolbar {
@@ -2648,6 +2678,305 @@ html, body {
     padding-left: max(4px, var(--safe-left)) !important;
     padding-right: max(4px, var(--safe-right)) !important;
     padding-bottom: max(2px, var(--safe-bottom)) !important;
+  }
+}
+
+/* ===================================================================
+   Level-Bibliothek & Spielwelten - Modernes & Smartphone-gerechtes UI
+   =================================================================== */
+
+.library-tabs-container {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 20px 0;
+  max-width: 1140px;
+  margin: 0 auto;
+  width: 100%;
+  position: relative;
+  z-index: 5;
+}
+
+.library-tab-btn {
+  font-size: 1.1rem;
+  padding: 10px 24px;
+  font-weight: bold;
+}
+
+.tab-desktop-text {
+  display: inline;
+}
+.tab-mobile-text {
+  display: none;
+}
+
+.library-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 16px 22px;
+  border-radius: 18px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+.library-section-title {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #0f172a;
+}
+
+.library-section-desc {
+  margin: 4px 0 0;
+  color: #475569;
+  font-size: 0.95rem;
+}
+
+.library-worlds-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 22px;
+}
+
+.world-kachel-card {
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+  position: relative;
+}
+
+.world-card-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.world-action-btn {
+  flex: 1;
+}
+
+.active-world-header {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border: 2px solid #cbd5e1;
+  border-radius: 16px;
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+  margin-bottom: 24px;
+}
+
+.active-world-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.active-world-name {
+  margin: 0;
+  font-size: 1.6rem;
+  color: #0f172a;
+}
+
+.active-world-buttons {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.library-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.library-slot-card {
+  background: #ffffff;
+  border: 2px solid #94a3b8;
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+  position: relative;
+}
+
+.library-slot-card.empty {
+  background: rgba(241, 245, 249, 0.7);
+  border: 2px dashed #cbd5e1;
+  box-shadow: none;
+}
+
+.library-slot-card.is-boss {
+  border: 3px solid #eab308;
+}
+
+.library-slot-thumbnail {
+  height: 90px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.library-slot-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+}
+
+@media (max-width: 680px) {
+  .library-tabs-container {
+    padding: 10px 12px 0 !important;
+    gap: 8px !important;
+  }
+
+  .library-tab-btn {
+    flex: 1 !important;
+    font-size: 0.88rem !important;
+    padding: 8px 10px !important;
+    text-align: center !important;
+  }
+
+  .tab-desktop-text {
+    display: none !important;
+  }
+
+  .tab-mobile-text {
+    display: inline !important;
+  }
+
+  .library-section-header {
+    padding: 12px 14px !important;
+    border-radius: 14px !important;
+  }
+
+  .library-section-title {
+    font-size: 1.15rem !important;
+  }
+
+  .library-section-desc {
+    font-size: 0.84rem !important;
+  }
+
+  .library-create-btn {
+    width: 100% !important;
+    padding: 9px 14px !important;
+    font-size: 0.92rem !important;
+  }
+
+  .library-worlds-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  .world-kachel-card {
+    padding: 14px !important;
+    border-radius: 14px !important;
+  }
+
+  .world-kachel-card h4 {
+    font-size: 1.15rem !important;
+  }
+
+  .world-card-actions {
+    gap: 6px !important;
+  }
+
+  .world-action-btn {
+    padding: 8px 10px !important;
+    font-size: 0.88rem !important;
+  }
+
+  .active-world-header {
+    padding: 12px 14px !important;
+    border-radius: 14px !important;
+    gap: 12px !important;
+  }
+
+  .active-world-name {
+    font-size: 1.25rem !important;
+  }
+
+  .active-world-buttons {
+    width: 100% !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .active-world-buttons button,
+  .active-world-buttons label {
+    width: 100% !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 9px 12px !important;
+    font-size: 0.88rem !important;
+  }
+
+  .library-slots-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .library-slot-card {
+    padding: 10px !important;
+    border-radius: 12px !important;
+    gap: 8px !important;
+  }
+
+  .library-slot-card strong {
+    font-size: 0.88rem !important;
+  }
+
+  .library-slot-thumbnail {
+    height: 64px !important;
+  }
+
+  .library-slot-actions {
+    flex-direction: column !important;
+    gap: 4px !important;
+  }
+
+  .library-slot-actions button {
+    width: 100% !important;
+    padding: 6px 8px !important;
+    font-size: 0.78rem !important;
+  }
+
+  .levels-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+    gap: 12px !important;
+  }
+
+  .level-card {
+    border-radius: 10px !important;
+  }
+
+  .card-thumb {
+    height: 100px !important;
+  }
+
+  .card-title {
+    font-size: 0.92rem !important;
   }
 }
 

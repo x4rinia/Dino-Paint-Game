@@ -32,7 +32,7 @@ export class Hud {
     if (onRestart) {
       const btnW = 136;
       const btnH = 32;
-      const btnX = 1200 - btnW - 16;
+      const btnX = scene.scale.width - btnW - 16;
       const btnY = 10;
 
       const btnBg = scene.add.graphics();

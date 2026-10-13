@@ -27,7 +27,13 @@ let current: GameHandle | null = null;
 
 export function mountGame(
   el: HTMLElement,
-  options?: { tvMode?: boolean; background?: BackgroundTheme; gameMode?: GameMode; gamepadSwapAB?: boolean }
+  options?: {
+    tvMode?: boolean;
+    background?: BackgroundTheme;
+    gameMode?: GameMode;
+    gamepadSwapAB?: boolean;
+    isSmartphone?: boolean;
+  }
 ): GameHandle {
   installAudioUnlock();
   const bgTheme = options?.background || "paper";
@@ -43,17 +49,28 @@ export function mountGame(
 
   const arcadeGravity = gameMode === "rpg_labyrinth" ? 0 : GRAVITY;
 
+  // Auf Smartphones wird ein vergrößerter Ausschnitt (960x540) mit Kameraführung auf Dino genutzt,
+  // damit Dino & Hindernisse groß genug sind. Auf Desktop bleibt die volle 1600x900 Übersicht.
+  const isPhone =
+    !!options?.isSmartphone ||
+    (typeof window !== "undefined" &&
+      (window.innerWidth <= 768 || window.innerHeight <= 540 || /Mobi|Android|iPhone|iPod/i.test(navigator.userAgent)));
+
+  const gameWidth = isPhone ? 960 : WORLD_W;
+  const gameHeight = isPhone ? 540 : WORLD_H;
+
   const game = new Phaser.Game({
     type: Phaser.AUTO,
     parent: el,
-    width: WORLD_W,
-    height: WORLD_H,
+    width: gameWidth,
+    height: gameHeight,
     backgroundColor: bgColor,
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     physics: { default: "arcade", arcade: { gravity: { x: 0, y: arcadeGravity }, debug: DEBUG } },
     scene: [GameScene],
   });
 
+  game.registry.set("isSmartphone", isPhone);
   game.registry.set("tvMode", !!options?.tvMode);
   game.registry.set("backgroundTheme", bgTheme);
   game.registry.set("gameMode", gameMode);

@@ -36,7 +36,7 @@ export class LevelIntro {
         fontSize: "84px",
         color: INK_CSS.black,
         align: "center",
-        wordWrap: { width: WORLD_W - 320 },
+        wordWrap: { width: scene.scale.width - (scene.scale.width <= 1000 ? 120 : 320) },
       })
       .setOrigin(0.5);
 
@@ -49,7 +49,7 @@ export class LevelIntro {
     sketchPoly(paper, corners, { color: INK.black, width: 5, wobble: 2.5 }, rng);
 
     return scene.add
-      .container(WORLD_W / 2, WORLD_H / 2, [paper, title])
+      .container(scene.scale.width / 2, scene.scale.height / 2, [paper, title])
       .setRotation(Phaser.Math.DegToRad(-2))
       .setScrollFactor(0)
       .setDepth(DEPTH)
@@ -58,7 +58,7 @@ export class LevelIntro {
 
   private showGo(scene: Phaser.Scene) {
     const go = scene.add
-      .text(WORLD_W / 2, WORLD_H / 2, "GO!", {
+      .text(scene.scale.width / 2, scene.scale.height / 2, "GO!", {
         fontFamily: HAND_FONT,
         fontSize: "150px",
         color: INK_CSS.green,

@@ -341,6 +341,9 @@ export class Player {
   teleport(x: number, y: number) {
     this.body.reset(x, y);
     this.rect.setScale(1, 1);
+    if (this.scene.registry.get("isSmartphone")) {
+      this.scene.cameras.main.centerOn(x, y);
+    }
   }
 
   setActive(active: boolean) {

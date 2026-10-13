@@ -18,7 +18,7 @@ export class ReplayUi {
   private readonly promptY: number;
 
   constructor(scene: Phaser.Scene) {
-    const cx = WORLD_W / 2;
+    const cx = scene.scale.width / 2;
 
     // Badge.
     const bw = 220;
@@ -42,7 +42,7 @@ export class ReplayUi {
     sketchCircle(this.dot, 0, 0, 12.5, { color: 0x8f2a24, width: 2.6, wobble: 1 }, rng, 1);
 
     // Prompt: marker text over a wobbly underline and a little curly arrow, bobbing gently.
-    this.promptY = WORLD_H - 62;
+    this.promptY = scene.scale.height - 62;
     const prng = seededFor("replay-prompt");
     const text = scene.add
       .text(0, 0, "press R / tap to play again", {

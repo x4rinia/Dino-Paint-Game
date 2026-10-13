@@ -48,35 +48,43 @@ export class TouchControls {
     if (missing > 0) scene.input.addPointer(missing);
 
     const { width, height } = scene.scale;
-    const y = height - EDGE_MARGIN - BUTTON_SIZE / 2;
-    const jumpX = width - EDGE_MARGIN - BUTTON_SIZE / 2;
-    const fireX = jumpX - BUTTON_SIZE - BUTTON_GAP;
+    const isSmall = height <= 600;
+    const btnSize = isSmall ? 82 : BUTTON_SIZE;
+    const edgeMargin = isSmall ? 22 : EDGE_MARGIN;
+    const btnGap = isSmall ? 18 : BUTTON_GAP;
+
+    const y = height - edgeMargin - btnSize / 2;
+    const jumpX = width - edgeMargin - btnSize / 2;
+    const fireX = jumpX - btnSize - btnGap;
+    const pauseX = width - (isSmall ? 46 : 60);
+    const pauseY = isSmall ? 46 : 60;
+    const pauseSize = isSmall ? 48 : 64;
 
     if (gameMode === "rpg_labyrinth") {
       // 🧭 RPG Maker Modus: Kompaktes 4-Wege Kreuz
-      const cx = EDGE_MARGIN + 120;
-      const cy = height - EDGE_MARGIN - 110;
-      const step = 82;
-      const btnSize = 80;
+      const cx = edgeMargin + (isSmall ? 85 : 120);
+      const cy = height - edgeMargin - (isSmall ? 80 : 110);
+      const step = isSmall ? 64 : 82;
+      const dpadSize = isSmall ? 64 : 80;
 
       this.buttons = [
-        this.createButton("up", cx, cy - step, btnSize, btnSize),
-        this.createButton("down", cx, cy + step, btnSize, btnSize),
-        this.createButton("left", cx - step, cy, btnSize, btnSize),
-        this.createButton("right", cx + step, cy, btnSize, btnSize),
-        this.createButton("fire", fireX, y, BUTTON_SIZE, BUTTON_SIZE),
-        this.createButton("jump", jumpX, y, BUTTON_SIZE, BUTTON_SIZE),
-        this.createButton("pause", width - 60, 60, 64, 64),
+        this.createButton("up", cx, cy - step, dpadSize, dpadSize),
+        this.createButton("down", cx, cy + step, dpadSize, dpadSize),
+        this.createButton("left", cx - step, cy, dpadSize, dpadSize),
+        this.createButton("right", cx + step, cy, dpadSize, dpadSize),
+        this.createButton("fire", fireX, y, btnSize, btnSize),
+        this.createButton("jump", jumpX, y, btnSize, btnSize),
+        this.createButton("pause", pauseX, pauseY, pauseSize, pauseSize),
       ];
     } else {
       // 🏃‍♂️ Klassischer Platformer Modus
-      const leftX = EDGE_MARGIN + BUTTON_SIZE / 2;
+      const leftX = edgeMargin + btnSize / 2;
       this.buttons = [
-        this.createButton("left", leftX, y, BUTTON_SIZE, BUTTON_SIZE),
-        this.createButton("right", leftX + BUTTON_SIZE + BUTTON_GAP, y, BUTTON_SIZE, BUTTON_SIZE),
-        this.createButton("fire", fireX, y, BUTTON_SIZE, BUTTON_SIZE),
-        this.createButton("jump", jumpX, y, BUTTON_SIZE, BUTTON_SIZE),
-        this.createButton("pause", width - 60, 60, 64, 64),
+        this.createButton("left", leftX, y, btnSize, btnSize),
+        this.createButton("right", leftX + btnSize + btnGap, y, btnSize, btnSize),
+        this.createButton("fire", fireX, y, btnSize, btnSize),
+        this.createButton("jump", jumpX, y, btnSize, btnSize),
+        this.createButton("pause", pauseX, pauseY, pauseSize, pauseSize),
       ];
     }
   }

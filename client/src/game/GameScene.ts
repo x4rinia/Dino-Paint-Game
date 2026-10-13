@@ -603,6 +603,13 @@ export class GameScene extends Phaser.Scene {
     this.player.setGameMode(gameMode);
     this.player.setAllowDoubleJump(bgTheme === "volcano");
 
+    // Kameraführung: Auf Smartphones vergrößerter Ausschnitt (1.67x) mit dynamischer Kameraführung auf Dino!
+    if (this.registry.get("isSmartphone")) {
+      this.cameras.main.setBounds(0, 0, WORLD_W, WORLD_H);
+      this.cameras.main.startFollow(this.player.rect, true, 0.08, 0.08);
+      this.cameras.main.centerOn(startX, startY);
+    }
+
     // Kollisionen: Spieler mit Plattformen
     // Im Jump 'n' Run darf Dino von unten durch horizontale Plattformen nach oben springen.
     // Aber WÄNDE (vertikale Linien) und seitliche Stöße sind IMMER 100% solide Barrieren!
@@ -1223,11 +1230,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   private showPauseOverlay() {
-    const cx = WORLD_W / 2;
-    const cy = WORLD_H / 2;
+    const cx = this.scale.width / 2;
+    const cy = this.scale.height / 2;
     const rng = seededFor("pause-card");
 
-    const bg = this.add.rectangle(cx, cy, WORLD_W, WORLD_H, 0x000000, 0.45).setScrollFactor(0).setDepth(2400);
+    const bg = this.add.rectangle(cx, cy, this.scale.width, this.scale.height, 0x000000, 0.45).setScrollFactor(0).setDepth(2400);
     const card = this.add.graphics().setScrollFactor(0).setDepth(2401);
     const corners = jitterPoints(rectCorners(cx - 240, cy - 130, 480, 260), 3, rng);
     fillPoly(card, corners, INK.paper, 0.98);
