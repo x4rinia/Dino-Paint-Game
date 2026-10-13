@@ -493,7 +493,8 @@ export class GameScene extends Phaser.Scene {
       const body = rect.body as Phaser.Physics.Arcade.Body;
       body.setAllowGravity(false);
       body.setImmovable(true);
-      body.friction.x = 1;
+      body.moves = false;
+      body.friction.x = 0;
       body.friction.y = 0;
 
       // Einweg-Kollision: Verhindert seitliches Hängenbleiben und Ruckeln
@@ -662,7 +663,30 @@ export class GameScene extends Phaser.Scene {
     });
 
     // Kollisionen: Spieler mit beweglichen Plattformen (Liften)
-    this.physics.add.collider(this.player.rect, this.movingPlatformsGroup);
+    this.physics.add.collider(
+      this.player.rect,
+      this.movingPlatformsGroup,
+      undefined,
+      (playerObj, mpObj) => {
+        const pRect = playerObj as Phaser.GameObjects.Rectangle;
+        const pBody = pRect.body as Phaser.Physics.Arcade.Body;
+        const mRect = mpObj as Phaser.GameObjects.Rectangle;
+        const mBody = mRect.body as Phaser.Physics.Arcade.Body;
+
+        // Wenn Dino nach oben springt (velocity.y < -15), springt er ungehindert nach oben durch
+        if (pBody.velocity.y < -15) {
+          return false;
+        }
+
+        // Nur kollidieren, wenn Dinos Füße auf oder über der Plattform-Oberkante sind
+        const platTop = mBody.y;
+        const tolerance = 12;
+        const wasAbove = (pBody.prev?.y ?? pBody.y) + pBody.height <= platTop + tolerance;
+        const isAboveOrOn = pBody.bottom <= platTop + tolerance;
+
+        return wasAbove || isAboveOrOn;
+      }
+    );
 
     // Overlap: Spieler mit Teleportern (Lila Portale)
     this.physics.add.overlap(this.player.rect, this.teleportersGroup, (_p, tpRect) => {
@@ -1043,30 +1067,52 @@ export class GameScene extends Phaser.Scene {
       mp.rect.setPosition(targetX, targetY);
       mp.art.setPosition(targetX, targetY);
 
-      // Durch Zuweisen der echten Physik-Geschwindigkeit nutzt Phaser Arcade Physics
-      // automatisch native Plattformreibung (friction.x = 1). Dadurch bleibt der Dino
-      // stabil darauf stehen UND kann frei darauf laufen (kein "Förderband-Effekt" mehr!).
-      mp.body.setVelocity(dx / dt, dy / dt);
+      // Körperposition exakt synchron halten (kein Auseinanderdriften von Grafik und Hitbox!)
+      mp.body.position.x = targetX - mp.w / 2;
+      mp.body.position.y = targetY - mp.h / 2;
+
+      const platTop = targetY - mp.h / 2;
+      const platLeft = targetX - mp.w / 2;
+      const platRight = targetX + mp.w / 2;
 
       if (this.player && !this.locked) {
-        const platTop = targetY - mp.h / 2;
-        const platLeft = targetX - mp.w / 2;
-        const platRight = targetX + mp.w / 2;
         const playerX = this.player.x;
         const playerBottom = this.player.bottom;
 
+        // Spieler steht WIRKLICH auf der Plattform:
+        // - Füsse liegen direkt auf der Oberkante (Toleranz: wenige Pixel)
+        // - Spieler ist horizontal innerhalb der Plattformgrenzen
+        // - Spieler springt nicht gerade nach oben
         const isOnPlat =
-          Math.abs(playerBottom - platTop) <= 12 &&
-          playerX >= platLeft - 8 &&
-          playerX <= platRight + 8;
+          this.player.body.velocity.y >= -15 &&
+          playerBottom >= platTop - 4 &&
+          playerBottom <= platTop + 10 &&
+          playerX >= platLeft - 2 &&
+          playerX <= platRight + 2;
 
         if (isOnPlat) {
           this.lastGrounded = { x: playerX, feetY: playerBottom };
-          if (dy > 0) {
-            // Vertikaler Abstieg: sanft auf der Plattform halten
-            this.player.rect.y += dy;
-            this.player.body.y += dy;
-          }
+          // Spieler wird horizontal & vertikal exakt mit der Plattform mitgeführt
+          this.player.rect.x += dx;
+          this.player.body.x += dx;
+          this.player.rect.y += dy;
+          this.player.body.y += dy;
+        }
+      }
+
+      // Auch blaue Kisten auf dem Lift sauber mitführen
+      for (const m of this.moversList) {
+        const mBottom = m.body.y + m.h;
+        const mCenterX = m.body.x + m.w / 2;
+        const isBoxOnPlat =
+          Math.abs(mBottom - platTop) <= 8 &&
+          mCenterX >= platLeft - 4 &&
+          mCenterX <= platRight + 4;
+        if (isBoxOnPlat) {
+          m.rect.x += dx;
+          m.body.x += dx;
+          m.rect.y += dy;
+          m.body.y += dy;
         }
       }
     }
