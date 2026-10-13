@@ -289,6 +289,21 @@ export class Player {
       this.body.setVelocityY(-jumpVel * JUMP_CUTOFF_FACTOR);
     }
 
+    // 🌌 Schwebendes Fallen im Kosmos-/Nacht-Level:
+    // Begrenzt die Abwärts-Fallgeschwindigkeit sanft für ein echtes schwebendes Gleitgefühl!
+    if (this.gravityMode === "low" && this.body.velocity.y > 175) {
+      this.body.setVelocityY(175);
+      if (Math.random() < 0.15) {
+        burstParticles(this.scene, this.x + (Math.random() - 0.5) * 16, this.bottom - 4, {
+          color: 0xc4b5fd,
+          count: 1,
+          speed: [10, 30],
+          size: 3,
+          duration: 260,
+        });
+      }
+    }
+
     this.wasJumpDown = jumpDown;
     this.wasGrounded = grounded;
   }

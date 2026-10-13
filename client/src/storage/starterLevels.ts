@@ -29,8 +29,8 @@ export const starterLevelTutorial: Level = {
     { id: "hazard-1", type: "lava", x: 325, y: 950, w: 50, h: 30 },
   ],
   bouncers: [
-    { id: "bounce-start", x: 190, y: 890, w: 80, h: 26 },
-    { id: "bounce-1", x: 580, y: 890, w: 90, h: 26 },
+    { id: "bounce-start", x: 180, y: 896, w: 50, h: 24 },
+    { id: "bounce-1", x: 580, y: 896, w: 50, h: 24 },
   ],
   movers: [],
   collectibles: [
@@ -58,11 +58,11 @@ export const starterLevelTutorial: Level = {
 export const starterLevelPortals: Level = {
   version: 2,
   name: "Portal-Express",
-  intro: "Kosmos-Station: Nutze Portale und Trampoline, und grille feindliche Insekten mit deinem Feuerball!",
+  intro: "Kosmos-Station: Nutze Portale zum Hochbeamen, schwebe sanft durchs All und hüte dich vor der schwebenden Lava!",
   quips: [
-    "Wuuusch! Teleportation funktioniert perfekt!",
+    "Wuuusch! Von oben herabgeschwebt!",
     "Feuerball trifft Flug-Insekt!",
-    "Schwerelos durchs All hüpfen!",
+    "Schwerelos durchs All gleiten!",
     "Erst alle Dino-Eier sammeln!",
   ],
   theme: "space",
@@ -77,11 +77,11 @@ export const starterLevelPortals: Level = {
     { id: "float-island-2", x: 780, y: 710, w: 200, h: 30 },
   ],
   hazards: [
-    { id: "cosmic-hazard", type: "lava", x: 530, y: 955, w: 80, h: 25 },
+    { id: "floating-plasma-1", type: "lava", x: 730, y: 740, w: 50, h: 36 },
   ],
   bouncers: [
-    { id: "space-bouncer-left", x: 220, y: 890, w: 80, h: 26 },
-    { id: "space-bouncer", x: 650, y: 780, w: 80, h: 26 },
+    { id: "space-bouncer-left", x: 220, y: 896, w: 50, h: 24 },
+    { id: "space-bouncer", x: 650, y: 786, w: 50, h: 24 },
   ],
   movers: [],
   collectibles: [
@@ -90,7 +90,8 @@ export const starterLevelPortals: Level = {
   ],
   teleporters: [
     { id: "portal-a", x: 360, y: 855, w: 40, h: 65, targetId: "portal-b", pairIndex: 1 },
-    { id: "portal-b", x: 540, y: 855, w: 40, h: 65, targetId: "portal-a", pairIndex: 1 },
+    { id: "portal-b", x: 580, y: 440, w: 40, h: 65, targetId: "portal-a", pairIndex: 1 },
+    { id: "portal-return", x: 935, y: 855, w: 40, h: 65, targetId: "start", pairIndex: 2 },
   ],
   movingPlatforms: [],
   coins: [
@@ -137,9 +138,9 @@ export const starterLevelAllColors: Level = {
     { id: "spikes-2", type: "lava", x: 685, y: 955, w: 30, h: 20 },
   ],
   bouncers: [
-    { id: "bounce-arena-start", x: 200, y: 890, w: 80, h: 26 },
-    { id: "trampoline-mid", x: 480, y: 890, w: 80, h: 26 },
-    { id: "bounce-arena-right", x: 780, y: 890, w: 80, h: 26 },
+    { id: "bounce-arena-start", x: 200, y: 896, w: 50, h: 24 },
+    { id: "trampoline-mid", x: 480, y: 896, w: 50, h: 24 },
+    { id: "bounce-arena-right", x: 780, y: 896, w: 50, h: 24 },
   ],
   movers: [
     { id: "box-1", x: 180, y: 865, w: 48, h: 48 },

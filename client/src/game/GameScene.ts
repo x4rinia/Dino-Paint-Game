@@ -21,8 +21,6 @@ import { playDeathEffect } from "./deathEffects";
 import { burstParticles, coinBurst, resetParticleBudget } from "./particles";
 import { Hud } from "./Hud";
 import { WinOverlay } from "./WinOverlay";
-import { RunRecorder } from "./RunRecorder";
-import { ReplayController } from "./Replay";
 import { LevelIntro } from "./LevelIntro";
 import { TouchControls, touchControlsEnabled } from "./TouchControls";
 import { RotateBanner } from "./RotateBanner";
@@ -145,9 +143,6 @@ export class GameScene extends Phaser.Scene {
   private doodles!: LevelDoodles;
   private hud!: Hud;
   private winOverlay?: WinOverlay;
-  private recorder = new RunRecorder(0);
-  private replayCtl?: ReplayController;
-  private pendingReplay?: WinEvent;
   private debugOverlay?: DebugOverlay;
   private isExitedFromTeleporter = true;
   private goalDoorArt?: Phaser.GameObjects.Graphics;
@@ -263,8 +258,6 @@ export class GameScene extends Phaser.Scene {
     this.intro = false;
     this.isPaused = false;
     this.winOverlay = undefined;
-    this.replayCtl = undefined;
-    this.pendingReplay = undefined;
     if (this.pauseContainer) {
       this.pauseContainer.destroy();
       this.pauseContainer = undefined;
@@ -290,8 +283,6 @@ export class GameScene extends Phaser.Scene {
 
     this.physics.world.resume();
     this.attemptState.reset(this);
-    this.recorder = new RunRecorder(level.enemies.length);
-    this.recorder.clear(this.time.now);
     resetParticleBudget(this);
     this.physics.world.setBounds(0, 0, WORLD_W, WORLD_H + FALL_MARGIN + 50);
 
@@ -310,7 +301,7 @@ export class GameScene extends Phaser.Scene {
     if (gameMode === "rpg_labyrinth") {
       this.physics.world.gravity.y = 0;
     } else if (bgTheme === "space") {
-      this.physics.world.gravity.y = 520;
+      this.physics.world.gravity.y = 350;
     } else {
       this.physics.world.gravity.y = 1200;
     }
@@ -355,10 +346,14 @@ export class GameScene extends Phaser.Scene {
 
       let art: Phaser.GameObjects.Graphics | Phaser.GameObjects.Image;
       if (this.textures.exists("trampoline_mushroom")) {
-        // Natürliche, wohlproportionierte Maße für den neuen symmetrischen Pilz
-        const mH = Math.max(46, Math.min(56, bw * 0.85));
-        const mW = mH * (174 / 256);
-        art = this.add.image(bx, by - (mH - bh) / 2, "trampoline_mushroom").setDisplaySize(mW, mH).setDepth(DEPTH.staticLevel + 2);
+        // Kompakte, natürliche Pilz-Größe: sitzt fest auf der Plattform auf, ragt nicht zu hoch auf
+        const mH = 34;
+        const mW = 28;
+        art = this.add
+          .image(bx, by + bh / 2, "trampoline_mushroom")
+          .setOrigin(0.5, 1.0)
+          .setDisplaySize(mW, mH)
+          .setDepth(DEPTH.staticLevel + 2);
       } else {
         const g = this.add.graphics().setDepth(DEPTH.staticLevel + 2);
         this.drawBouncerArt(g, bw, bh, b.id);
@@ -608,7 +603,6 @@ export class GameScene extends Phaser.Scene {
     this.player.setGravityMode(bgTheme === "space" ? "low" : "normal");
     this.player.setGameMode(gameMode);
     this.player.setAllowDoubleJump(bgTheme === "volcano");
-    this.player.onJump = () => this.recorder.addJump(this.time.now);
 
     // Kollisionen: Spieler mit Plattformen
     // Im Jump 'n' Run darf Dino von unten durch horizontale Plattformen nach oben springen.
@@ -981,15 +975,6 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    if (this.pendingReplay) this.beginReplay(this.pendingReplay);
-    if (this.replayCtl) {
-      this.replayCtl.update(delta);
-      this.rotateBanner?.update();
-      this.doodles.update(this);
-      this.hud.setCoins(this.replayCtl.coinsCollected);
-      return;
-    }
-
     if (Phaser.Input.Keyboard.JustDown(this.helperKey)) this.useHelper();
 
     // Braun: bewegliche Plattformen (Lifte) animieren & Spieler sauber mitführen
@@ -1083,7 +1068,6 @@ export class GameScene extends Phaser.Scene {
       this.lastGrounded = { x: this.player.x, feetY: this.player.bottom };
     }
     this.rotateBanner?.update();
-    if (!this.locked) this.recorder.update(this.time.now, this.player, this.enemies);
 
     if (!this.locked) {
       if (this.player.y > this.fallThreshold) {
@@ -1494,16 +1478,16 @@ export class GameScene extends Phaser.Scene {
   private handleTrampolineBounce(bouncerRect: Phaser.GameObjects.Rectangle) {
     const bId = bouncerRect.getData("id");
     const bEntity = this.bouncersList.find((b) => b.id === bId);
-    if (bEntity) {
-      // Trampolin drückt sich sichtbar ein und federt elastisch zurück
+    if (bEntity?.art) {
+      // Sanftes, elastisches Einfedern (kein extremes Dehnen/Verzerren)
       this.tweens.killTweensOf(bEntity.art);
       this.tweens.add({
         targets: bEntity.art,
-        scaleX: this.gameMode === "rpg_labyrinth" ? 0.75 : 1,
-        scaleY: 0.45,
-        duration: 55,
+        scaleY: 0.88,
+        scaleX: 1.05,
+        duration: 65,
         yoyo: true,
-        ease: "Back.easeOut",
+        ease: "Sine.easeOut",
       });
     }
 
@@ -1534,21 +1518,6 @@ export class GameScene extends Phaser.Scene {
     const prevVy = this.player.body.velocity.y;
     const isHardImpact = prevVy > 200 || this.cursors?.up.isDown || this.keys?.W.isDown;
     const bounceVelocity = isHardImpact ? BOUNCE_VELOCITY * 1.18 : BOUNCE_VELOCITY * 0.95;
-
-    // Federnde Sprunganimation auf dem Trampolin-Pilz
-    const bouncerId = (bouncerRect as any)?.getData?.("id");
-    const bouncerItem = this.bouncersList.find((b) => b.id === bouncerId);
-    if (bouncerItem?.art) {
-      this.tweens.killTweensOf(bouncerItem.art);
-      this.tweens.add({
-        targets: bouncerItem.art,
-        scaleY: 0.65,
-        scaleX: 1.25,
-        duration: 90,
-        yoyo: true,
-        ease: "Quad.easeOut",
-      });
-    }
 
     const burstY = this.player.bottom;
     this.player.trampolineBounce(bounceVelocity, () => {
@@ -1641,12 +1610,37 @@ export class GameScene extends Phaser.Scene {
     const src = this.teleportersList.find((t) => t.id === srcId);
     if (!src) return;
 
+    // Falls das Ziel "start" ist -> Beamt Dino direkt zurück zum Levelstart!
+    if (src.targetId === "start") {
+      this.isExitedFromTeleporter = false;
+      this.lastTeleportAt = this.time.now;
+      playTeleport();
+      burstParticles(this, src.x, src.y, {
+        color: INK.purple,
+        count: 24,
+        speed: [80, 260],
+        size: 9,
+        duration: 450,
+      });
+      const startX = sx(this.level.start.x);
+      const startY = sy(this.level.start.y);
+      this.player.teleport(startX, startY);
+      burstParticles(this, startX, startY, {
+        color: INK.purple,
+        count: 24,
+        speed: [80, 260],
+        size: 9,
+        duration: 450,
+      });
+      floatText(this, "Zurück zum Start! 🌀", startX, startY - 35, INK_CSS.purple);
+      return;
+    }
+
     const dest = this.teleportersList.find((t) => t.id === src.targetId);
     if (!dest) {
       this.isExitedFromTeleporter = false;
       this.lastTeleportAt = this.time.now;
       if (this.gameMode === "rpg_labyrinth") {
-        // Magischer 4-Wege Vortex-Warp: Teleportiert Dino 240px vorwärts in Laufrichtung
         playTeleport();
         burstParticles(this, src.x, src.y, {
           color: INK.purple,
@@ -1698,8 +1692,9 @@ export class GameScene extends Phaser.Scene {
     });
     playTeleport();
 
-    // Spieler versetzen
-    this.player.teleport(dest.x, dest.y - PLAYER_H / 2 + 5);
+    // Spieler versetzen (Wenn das Portal hoch in der Luft platziert ist, fällt Dino sanft herab!)
+    this.player.teleport(dest.x, dest.y);
+    this.player.body.setVelocity(0, 45);
 
     // Ziel: Partikel & Pop
     burstParticles(this, dest.x, dest.y, {
@@ -1710,7 +1705,7 @@ export class GameScene extends Phaser.Scene {
       duration: 450,
     });
 
-    this.player.rect.setScale(0.7, 1.4);
+    this.player.rect.setScale(0.85, 1.2);
     this.tweens.add({
       targets: this.player.rect,
       scaleX: 1,
@@ -1799,7 +1794,6 @@ export class GameScene extends Phaser.Scene {
       this.intro = false;
       this.physics.world.resume();
       this.attemptState.restartAttempt(this);
-      this.recorder.clear(this.time.now);
       for (const p of this.level.platforms) if (isAssist(p.id)) showAssistTag(this, p);
     });
   }
@@ -1912,7 +1906,6 @@ export class GameScene extends Phaser.Scene {
     const isStomp = this.player.isFalling && this.player.bottom <= enemy.midY;
     if (isStomp) {
       enemy.kill();
-      this.recorder.addStomp(this.time.now, this.enemies.indexOf(enemy));
       this.player.bounce(STOMP_BOUNCE_VELOCITY);
       playStomp();
     } else {
@@ -1925,7 +1918,6 @@ export class GameScene extends Phaser.Scene {
     coin.setVisible(false);
     (coin.body as Phaser.Physics.Arcade.Body).enable = false;
     this.attemptState.collectCoin();
-    this.recorder.addCoin(this.time.now, this.coins.indexOf(coin));
     playCoin();
     coinBurst(this, coin.x, coin.y);
   }
@@ -2011,7 +2003,6 @@ export class GameScene extends Phaser.Scene {
 
   private respawn() {
     this.attemptState.nextAttempt(this);
-    this.recorder.clear(this.time.now);
     this.resetCoinVisibility();
 
     // Sammelobjekte präzise auf 30x30 Bildgröße zurücksetzen
@@ -2051,7 +2042,6 @@ export class GameScene extends Phaser.Scene {
   private triggerWin() {
     if (this.locked) return;
     this.won = true;
-    this.recorder.finish(this.time.now, this.player, this.enemies);
 
     const payload: WinEvent = {
       coins: this.attemptState.coins,
@@ -2060,30 +2050,13 @@ export class GameScene extends Phaser.Scene {
     };
     gameEvents.emit("win", payload);
     playWin();
-    if (this.recorder.usable) this.pendingReplay = payload;
-    else this.winOverlay = new WinOverlay(this, payload, () => this.restartLevel());
-  }
-
-  private beginReplay(payload: WinEvent) {
-    this.pendingReplay = undefined;
-    this.physics.world.pause();
-    this.winOverlay = new WinOverlay(this, payload, () => this.restartLevel(), {
-      deaths: this.attemptState.attempt - 1,
-      attempt: this.attemptState.attempt,
-    });
-    this.replayCtl = new ReplayController(this, this.recorder, this.player, this.enemies, this.coins);
+    this.winOverlay = new WinOverlay(this, payload, () => this.restartLevel());
   }
 
   public restartLevel() {
     if (this.winOverlay) {
       this.winOverlay.destroy();
       this.winOverlay = undefined;
-    }
-    this.pendingReplay = undefined;
-    if (this.replayCtl) {
-      this.replayCtl.destroy();
-      this.replayCtl = undefined;
-      this.physics.world.resume();
     }
     if (this.pauseContainer) {
       this.pauseContainer.destroy();
@@ -2092,7 +2065,6 @@ export class GameScene extends Phaser.Scene {
     this.isPaused = false;
     this.won = false;
     this.attemptState.restartAttempt(this);
-    this.recorder.clear(this.time.now);
     this.resetCoinVisibility();
 
     // Sammelobjekte präzise auf 30x30 Bildgröße zurücksetzen

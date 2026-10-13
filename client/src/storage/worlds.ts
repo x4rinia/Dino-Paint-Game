@@ -40,8 +40,8 @@ const JUNGLE_LEVELS: Level[] = [
       { id: "lava-2", type: "lava", x: 700, y: 955, w: 70, h: 25 },
     ],
     bouncers: [
-      { id: "b-lava-1", x: 190, y: 890, w: 80, h: 26 },
-      { id: "b-lava-2", x: 500, y: 890, w: 80, h: 26 },
+      { id: "b-lava-1", x: 190, y: 896, w: 50, h: 24 },
+      { id: "b-lava-2", x: 500, y: 896, w: 50, h: 24 },
     ],
     movers: [],
     collectibles: [
@@ -80,9 +80,9 @@ const JUNGLE_LEVELS: Level[] = [
       { id: "lava-garden", type: "lava", x: 450, y: 955, w: 120, h: 25 },
     ],
     bouncers: [
-      { id: "b-entry", x: 180, y: 890, w: 80, h: 26 },
-      { id: "b-safety", x: 700, y: 890, w: 70, h: 26 },
-      { id: "b-high", x: 740, y: 690, w: 75, h: 26 },
+      { id: "b-entry", x: 180, y: 896, w: 50, h: 24 },
+      { id: "b-safety", x: 700, y: 896, w: 50, h: 24 },
+      { id: "b-high", x: 740, y: 696, w: 50, h: 24 },
     ],
     movers: [
       { id: "box-1", x: 260, y: 865, w: 48, h: 48 },
@@ -123,10 +123,10 @@ const JUNGLE_LEVELS: Level[] = [
       { id: "h2", type: "lava", x: 650, y: 955, w: 60, h: 25 },
     ],
     bouncers: [
-      { id: "b1", x: 180, y: 890, w: 75, h: 26 },
-      { id: "b-safe", x: 420, y: 890, w: 75, h: 26 },
-      { id: "b2", x: 570, y: 780, w: 75, h: 26 },
-      { id: "b3", x: 740, y: 650, w: 75, h: 26 },
+      { id: "b1", x: 180, y: 896, w: 50, h: 24 },
+      { id: "b-safe", x: 420, y: 896, w: 50, h: 24 },
+      { id: "b2", x: 570, y: 786, w: 50, h: 24 },
+      { id: "b3", x: 740, y: 656, w: 50, h: 24 },
     ],
     movers: [],
     collectibles: [
@@ -164,9 +164,9 @@ const JUNGLE_LEVELS: Level[] = [
       { id: "h2", type: "lava", x: 585, y: 955, w: 180, h: 30 },
     ],
     bouncers: [
-      { id: "b-start", x: 180, y: 890, w: 80, h: 26 },
-      { id: "b-recovery", x: 460, y: 890, w: 75, h: 26 },
-      { id: "b-end", x: 800, y: 670, w: 80, h: 26 },
+      { id: "b-start", x: 180, y: 896, w: 50, h: 24 },
+      { id: "b-recovery", x: 460, y: 896, w: 50, h: 24 },
+      { id: "b-end", x: 800, y: 676, w: 50, h: 24 },
     ],
     movers: [],
     collectibles: [
@@ -203,11 +203,13 @@ const JUNGLE_LEVELS: Level[] = [
       { id: "p3", x: 500, y: 760, w: 190, h: 30 },
       { id: "p4", x: 730, y: 680, w: 270, h: 80 },
     ],
-    hazards: [],
+    hazards: [
+      { id: "floating-plasma-7", type: "lava", x: 440, y: 790, w: 50, h: 36 },
+    ],
     bouncers: [
-      { id: "b-space-launch", x: 190, y: 890, w: 80, h: 26 },
-      { id: "b-space", x: 460, y: 890, w: 80, h: 26 },
-      { id: "b-space-high", x: 620, y: 730, w: 80, h: 26 },
+      { id: "b-space-launch", x: 190, y: 896, w: 50, h: 24 },
+      { id: "b-space", x: 460, y: 896, w: 50, h: 24 },
+      { id: "b-space-high", x: 620, y: 736, w: 50, h: 24 },
     ],
     movers: [],
     collectibles: [

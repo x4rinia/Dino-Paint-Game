@@ -64,8 +64,8 @@ class LavaSurface {
     });
     const top = Array.from({ length: steps + 1 }, (_, i) => wave(i, 1));
     const under = Array.from({ length: steps + 1 }, (_, i) => wave(i, 5));
-    strokePolyline(g, under, { color: INK.lavaFill, width: 3, alpha: 0.9 }, rng);
-    strokePolyline(g, top, { color: INK.red, width: 4 }, rng);
+    strokePolyline(g, under, { color: 0xf97316, width: 3.2, alpha: 0.95 }, rng);
+    strokePolyline(g, top, { color: 0xfacc15, width: 3.5, alpha: 0.95 }, rng);
 
     for (const b of this.bubbles) {
       const p = (b.phase + t * b.speed) % 1;

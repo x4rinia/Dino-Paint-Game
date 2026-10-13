@@ -119,14 +119,17 @@ function drawSpikes(g: Phaser.GameObjects.Graphics, h: Box) {
 function drawLavaBody(g: Phaser.GameObjects.Graphics, h: Box) {
   const { x, y, w, h: height } = px(h);
   const rng = seededFor(h.id);
-  const body = rectCorners(x, y + 3, w, Math.max(1, height - 3));
-  fillPoly(g, body, INK.lavaFill, 0.55);
-  hatchPoly(g, body, { color: INK.orange, width: 2.2, alpha: 0.6 }, rng, 9, Math.PI / 4, 3);
-  // Sides and bottom only: the top edge is the animated wave.
-  const ink = { color: INK.orange, width: 3, wobble: 1.6 };
-  sketchLine(g, { x, y: y + 2 }, { x, y: y + height }, ink, rng);
-  sketchLine(g, { x: x + w, y: y + 2 }, { x: x + w, y: y + height }, ink, rng);
-  sketchLine(g, { x, y: y + height }, { x: x + w, y: y + height }, ink, rng);
+  const corners = jitterPoints(rectCorners(x, y, w, height), Math.min(2, Math.min(w, height) * 0.15), rng);
+
+  // Glühender Magma-Körper (sattes Lava-Rot mit feurigem Glüh-Kern)
+  fillPoly(g, corners, 0xef4444, 0.92);
+  g.fillStyle(0xf97316, 0.85);
+  g.fillRoundedRect(x + 3, y + 3, Math.max(2, w - 6), Math.max(2, height - 6), 4);
+  g.fillStyle(0xfacc15, 0.65);
+  g.fillRoundedRect(x + 5, y + 4, Math.max(2, w - 10), Math.max(2, height - 8), 3);
+
+  // Vollständige feurige Kontur (auch für schwebende Gefahrenblöcke sauber umschlossen)
+  sketchPoly(g, corners, { color: 0xc2410c, width: 3.5, wobble: 1.4 }, rng);
 }
 
 function drawGoalDoor(g: Phaser.GameObjects.Graphics, goal: Box) {
