@@ -54,7 +54,7 @@ export class Player {
     this.art = scene.add.graphics().setDepth(DEPTH.player);
     const hasTexture = scene.textures.exists("dino_idle");
     this.sprite = scene.add.image(x, y, hasTexture ? "dino_idle" : "__DEFAULT").setDepth(DEPTH.player);
-    this.sprite.setDisplaySize(PLAYER_W * 1.35, PLAYER_H * 1.35);
+    this.sprite.setDisplaySize(34, 38);
     this.sprite.setVisible(hasTexture);
     this.art.setVisible(!hasTexture);
     scene.physics.add.existing(this.rect);
@@ -404,9 +404,12 @@ export class Player {
       this.sprite.setPosition(body.center.x, body.center.y - 2 + bobY);
       // dino_idle und dino_jump blicken in der Bilddatei nach links (-1), dino_walk und dino_run nach rechts (1)
       const baseDir = tex === "dino_idle" || tex === "dino_jump" ? -1 : 1;
+      // Dino schlank & wohlproportioniert: 34 px Breite zu 38 px Höhe (nicht mehr zu dick/breit)
+      const DINO_W = 34;
+      const DINO_H = 38;
       this.sprite.setScale(
-        (rect.scaleX * this.facing * baseDir * 50) / (this.sprite.width || 200),
-        (rect.scaleY * 42) / (this.sprite.height || 200)
+        (rect.scaleX * this.facing * baseDir * DINO_W) / (this.sprite.width || 240),
+        (rect.scaleY * DINO_H) / (this.sprite.height || 200)
       );
       if (this.sprite.texture.key !== tex && this.scene.textures.exists(tex)) {
         this.sprite.setTexture(tex);
@@ -432,9 +435,11 @@ export class Player {
       if (isAirborne) tex = "dino_jump";
       else if (isRunning) tex = "dino_walk";
       const baseDir = tex === "dino_idle" || tex === "dino_jump" ? -1 : 1;
+      const DINO_W = 34;
+      const DINO_H = 38;
       this.sprite.setScale(
-        (f.scaleX * this.facing * baseDir * 50) / (this.sprite.width || 200),
-        (f.scaleY * 42) / (this.sprite.height || 200)
+        (f.scaleX * this.facing * baseDir * DINO_W) / (this.sprite.width || 240),
+        (f.scaleY * DINO_H) / (this.sprite.height || 200)
       );
       if (this.sprite.texture.key !== tex && this.scene.textures.exists(tex)) {
         this.sprite.setTexture(tex);

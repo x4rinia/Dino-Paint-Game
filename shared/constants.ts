@@ -8,8 +8,8 @@ export const BOUNCE_VELOCITY = 1180;
 /** Terminal fall speed; together with the 120 Hz physics step this prevents tunnelling through thin lines. */
 export const MAX_FALL_SPEED = 1000;
 /** Player hitbox (the little ankylosaurus). */
-export const PLAYER_W = 36;
-export const PLAYER_H = 44;
+export const PLAYER_W = 28;
+export const PLAYER_H = 38;
 
 export type GameMode = "jump_n_run" | "rpg_labyrinth";
 
