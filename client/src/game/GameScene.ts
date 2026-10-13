@@ -229,10 +229,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image("dino_idle", "./sprites/dino_idle.png");
-    this.load.image("dino_walk", "./sprites/dino_walk.png");
-    this.load.image("dino_jump", "./sprites/dino_jump.png");
-    this.load.image("dino_run", "./sprites/dino_run.png");
+    this.load.image("dino_idle", "./sprites/dino_idle.png?v=2.26");
+    this.load.image("dino_walk", "./sprites/dino_walk.png?v=2.26");
+    this.load.image("dino_jump", "./sprites/dino_jump.png?v=2.26");
+    this.load.image("dino_run", "./sprites/dino_run.png?v=2.26");
     this.load.image("block_crate", "./sprites/block_crate.png");
     this.load.image("trampoline_mushroom", "./sprites/trampoline_mushroom.png");
     this.load.image("coin_dino", "./sprites/coin_dino.png");

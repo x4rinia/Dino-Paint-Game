@@ -1,5 +1,5 @@
-// Dino Draw Your Game – Standalone Offline Service Worker (v2.25)
-const CACHE_NAME = "dino-draw-cache-v2-25";
+// Dino Draw Your Game – Standalone Offline Service Worker (v2.26)
+const CACHE_NAME = "dino-draw-cache-v2-26";
 
 // Grundlegende statische Ressourcen, die beim Installieren vorgeladen werden
 const PRECACHE_URLS = [
@@ -14,6 +14,10 @@ const PRECACHE_URLS = [
   "./sprites/home_background_themes.jpg",
   "./sprites/dino_menu_background.jpg",
   "./sprites/dino_mascot.png",
+  "./sprites/dino_idle.png?v=2.26",
+  "./sprites/dino_walk.png?v=2.26",
+  "./sprites/dino_jump.png?v=2.26",
+  "./sprites/dino_run.png?v=2.26",
 ];
 
 self.addEventListener("install", (event) => {
