@@ -64,6 +64,8 @@ type MoverEntity = {
   w: number;
   h: number;
   id: string;
+  startX: number;
+  startY: number;
 };
 
 type BouncerEntity = {
@@ -375,11 +377,12 @@ export class GameScene extends Phaser.Scene {
       this.physics.add.existing(rect, false);
       const body = rect.body as Phaser.Physics.Arcade.Body;
       body.setCollideWorldBounds(true);
-      body.setBounce(0.0);
+      body.setBounce(0.0, 0.0);
       // Hoher Reibungswiderstand: Block stoppt sofort bei Wänden oder wenn Dino aufhört zu schieben!
-      body.setDrag(1200, this.gameMode === "rpg_labyrinth" ? 1200 : 0);
+      body.setDrag(this.gameMode === "rpg_labyrinth" ? 1200 : 1600, 0);
       body.setFriction(1, 1);
       body.setMass(3.0);
+      body.pushable = true;
       // Maximale Geschwindigkeit begrenzen, damit die Kiste nicht wegfliegt
       body.setMaxVelocity(160, 600);
 
@@ -394,7 +397,7 @@ export class GameScene extends Phaser.Scene {
       }
 
       this.moversGroup.add(rect);
-      this.moversList.push({ rect, body, art, w: mw, h: mh, id: m.id });
+      this.moversList.push({ rect, body, art, w: mw, h: mh, id: m.id, startX: mx, startY: my });
     }
 
     // 4. ROT: Gefahren (Immer als brodelnde Lava)
@@ -590,11 +593,6 @@ export class GameScene extends Phaser.Scene {
     this.doodles.setGoalLocked(isGoalLocked);
     this.redrawGoalDoor(isGoalLocked);
 
-    for (const e of level.enemies) {
-      const enemy = new Enemy(this, e.id, sx(e.x), sy(e.y), e.patrol);
-      this.physics.add.collider(enemy.rect, this.platforms);
-      this.enemies.push(enemy);
-    }
 
     // Spieler (Dino)
     const startX = sx(level.start.x);
@@ -760,6 +758,8 @@ export class GameScene extends Phaser.Scene {
         if (isStandingOnTop) {
           // Spieler steht oben auf der Kiste
           this.lastGrounded = { x: this.player.x, feetY: this.player.bottom };
+          mBody.setVelocityX(0);
+          if (mBody.velocity.y < 0) mBody.setVelocityY(0);
         } else if (pBody.top >= mBody.bottom - 12 && pBody.velocity.y < 0) {
           // Spieler stößt von unten gegen die Kiste -> Kopf stößt an wie an Decke, Kiste hebt nicht ab!
           pBody.setVelocityY(0);
@@ -823,35 +823,8 @@ export class GameScene extends Phaser.Scene {
       this.triggerWin();
     });
 
-    // Gegner-Interaktionen: Spieler-Kollision und Kisten-Plätten
-    for (const enemy of this.enemies) {
-      this.physics.add.overlap(this.player.rect, enemy.rect, () => this.handleEnemyOverlap(enemy));
-
-      // 💥 Kisten plätten Gegner (beim Drauffallen oder Schieben in Jump 'n' Run & Labyrinth)
-      this.physics.add.collider(this.moversGroup, enemy.rect, (mObj) => {
-        if (!enemy.alive) return;
-        const mRect = mObj as Phaser.GameObjects.Rectangle;
-        const mBody = mRect.body as Phaser.Physics.Arcade.Body;
-
-        const isCrush =
-          this.gameMode === "rpg_labyrinth"
-            ? Math.abs(mBody.velocity.x) > 20 || Math.abs(mBody.velocity.y) > 20
-            : mBody.velocity.y > 15 || mRect.y < enemy.midY - 8 || Math.abs(mBody.velocity.x) > 35;
-
-        if (isCrush) {
-          enemy.kill();
-          playStomp();
-          burstParticles(this, enemy.midX, enemy.midY, {
-            color: 0xe8590c,
-            count: 24,
-            speed: [80, 260],
-            size: 9,
-            duration: 400,
-          });
-          floatText(this, "💥 Kiste plättet Gegner!", enemy.midX, enemy.midY - 30, INK_CSS.orange);
-        }
-      });
-    }
+    // Gegner instanziieren & Interaktionen einrichten
+    this.setupEnemies();
 
     this.hud = new Hud(this, () => this.restartLevel());
     this.hud.setCollectibles(this.collectedCount, this.totalCollectibles);
@@ -1479,15 +1452,23 @@ export class GameScene extends Phaser.Scene {
     const bId = bouncerRect.getData("id");
     const bEntity = this.bouncersList.find((b) => b.id === bId);
     if (bEntity?.art) {
-      // Sanftes, elastisches Einfedern (kein extremes Dehnen/Verzerren)
+      // Sanftes, elastisches Einfedern relativ zur Originalgröße (kein plötzliches Vergrößern)
+      const baseScaleX = (bEntity.art.getData("baseScaleX") as number) ?? bEntity.art.scaleX;
+      const baseScaleY = (bEntity.art.getData("baseScaleY") as number) ?? bEntity.art.scaleY;
+      bEntity.art.setData("baseScaleX", baseScaleX);
+      bEntity.art.setData("baseScaleY", baseScaleY);
       this.tweens.killTweensOf(bEntity.art);
+      bEntity.art.setScale(baseScaleX, baseScaleY);
       this.tweens.add({
         targets: bEntity.art,
-        scaleY: 0.88,
-        scaleX: 1.05,
-        duration: 65,
+        scaleY: baseScaleY * 0.82,
+        scaleX: baseScaleX * 1.06,
+        duration: 70,
         yoyo: true,
-        ease: "Sine.easeOut",
+        ease: "Quad.easeOut",
+        onComplete: () => {
+          bEntity.art?.setScale(baseScaleX, baseScaleY);
+        },
       });
     }
 
@@ -1636,7 +1617,12 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    const dest = this.teleportersList.find((t) => t.id === src.targetId);
+    let dest = src.targetId ? this.teleportersList.find((t) => t.id === src.targetId) : undefined;
+    if (!dest && this.teleportersList.length > 1) {
+      const myIdx = this.teleportersList.findIndex((t) => t.id === src.id);
+      const nextIdx = (myIdx + 1) % this.teleportersList.length;
+      dest = this.teleportersList[nextIdx];
+    }
     if (!dest) {
       this.isExitedFromTeleporter = false;
       this.lastTeleportAt = this.time.now;
@@ -1764,8 +1750,13 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    // Andernfalls: Teleportiere zum Partner-Portal
-    const targetTp = this.teleportersList.find((t) => t.id !== tpId);
+    // Finde Ziel-Portal (explizit oder zyklisch zum nächsten in der Reihe)
+    let targetTp = currentTp.targetId ? this.teleportersList.find((t) => t.id === currentTp.targetId) : undefined;
+    if (!targetTp && this.teleportersList.length > 1) {
+      const myIdx = this.teleportersList.findIndex((t) => t.id === currentTp.id);
+      const nextIdx = (myIdx + 1) % this.teleportersList.length;
+      targetTp = this.teleportersList[nextIdx];
+    }
     if (targetTp) {
       playTeleport();
       burstParticles(this, mRect.x, mRect.y, { color: INK.purple, count: 16 });
@@ -1883,8 +1874,8 @@ export class GameScene extends Phaser.Scene {
       destroyFireball(true);
     });
 
-    // Kollision mit Kisten
-    this.physics.add.collider(fbRect, this.moversGroup, () => {
+    // Kollision mit Kisten (als Overlap, damit keine Wucht übertragen wird und Kisten nicht wegfliegen!)
+    this.physics.add.overlap(fbRect, this.moversGroup, () => {
       destroyFireball(true);
     });
 
@@ -2001,9 +1992,59 @@ export class GameScene extends Phaser.Scene {
     else done(false);
   }
 
+  private setupEnemies() {
+    for (const enemy of this.enemies) {
+      enemy.destroy();
+    }
+    this.enemies = [];
+    for (const e of this.level.enemies) {
+      const enemy = new Enemy(this, e.id, sx(e.x), sy(e.y), e.patrol);
+      this.physics.add.collider(enemy.rect, this.platforms);
+      if (this.player?.rect) {
+        this.physics.add.overlap(this.player.rect, enemy.rect, () => this.handleEnemyOverlap(enemy));
+      }
+      if (this.moversGroup) {
+        this.physics.add.collider(this.moversGroup, enemy.rect, (mObj) => {
+          if (!enemy.alive) return;
+          const mRect = mObj as Phaser.GameObjects.Rectangle;
+          const mBody = mRect.body as Phaser.Physics.Arcade.Body;
+          const isCrush =
+            this.gameMode === "rpg_labyrinth"
+              ? Math.abs(mBody.velocity.x) > 20 || Math.abs(mBody.velocity.y) > 20
+              : mBody.velocity.y > 15 || mRect.y < enemy.midY - 8 || Math.abs(mBody.velocity.x) > 35;
+          if (isCrush) {
+            enemy.kill();
+            playStomp();
+            burstParticles(this, enemy.midX, enemy.midY, {
+              color: 0xe8590c,
+              count: 24,
+              speed: [80, 260],
+              size: 9,
+              duration: 400,
+            });
+            floatText(this, "💥 Kiste plättet Gegner!", enemy.midX, enemy.midY - 30, INK_CSS.orange);
+          }
+        });
+      }
+      this.enemies.push(enemy);
+    }
+  }
+
   private respawn() {
     this.attemptState.nextAttempt(this);
     this.resetCoinVisibility();
+
+    // 1. Alle besiegten Gegner komplett wiederbeleben & auf Ausgangspositionen setzen
+    this.setupEnemies();
+
+    // 2. Alle Kisten komplett auf ihre Ausgangspositionen zurücksetzen & anhalten
+    for (const m of this.moversList) {
+      m.rect.setPosition(m.startX, m.startY);
+      m.body.reset(m.startX, m.startY);
+      m.body.setVelocity(0, 0);
+      m.rect.setData("onLava", false);
+      m.art.setPosition(m.startX, m.startY);
+    }
 
     // Sammelobjekte präzise auf 30x30 Bildgröße zurücksetzen
     this.collectedCount = 0;
@@ -2066,6 +2107,18 @@ export class GameScene extends Phaser.Scene {
     this.won = false;
     this.attemptState.restartAttempt(this);
     this.resetCoinVisibility();
+
+    // 1. Alle besiegten Gegner komplett wiederbeleben & auf Ausgangspositionen setzen
+    this.setupEnemies();
+
+    // 2. Alle Kisten komplett auf ihre Ausgangspositionen zurücksetzen & anhalten
+    for (const m of this.moversList) {
+      m.rect.setPosition(m.startX, m.startY);
+      m.body.reset(m.startX, m.startY);
+      m.body.setVelocity(0, 0);
+      m.rect.setData("onLava", false);
+      m.art.setPosition(m.startX, m.startY);
+    }
 
     // Sammelobjekte präzise auf 30x30 Bildgröße zurücksetzen
     this.collectedCount = 0;

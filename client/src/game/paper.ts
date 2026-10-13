@@ -16,10 +16,10 @@ export interface BackgroundThemeInfo {
 export const BACKGROUND_THEMES: BackgroundThemeInfo[] = [
   {
     id: "paper",
-    name: "Notizheft (Klassik)",
-    subtitle: "Ausgewogene Standard-Welt mit präziser Kontrolle & sauberer Physik 📜",
-    icon: "📜",
-    color: "#f7f2e3",
+    name: "Dino-Stadt (Metropole)",
+    subtitle: "Urbane Skyline: Handgezeichnete Wolkenkratzer, Dächer & City-Kulisse 🏙️",
+    icon: "🏙️",
+    color: "#d8e5f2",
   },
   {
     id: "jungle",
@@ -44,9 +44,6 @@ export const BACKGROUND_THEMES: BackgroundThemeInfo[] = [
   },
 ];
 
-const LINE_GAP = 48;
-const FIRST_LINE_Y = 132;
-const MARGIN_X = 158;
 const GRAIN_TILE = 256;
 
 function getTextureKey(theme: BackgroundTheme): string {
@@ -55,7 +52,7 @@ function getTextureKey(theme: BackgroundTheme): string {
 
 /**
  * Erzeugt eine der 4 wählbaren Hintergrund-Texturen für Phaser:
- * 1. "paper": Klassisches Notizheft mit roten und blauen Linien
+ * 1. "paper": Charmante Dino-Stadt mit handgezeichneter Skyline & Dächern
  * 2. "jungle": Malerischer Urzeit-Dschungel mit Farnen, Bergen & Sonnenlicht
  * 3. "space": Kosmische Nacht mit funkelnden Sternen & Sichelmond
  * 4. "volcano": Vulkanlandschaft mit glühender Lava & Doppelsprung
@@ -72,7 +69,7 @@ function ensureBackgroundTexture(scene: Phaser.Scene, theme: BackgroundTheme) {
   );
 
   if (theme === "paper") {
-    drawPaperTexture(ctx, rng);
+    drawCityTexture(ctx, rng);
   } else if (theme === "jungle") {
     drawJungleTexture(ctx, rng);
   } else if (theme === "space") {
@@ -84,72 +81,179 @@ function ensureBackgroundTexture(scene: Phaser.Scene, theme: BackgroundTheme) {
   tex.refresh();
 }
 
-/** 1. Klassisches Notizbuch-Papier */
-function drawPaperTexture(ctx: CanvasRenderingContext2D, rng: () => number) {
-  ctx.fillStyle = "#f7f2e3";
+/** 1. Handgezeichnete Dino-Stadt (Urbane Skyline & Dächer) */
+function drawCityTexture(ctx: CanvasRenderingContext2D, rng: () => number) {
+  // 1. Sanfter Himmels-Farbverlauf (Frischer City-Tag mit leichter Dunststimmung)
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, WORLD_H);
+  skyGrad.addColorStop(0, "#a8c5e2");    // Kühler, klarer Stadthimmel oben
+  skyGrad.addColorStop(0.35, "#cfdeee"); // Sanftes Dunstblau
+  skyGrad.addColorStop(0.7, "#ebe7df");  // Heller Horizont-Dunst
+  skyGrad.addColorStop(1, "#dcd4c7");    // Warmer Boden-Schleier
+  ctx.fillStyle = skyGrad;
   ctx.fillRect(0, 0, WORLD_W, WORLD_H);
 
-  // Zarte weiche Flecken für Vintage-Papieroptik
-  for (let i = 0; i < 26; i++) {
-    const x = rng() * WORLD_W;
-    const y = rng() * WORLD_H;
-    const r = 120 + rng() * 260;
-    const warm = rng() > 0.5;
-    const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
-    grad.addColorStop(0, warm ? "rgba(214,190,130,0.07)" : "rgba(150,150,140,0.05)");
-    grad.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.fillStyle = grad;
-    ctx.fillRect(x - r, y - r, r * 2, r * 2);
-  }
+  // 2. Weiche Sonnen-Aura / Himmelsleuchten
+  const sunX = WORLD_W * 0.72;
+  const sunY = WORLD_H * 0.22;
+  const sunGlow = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 180);
+  sunGlow.addColorStop(0, "rgba(255, 250, 220, 0.45)");
+  sunGlow.addColorStop(0.5, "rgba(255, 240, 200, 0.18)");
+  sunGlow.addColorStop(1, "rgba(255, 240, 200, 0)");
+  ctx.fillStyle = sunGlow;
+  ctx.fillRect(sunX - 180, sunY - 180, 360, 360);
 
-  // Papierkörnung
-  const tile = document.createElement("canvas");
-  tile.width = tile.height = GRAIN_TILE;
-  const tctx = tile.getContext("2d");
-  if (tctx) {
-    const img = tctx.createImageData(GRAIN_TILE, GRAIN_TILE);
-    for (let i = 0; i < img.data.length; i += 4) {
-      const n = rng();
-      const dark = n < 0.5;
-      img.data[i] = img.data[i + 1] = img.data[i + 2] = dark ? 90 : 255;
-      img.data[i + 3] = Math.floor(rng() * (dark ? 16 : 22));
-    }
-    tctx.putImageData(img, 0, 0);
-    const pattern = ctx.createPattern(tile, "repeat");
-    if (pattern) {
-      ctx.fillStyle = pattern;
-      ctx.fillRect(0, 0, WORLD_W, WORLD_H);
-    }
-  }
-
-  // Blaue Notizlinien
-  ctx.lineCap = "round";
-  ctx.lineWidth = 1.6;
-  ctx.strokeStyle = "rgba(78,133,214,0.34)";
-  for (let y = FIRST_LINE_Y; y < WORLD_H; y += LINE_GAP) {
+  // 3. Freundliche, lockere Skizzen-Wolken am Himmel
+  ctx.fillStyle = "rgba(255, 255, 255, 0.42)";
+  const clouds = [
+    { x: 140, y: 110, r: 38 },
+    { x: 175, y: 95, r: 46 },
+    { x: 215, y: 112, r: 34 },
+    { x: 520, y: 80, r: 42 },
+    { x: 560, y: 70, r: 52 },
+    { x: 605, y: 85, r: 36 },
+    { x: 880, y: 130, r: 35 },
+    { x: 915, y: 120, r: 44 },
+    { x: 950, y: 135, r: 30 },
+  ];
+  for (const c of clouds) {
     ctx.beginPath();
-    ctx.moveTo(0, y);
-    for (let x = 40; x <= WORLD_W + 40; x += 40) ctx.lineTo(x, y + (rng() - 0.5) * 1.2);
-    ctx.stroke();
+    ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+    ctx.fill();
   }
 
-  // Rote Randlinie
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = "rgba(214,69,61,0.32)";
+  // 4. Ferne Skyline-Silhouette (Hintergrund-Ebene, weicher Dunst)
+  ctx.fillStyle = "rgba(145, 165, 188, 0.35)";
+  const bgBuildings = [
+    { x: 0, w: 90, h: 360 },
+    { x: 80, w: 110, h: 420 },
+    { x: 180, w: 75, h: 320 },
+    { x: 245, w: 130, h: 460 },
+    { x: 365, w: 95, h: 380 },
+    { x: 450, w: 125, h: 440 },
+    { x: 565, w: 85, h: 350 },
+    { x: 640, w: 140, h: 480 },
+    { x: 770, w: 100, h: 390 },
+    { x: 860, w: 120, h: 430 },
+    { x: 970, w: 110, h: 370 },
+  ];
+  for (const b of bgBuildings) {
+    const topY = WORLD_H - b.h;
+    ctx.fillRect(b.x, topY, b.w, b.h);
+    // Skizzierte Antennen / Spitzen auf einigen fernen Türmen
+    if (b.w > 100) {
+      ctx.fillRect(b.x + b.w / 2 - 2, topY - 30, 4, 30);
+    }
+  }
+
+  // 5. Mittlere Stadtebene: Markante Comic-/Skizzen-Häuser mit Dächern & Fenstern
+  ctx.fillStyle = "rgba(105, 125, 148, 0.42)";
+  ctx.strokeStyle = "rgba(55, 75, 95, 0.35)";
+  ctx.lineWidth = 1.8;
+
+  const midBuildings = [
+    { x: -10, w: 120, h: 290, roof: "flat" },
+    { x: 100, w: 95, h: 340, roof: "antenna" },
+    { x: 185, w: 130, h: 270, roof: "gabled" },
+    { x: 305, w: 115, h: 360, roof: "watertower" },
+    { x: 410, w: 100, h: 300, roof: "flat" },
+    { x: 500, w: 140, h: 350, roof: "gabled" },
+    { x: 630, w: 110, h: 280, roof: "antenna" },
+    { x: 730, w: 125, h: 370, roof: "watertower" },
+    { x: 845, w: 90, h: 310, roof: "flat" },
+    { x: 925, w: 140, h: 330, roof: "gabled" },
+  ];
+
+  for (const b of midBuildings) {
+    const topY = WORLD_H - b.h;
+    ctx.fillRect(b.x, topY, b.w, b.h);
+    ctx.strokeRect(b.x, topY, b.w, b.h);
+
+    // Dachaufbauten
+    if (b.roof === "watertower") {
+      const tx = b.x + b.w * 0.35;
+      ctx.fillStyle = "rgba(90, 105, 125, 0.55)";
+      ctx.fillRect(tx, topY - 26, 32, 22);
+      ctx.beginPath();
+      ctx.arc(tx + 16, topY - 26, 16, Math.PI, 0, false);
+      ctx.fill();
+      // Stelzen
+      ctx.fillRect(tx + 4, topY - 5, 4, 6);
+      ctx.fillRect(tx + 24, topY - 5, 4, 6);
+      ctx.fillStyle = "rgba(105, 125, 148, 0.42)";
+    } else if (b.roof === "antenna") {
+      ctx.strokeStyle = "rgba(50, 70, 90, 0.5)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(b.x + b.w / 2, topY);
+      ctx.lineTo(b.x + b.w / 2, topY - 45);
+      ctx.stroke();
+      // Rotes Blinklicht auf der Spitze
+      ctx.fillStyle = "rgba(239, 68, 68, 0.75)";
+      ctx.beginPath();
+      ctx.arc(b.x + b.w / 2, topY - 45, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(105, 125, 148, 0.42)";
+    } else if (b.roof === "gabled") {
+      // Giebeldach
+      ctx.beginPath();
+      ctx.moveTo(b.x, topY);
+      ctx.lineTo(b.x + b.w / 2, topY - 24);
+      ctx.lineTo(b.x + b.w, topY);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // Handgezeichnete kleine Fensterreihen (mit gemütlichem warmem Licht)
+    const winCols = Math.max(2, Math.floor(b.w / 28));
+    const winRows = Math.max(3, Math.floor((b.h - 40) / 36));
+    for (let r = 0; r < winRows; r++) {
+      for (let c = 0; c < winCols; c++) {
+        const wx = b.x + 14 + c * 24;
+        const wy = topY + 22 + r * 30;
+        if (wx + 12 < b.x + b.w && wy + 16 < WORLD_H - 40) {
+          const isLit = (c + r * 3 + Math.floor(b.x)) % 3 === 0;
+          ctx.fillStyle = isLit ? "rgba(254, 240, 138, 0.6)" : "rgba(65, 85, 110, 0.4)";
+          ctx.fillRect(wx, wy, 12, 16);
+        }
+      }
+    }
+  }
+
+  // 6. Feine Strom-/Kabel-Linien zwischen Dächern mit kleinen Vögeln
+  ctx.strokeStyle = "rgba(55, 75, 95, 0.28)";
+  ctx.lineWidth = 1.2;
   ctx.beginPath();
-  ctx.moveTo(MARGIN_X, 0);
-  for (let y = 40; y <= WORLD_H + 40; y += 40) ctx.lineTo(MARGIN_X + (rng() - 0.5) * 1.2, y);
+  ctx.moveTo(100, WORLD_H - 320);
+  ctx.quadraticCurveTo(250, WORLD_H - 280, 410, WORLD_H - 290);
   ctx.stroke();
 
-  // Vignette
-  const cx = WORLD_W / 2;
-  const cy = WORLD_H / 2;
-  const vignette = ctx.createRadialGradient(cx, cy, WORLD_H * 0.42, cx, cy, WORLD_W * 0.62);
-  vignette.addColorStop(0, "rgba(120,100,60,0)");
-  vignette.addColorStop(1, "rgba(120,100,60,0.24)");
-  ctx.fillStyle = vignette;
-  ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+  ctx.beginPath();
+  ctx.moveTo(410, WORLD_H - 290);
+  ctx.quadraticCurveTo(550, WORLD_H - 260, 730, WORLD_H - 350);
+  ctx.stroke();
+
+  // Kleine stilisierte Vögel auf den Kabeln
+  ctx.fillStyle = "rgba(45, 60, 80, 0.5)";
+  const birds = [
+    { x: 230, y: WORLD_H - 286 },
+    { x: 245, y: WORLD_H - 284 },
+    { x: 570, y: WORLD_H - 275 },
+  ];
+  for (const bird of birds) {
+    ctx.beginPath();
+    ctx.arc(bird.x, bird.y, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 7. Sanfte Boden-Vignette (Gewährleistet maximale Kontrast-Sichtbarkeit für die Plattformen)
+  const groundFade = ctx.createLinearGradient(0, WORLD_H - 220, 0, WORLD_H);
+  groundFade.addColorStop(0, "rgba(230, 226, 215, 0)");
+  groundFade.addColorStop(1, "rgba(215, 210, 198, 0.45)");
+  ctx.fillStyle = groundFade;
+  ctx.fillRect(0, WORLD_H - 220, WORLD_W, 220);
 }
+
 
 /** 2. Urzeit-Dschungel (Baumkronen- & Blätterwelt / Im Urwaldbaum) */
 function drawJungleTexture(ctx: CanvasRenderingContext2D, rng: () => number) {

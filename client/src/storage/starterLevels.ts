@@ -16,6 +16,7 @@ export const starterLevelTutorial: Level = {
     "Ein Kinderspiel für einen echten Dino!",
   ],
   theme: "jungle",
+  gameMode: "jump_n_run",
   start: { x: 70, y: 870 },
   goal: { id: "goal", x: 910, y: 620, w: 48, h: 74 },
   platforms: [
@@ -66,6 +67,7 @@ export const starterLevelPortals: Level = {
     "Erst alle Dino-Eier sammeln!",
   ],
   theme: "space",
+  gameMode: "jump_n_run",
   start: { x: 70, y: 870 },
   goal: { id: "goal", x: 910, y: 630, w: 48, h: 74 },
   platforms: [
@@ -124,6 +126,7 @@ export const starterLevelAllColors: Level = {
     "Alle 8 Farben erfolgreich gemeistert!",
   ],
   theme: "paper",
+  gameMode: "jump_n_run",
   start: { x: 60, y: 870 },
   goal: { id: "goal", x: 910, y: 550, w: 48, h: 74 },
   platforms: [

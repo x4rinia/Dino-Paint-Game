@@ -158,4 +158,11 @@ export class Enemy {
     this.art.destroy();
     this.rect.destroy();
   }
+
+  destroy() {
+    this.alive = false;
+    this.sprite?.destroy();
+    this.art.destroy();
+    this.rect.destroy();
+  }
 }
