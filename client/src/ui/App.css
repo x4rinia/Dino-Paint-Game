@@ -4,6 +4,11 @@
    =================================================================== */
 
 :root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
   --font-display: 'Fredoka', 'Quicksand', 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-body: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
@@ -415,6 +420,9 @@ body {
   padding: 18px 16px;
   width: 100%;
   max-width: 330px;
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.65);
   display: flex;
   flex-direction: column;
@@ -979,20 +987,28 @@ body {
 
 .drawing-studio, .photo-capture-page, .level-library-page {
   height: 100vh;
+  height: 100dvh;
+  min-height: 100dvh;
+  max-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background-color: #2b2f3a;
+  background-color: #1a1c23;
   color: #ffffff;
+  overflow: hidden;
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
 }
 
 .studio-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 20px;
+  padding: 10px 16px;
+  padding-top: max(10px, var(--safe-top));
   background-color: #1f222b;
   border-bottom: 2px solid #3a3f4e;
-  gap: 16px;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
 .studio-title h2 {
@@ -1185,18 +1201,24 @@ body {
   align-items: center;
   justify-content: center;
   background-color: #1a1c23;
-  padding: 16px;
+  padding: 8px;
   position: relative;
+  touch-action: none;
+}
+
+.canvas-transform-wrapper {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .drawing-board {
   background: #ffffff;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   border-radius: 8px;
-  max-width: 100%;
-  max-height: calc(100vh - 220px);
-  object-fit: contain;
   touch-action: none;
+  display: block;
 }
 
 .studio-legend {
@@ -1641,10 +1663,15 @@ body {
 
 .game-screen-wrapper {
   height: 100vh;
+  height: 100dvh;
+  min-height: 100dvh;
+  max-height: 100dvh;
   display: flex;
   flex-direction: column;
   background: #111;
   overflow: hidden;
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
 }
 
 .game-play-nav {
@@ -1652,10 +1679,12 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 10px 20px;
+  padding-top: max(10px, var(--safe-top));
   background: #1c1f28;
   color: #ffffff;
   z-index: 100;
   border-bottom: 2px solid #333847;
+  flex-shrink: 0;
 }
 
 .eyebrow {
@@ -2349,15 +2378,51 @@ html, body {
   color: #e2e8f0;
 }
 
-/* Mobile & Smartphone Optimierungen (Große Spielwelt & Editor ohne unnötige Menüs) */
-@media (max-width: 680px) {
-  /* ==============================================================
-     1. SPIELBILDSHIRM: Maximale Spielwelt, alles Unnötige im Burger-Menü
-     ============================================================== */
+/* Standardmäßig Orientierungs-Hinweis auf Desktop/Tablet ausblenden */
+.mobile-orientation-hint {
+  display: none;
+}
+
+/* Smartphone-Hinweis nur im Hochformat anzeigen */
+@media (max-width: 768px) and (orientation: portrait) {
+  .mobile-orientation-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(30, 41, 59, 0.95);
+    color: #cbd5e1;
+    font-size: 0.78rem;
+    padding: 5px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .mobile-orientation-hint strong {
+    color: #4ade80;
+    margin: 0 4px;
+  }
+}
+
+/* Im Querformat ist der Hinweis garantiert unsichtbar */
+@media (orientation: landscape) {
+  .mobile-orientation-hint {
+    display: none !important;
+  }
+}
+
+/* ===================================================================
+   Mobile & Smartphone Optimierungen: Hochformat & Querformat
+   Gilt sowohl für Porträt (max-width: 768px) als auch Querformat (max-height: 540px)!
+   =================================================================== */
+@media (max-width: 768px), (max-height: 540px) {
+  /* 1. SPIELBILDSCHIRM (GAME PLAY) */
   .game-play-nav {
-    padding: 6px 12px !important;
-    min-height: 42px !important;
+    padding: 4px 10px !important;
+    padding-top: max(4px, var(--safe-top)) !important;
+    min-height: 38px !important;
     gap: 8px !important;
+    flex-shrink: 0 !important;
   }
 
   .nav-play-buttons-desktop {
@@ -2368,9 +2433,10 @@ html, body {
     display: flex !important;
     align-items: center;
     justify-content: center;
-    padding: 6px 12px !important;
-    font-size: 1.25rem !important;
-    border-radius: 10px !important;
+    padding: 4px 10px !important;
+    font-size: 1.15rem !important;
+    border-radius: 8px !important;
+    min-height: 32px !important;
   }
 
   .eyebrow {
@@ -2378,33 +2444,35 @@ html, body {
   }
 
   .nav-level-name {
-    font-size: 1.15rem !important;
-    max-width: 180px !important;
+    font-size: 1.05rem !important;
+    max-width: 170px !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
   }
 
   .game-stage-container {
-    max-height: calc(100vh - 44px) !important;
-    max-height: calc(100dvh - 44px) !important;
-    height: calc(100vh - 44px) !important;
-    height: calc(100dvh - 44px) !important;
+    max-height: calc(100vh - 38px) !important;
+    max-height: calc(100dvh - 38px) !important;
+    height: calc(100vh - 38px) !important;
+    height: calc(100dvh - 38px) !important;
     padding: 0 !important;
+    padding-bottom: max(0px, var(--safe-bottom)) !important;
   }
 
-  /* ==============================================================
-     2. ZEICHENSTUDIO / EDITOR: Maximale Leinwand, Toolbar kompakt
-     ============================================================== */
+  /* 2. ZEICHENSTUDIO / LEVEL-EDITOR */
   .studio-header {
-    padding: 6px 10px !important;
-    min-height: 44px !important;
+    padding: 4px 10px !important;
+    padding-top: max(4px, var(--safe-top)) !important;
+    min-height: 38px !important;
     gap: 8px !important;
+    flex-shrink: 0 !important;
   }
 
   .studio-back-btn {
-    padding: 6px 10px !important;
-    font-size: 0.85rem !important;
+    padding: 4px 10px !important;
+    font-size: 0.82rem !important;
+    border-radius: 8px !important;
   }
 
   .studio-title {
@@ -2413,8 +2481,11 @@ html, body {
   }
 
   .studio-title h2 {
-    font-size: 1.05rem !important;
+    font-size: 0.95rem !important;
     margin: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
   }
 
   .studio-subtitle {
@@ -2429,29 +2500,41 @@ html, body {
     display: flex !important;
     align-items: center;
     justify-content: center;
-    padding: 6px 12px !important;
-    font-size: 1.25rem !important;
-    border-radius: 10px !important;
+    padding: 4px 10px !important;
+    font-size: 1.15rem !important;
+    border-radius: 8px !important;
+    min-height: 32px !important;
   }
 
   .studio-header-actions .button-play-big {
-    padding: 6px 14px !important;
-    font-size: 0.88rem !important;
-    border-radius: 10px !important;
+    padding: 5px 12px !important;
+    font-size: 0.85rem !important;
+    border-radius: 8px !important;
+    min-height: 32px !important;
   }
 
   .studio-toolbar {
-    padding: 4px 6px !important;
+    padding: 3px 6px !important;
     gap: 6px !important;
     justify-content: flex-start !important;
     flex-wrap: nowrap !important;
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch !important;
     scrollbar-width: none !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    flex-shrink: 0 !important;
+    align-items: center !important;
   }
 
   .studio-toolbar::-webkit-scrollbar {
     display: none !important;
+  }
+
+  .studio-toolbar .tool-group {
+    gap: 4px !important;
+    flex-shrink: 0 !important;
   }
 
   .studio-toolbar .tool-label {
@@ -2463,27 +2546,44 @@ html, body {
   }
 
   .studio-toolbar .color-btn {
-    padding: 4px 6px !important;
+    padding: 3px !important;
     border-radius: 999px !important;
     gap: 0 !important;
-    min-width: 28px !important;
-    min-height: 28px !important;
+    min-width: 26px !important;
+    min-height: 26px !important;
+    width: 26px !important;
+    height: 26px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
 
   .studio-toolbar .color-swatch {
-    width: 16px !important;
-    height: 16px !important;
+    width: 18px !important;
+    height: 18px !important;
   }
 
   .studio-toolbar .size-btn {
-    padding: 4px 8px !important;
-    font-size: 0.8rem !important;
+    padding: 3px 6px !important;
+    font-size: 0.74rem !important;
+    min-height: 26px !important;
+    border-radius: 6px !important;
+  }
+
+  .studio-toolbar .size-dot {
+    width: 12px !important;
+    height: 12px !important;
   }
 
   .studio-toolbar .tool-btn {
-    width: 30px !important;
-    height: 30px !important;
-    font-size: 0.95rem !important;
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    min-height: 28px !important;
+    font-size: 0.88rem !important;
+    padding: 0 !important;
+    border-radius: 6px !important;
+    flex-shrink: 0 !important;
   }
 
   .studio-toolbar .zoom-group {
@@ -2493,36 +2593,22 @@ html, body {
   }
 
   .studio-toolbar .zoom-group .tool-btn-marker {
-    padding: 4px 8px !important;
-    font-size: 0.76rem !important;
-    border-radius: 8px !important;
+    padding: 3px 6px !important;
+    font-size: 0.72rem !important;
+    border-radius: 6px !important;
+    min-height: 26px !important;
   }
 
   .studio-toolbar .zoom-group .tool-btn {
-    width: 28px !important;
-    height: 28px !important;
-    font-size: 0.85rem !important;
+    width: 26px !important;
+    height: 26px !important;
+    min-width: 26px !important;
+    min-height: 26px !important;
+    font-size: 0.82rem !important;
   }
 
   .studio-legend {
     display: none !important;
-  }
-
-  .mobile-orientation-hint {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(30, 41, 59, 0.9);
-    color: #cbd5e1;
-    font-size: 0.74rem;
-    padding: 4px 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    text-align: center;
-  }
-
-  .mobile-orientation-hint strong {
-    color: #4ade80;
-    margin: 0 3px;
   }
 
   .canvas-viewport {
@@ -2531,10 +2617,37 @@ html, body {
     min-height: 0 !important;
     height: auto !important;
     max-height: none !important;
+    overflow: hidden !important;
+    padding-bottom: max(4px, var(--safe-bottom)) !important;
   }
 
   .drawing-board {
     max-height: none !important;
+  }
+}
+
+/* Spezielle Feineinstellung für Smartphone im Querformat (Querformat-Vollbild) */
+@media (max-height: 520px) and (orientation: landscape) {
+  .studio-header {
+    padding-left: max(10px, var(--safe-left)) !important;
+    padding-right: max(10px, var(--safe-right)) !important;
+    padding-top: 3px !important;
+    padding-bottom: 3px !important;
+    min-height: 34px !important;
+  }
+
+  .studio-toolbar {
+    padding-left: max(10px, var(--safe-left)) !important;
+    padding-right: max(10px, var(--safe-right)) !important;
+    height: 34px !important;
+    min-height: 34px !important;
+  }
+
+  .canvas-viewport {
+    padding: 2px !important;
+    padding-left: max(4px, var(--safe-left)) !important;
+    padding-right: max(4px, var(--safe-right)) !important;
+    padding-bottom: max(2px, var(--safe-bottom)) !important;
   }
 }
 

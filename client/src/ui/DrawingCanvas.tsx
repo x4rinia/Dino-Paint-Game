@@ -140,13 +140,15 @@ export function DrawingCanvas({
   const fitToScreen = useCallback((zoomMode?: "fit" | "large") => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const isMobile = window.innerWidth <= 680;
-    const padX = isMobile ? 8 : 24;
-    const padY = isMobile ? 8 : 24;
+    const isMobile =
+      window.innerWidth <= 960 &&
+      (window.innerHeight <= 540 || window.innerWidth <= 680 || "ontouchstart" in window);
+    const padX = isMobile ? 8 : 20;
+    const padY = isMobile ? 8 : 20;
     const w = rect.width > 0 ? rect.width : window.innerWidth;
-    const h = rect.height > 0 ? rect.height : (window.innerHeight - (isMobile ? 120 : 180));
-    const availW = Math.max(200, w - padX);
-    const availH = Math.max(200, h - padY);
+    const h = rect.height > 0 ? rect.height : window.innerHeight - (isMobile ? 74 : 160);
+    const availW = Math.max(100, w - padX);
+    const availH = Math.max(100, h - padY);
     const scaleX = availW / CANVAS_WIDTH;
     const scaleY = availH / CANVAS_HEIGHT;
 
@@ -158,18 +160,20 @@ export function DrawingCanvas({
 
     if (zoomMode === "fit") {
       const bestZoom = Math.min(scaleX, scaleY, 1.0);
-      setZoom(Number(Math.max(0.2, bestZoom).toFixed(2)));
+      setZoom(Number(Math.max(0.18, bestZoom).toFixed(2)));
       setPan({ x: 0, y: 0 });
       return;
     }
 
-    // Auto-Fit beim Laden
-    if (isMobile && window.innerHeight > window.innerWidth) {
-      // Im Smartphone-Hochformat: 0.55 für großes, bequemes Zeichnen
-      setZoom(0.55);
+    // Auto-Fit beim Laden & Bildschirm-Drehen
+    const isPortrait = window.innerHeight > window.innerWidth;
+    if (isMobile && isPortrait) {
+      // Im Smartphone-Hochformat: An die Breite anpassen
+      const bestZoom = Math.min(scaleX, 0.55);
+      setZoom(Number(Math.max(0.20, bestZoom).toFixed(2)));
     } else {
       const bestZoom = Math.min(scaleX, scaleY, 1.0);
-      setZoom(Number(Math.max(0.2, bestZoom).toFixed(2)));
+      setZoom(Number(Math.max(0.18, bestZoom).toFixed(2)));
     }
     setPan({ x: 0, y: 0 });
   }, []);
@@ -180,12 +184,18 @@ export function DrawingCanvas({
     const timer = setTimeout(() => fitToScreen(), 40);
     const ro = new ResizeObserver(() => fitToScreen());
     ro.observe(el);
-    const onResize = () => fitToScreen();
+    const onResize = () => {
+      fitToScreen();
+      setTimeout(fitToScreen, 120);
+      setTimeout(fitToScreen, 300);
+    };
     window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onResize);
     return () => {
       clearTimeout(timer);
       ro.disconnect();
       window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onResize);
     };
   }, [fitToScreen]);
 
@@ -1422,29 +1432,28 @@ export function DrawingCanvas({
           </button>
         </div>
 
-        <div className="tool-group zoom-group" style={{ display: "flex", alignItems: "center", gap: 5 }}>
+        <div className="tool-group zoom-group">
           <button
             type="button"
             className="tool-btn-marker"
             onClick={() => fitToScreen("fit")}
             title="Ganzes Level anzeigen"
-            style={{ fontSize: "0.8rem", padding: "6px 9px", background: "#3b4252" }}
+            style={{ background: "#3b4252" }}
           >
-            🔍 Übersicht ({Math.round(zoom * 100)}%)
+            🔍 {Math.round(zoom * 100)}%
           </button>
           <button
             type="button"
             className="tool-btn-marker"
             onClick={() => fitToScreen("large")}
             title="Großes Zeichenblatt (75%)"
-            style={{ fontSize: "0.8rem", padding: "6px 9px", background: "#059669", color: "#ffffff" }}
+            style={{ background: "#059669", color: "#ffffff" }}
           >
             🔎 Groß
           </button>
           <button
             type="button"
             className="tool-btn"
-            style={{ width: 34, height: 34, fontSize: "1rem" }}
             onClick={() => setZoom((z) => Math.min(2.5, Number((z + 0.1).toFixed(2))))}
             title="Vergrößern (+)"
           >
@@ -1453,7 +1462,6 @@ export function DrawingCanvas({
           <button
             type="button"
             className="tool-btn"
-            style={{ width: 34, height: 34, fontSize: "1rem" }}
             onClick={() => setZoom((z) => Math.max(0.2, Number((z - 0.1).toFixed(2))))}
             title="Verkleinern (−)"
           >

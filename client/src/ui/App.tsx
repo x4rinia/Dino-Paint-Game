@@ -191,14 +191,15 @@ export function App() {
       setIsStandalone(true);
     }
 
-    // Smartphone-Erkennung
+    // Smartphone-Erkennung (unterstützt Porträt und Querformat)
     const checkIsPhone = () => {
-      const isNarrow = window.innerWidth <= 680;
+      const isNarrow = window.innerWidth <= 768 || window.innerHeight <= 540;
       const isMobileUA = /Mobi|Android|iPhone|iPod/i.test(navigator.userAgent) && !/iPad/i.test(navigator.userAgent);
       setIsSmartphone(isNarrow || isMobileUA);
     };
     checkIsPhone();
     window.addEventListener("resize", checkIsPhone);
+    window.addEventListener("orientationchange", checkIsPhone);
 
     // Fange Installationsereignis ab
     const handleBeforeInstall = (e: Event) => {
@@ -209,6 +210,7 @@ export function App() {
 
     return () => {
       window.removeEventListener("resize", checkIsPhone);
+      window.removeEventListener("orientationchange", checkIsPhone);
       window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
     };
   }, []);
