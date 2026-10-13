@@ -408,6 +408,29 @@ export function SettingsModal({
           )}
         </div>
 
+        {/* APP INFO & CREDITS */}
+        <div
+          className="settings-section"
+          style={{
+            textAlign: "center",
+            padding: "12px 16px",
+            background: "rgba(255, 255, 255, 0.05)",
+            borderRadius: "10px",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
+            fontSize: "0.88rem",
+            color: "#94a3b8",
+            marginTop: "8px",
+          }}
+        >
+          <div style={{ color: "#f8fafc", fontWeight: 700, fontSize: "1.02rem", marginBottom: "3px" }}>
+            🦖 Dino Paint Game
+          </div>
+          <div>Version 2.7 • by X4rinia & Dino</div>
+          <div style={{ fontSize: "0.82rem", color: "#64748b", marginTop: "3px" }}>
+            Zeichnen. Welten bauen. Spielen!
+          </div>
+        </div>
+
         {/* FOOTER BUTTONS */}
         <div
           className="settings-footer"

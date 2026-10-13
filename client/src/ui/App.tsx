@@ -838,10 +838,12 @@ export function App() {
             </div>
           </div>
 
-          <h1 className="hero-heading">Zeichnen. Welten bauen. Spielen!</h1>
-          <p className="hero-lead">
-            Erschaffe bunte Plattform-Welten mit je 8 Leveln auf PC, Tablet, Smartphone & TV!
-          </p>
+          <div className="hero-title-box">
+            <h1 className="hero-heading">Zeichnen. Welten bauen. Spielen!</h1>
+            <p className="hero-lead">
+              Erschaffe bunte Plattform-Welten mit je 8 Leveln auf PC, Tablet, Smartphone & TV!
+            </p>
+          </div>
         </section>
 
         {currentLevel && (
@@ -913,12 +915,6 @@ export function App() {
           </div>
         </section>
       </main>
-
-      <footer className="home-footer">
-        <div className="footer-credits">
-          <strong>Dino Paint Game</strong> • Version 2.6 • by X4rinia & Dino
-        </div>
-      </footer>
 
       {showSettings && (
         <SettingsModal
