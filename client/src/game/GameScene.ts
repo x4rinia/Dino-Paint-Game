@@ -686,65 +686,95 @@ export class GameScene extends Phaser.Scene {
 
     // 🧱 Kisten auf Gefahren: Stachel-Brücke & Lava-Floß
     for (const h of this.hazards) {
-      this.physics.add.collider(this.moversGroup, h, (mObj) => {
-        const hazardType = (h as Phaser.GameObjects.Rectangle).getData("hazardType");
-        const mRect = mObj as Phaser.GameObjects.Rectangle;
-        const mBody = mRect.body as Phaser.Physics.Arcade.Body;
-        if (hazardType === "lava") {
-          // Holz-Kiste schwimmt auf Lava wie ein Floß!
-          mRect.setData("onLava", true);
-          const hTop = h.y;
-          if (mRect.y + mRect.height / 2 >= hTop) {
-            mBody.setVelocityY(Math.min(mBody.velocity.y * 0.15, -20));
-          }
-          if (Math.random() < 0.05) {
-            burstParticles(this, mRect.x + (Math.random() - 0.5) * 16, hTop, {
+      const hazardType = (h as Phaser.GameObjects.Rectangle).getData("hazardType");
+      if (this.gameMode === "rpg_labyrinth") {
+        // Im Labyrinth: Kiste auf Lava schieben baut eine feste, begehbare Kisten-Brücke!
+        this.physics.add.overlap(this.moversGroup, h, (mObj, hObj) => {
+          const mRect = mObj as Phaser.GameObjects.Rectangle;
+          const hRect = hObj as Phaser.GameObjects.Rectangle;
+          if (!mRect.getData("isBridge")) {
+            mRect.setData("isBridge", true);
+            mRect.setData("onLava", true);
+            hRect.setData("bridged", true);
+            const mBody = mRect.body as Phaser.Physics.Arcade.Body;
+            if (mBody) {
+              mBody.setVelocity(0, 0);
+              mBody.setImmovable(true);
+            }
+            burstParticles(this, mRect.x, mRect.y, {
               color: 0xf97316,
-              count: 2,
-              speed: [15, 45],
-              size: 3,
-              duration: 260,
+              count: 14,
+              speed: [40, 110],
+              size: 5,
+              duration: 350,
             });
+            playStomp();
+            floatText(this, "🪵 Kisten-Brücke gebaut!", mRect.x, mRect.y - 20, INK_CSS.orange);
           }
-        }
-      });
+        });
+      } else {
+        this.physics.add.collider(this.moversGroup, h, (mObj) => {
+          const mRect = mObj as Phaser.GameObjects.Rectangle;
+          const mBody = mRect.body as Phaser.Physics.Arcade.Body;
+          if (hazardType === "lava") {
+            // Holz-Kiste schwimmt auf Lava wie ein Floß!
+            mRect.setData("onLava", true);
+            const hTop = h.y;
+            if (mRect.y + mRect.height / 2 >= hTop) {
+              mBody.setVelocityY(Math.min(mBody.velocity.y * 0.15, -20));
+            }
+            if (Math.random() < 0.05) {
+              burstParticles(this, mRect.x + (Math.random() - 0.5) * 16, hTop, {
+                color: 0xf97316,
+                count: 2,
+                speed: [15, 45],
+                size: 3,
+                duration: 260,
+              });
+            }
+          }
+        });
+      }
     }
 
     // Kollision: Spieler mit blauen Objekten (schieben & draufstehen)
-    this.physics.add.collider(this.player.rect, this.moversGroup, (pObj, mObj) => {
-      const pRect = pObj as Phaser.GameObjects.Rectangle;
-      const mRect = mObj as Phaser.GameObjects.Rectangle;
-      const pBody = pRect.body as Phaser.Physics.Arcade.Body;
-      const mBody = mRect.body as Phaser.Physics.Arcade.Body;
+    this.physics.add.collider(
+      this.player.rect,
+      this.moversGroup,
+      (pObj, mObj) => {
+        const pRect = pObj as Phaser.GameObjects.Rectangle;
+        const mRect = mObj as Phaser.GameObjects.Rectangle;
+        const pBody = pRect.body as Phaser.Physics.Arcade.Body;
+        const mBody = mRect.body as Phaser.Physics.Arcade.Body;
 
-      const now = this.time.now;
-      const lastPush = (mRect.getData("lastPushTime") as number) || 0;
-      // Kiste wird beim Anstoßen um ca. 1 Kästchen (~30-36px) verschoben und stoppt dann
-      const PUSH_COOLDOWN = 200;
-      const STEP_SPEED = 140;
-      const DRAG_STOP = 1200;
+        const now = this.time.now;
+        const lastPush = (mRect.getData("lastPushTime") as number) || 0;
+        // Kiste wird beim Anstoßen um ca. 1 Kästchen (~30-36px) verschoben und stoppt dann
+        const PUSH_COOLDOWN = 200;
+        const STEP_SPEED = 140;
+        const DRAG_STOP = 1200;
 
-      if (this.gameMode === "rpg_labyrinth") {
-        if (now - lastPush > 340) {
-          if (pBody.velocity.x > 20 && this.player.x < mBody.x) {
-            mRect.setData("lastPushTime", now);
-            mBody.setDrag(420, 420);
-            mBody.setVelocity(155, 0);
-          } else if (pBody.velocity.x < -20 && this.player.x > mBody.x) {
-            mRect.setData("lastPushTime", now);
-            mBody.setDrag(420, 420);
-            mBody.setVelocity(-155, 0);
-          } else if (pBody.velocity.y > 20 && this.player.y < mBody.y) {
-            mRect.setData("lastPushTime", now);
-            mBody.setDrag(420, 420);
-            mBody.setVelocity(0, 155);
-          } else if (pBody.velocity.y < -20 && this.player.y > mBody.y) {
-            mRect.setData("lastPushTime", now);
-            mBody.setDrag(420, 420);
-            mBody.setVelocity(0, -155);
+        if (this.gameMode === "rpg_labyrinth") {
+          if (now - lastPush > 340) {
+            if (pBody.velocity.x > 20 && this.player.x < mBody.x) {
+              mRect.setData("lastPushTime", now);
+              mBody.setDrag(420, 420);
+              mBody.setVelocity(155, 0);
+            } else if (pBody.velocity.x < -20 && this.player.x > mBody.x) {
+              mRect.setData("lastPushTime", now);
+              mBody.setDrag(420, 420);
+              mBody.setVelocity(-155, 0);
+            } else if (pBody.velocity.y > 20 && this.player.y < mBody.y) {
+              mRect.setData("lastPushTime", now);
+              mBody.setDrag(420, 420);
+              mBody.setVelocity(0, 155);
+            } else if (pBody.velocity.y < -20 && this.player.y > mBody.y) {
+              mRect.setData("lastPushTime", now);
+              mBody.setDrag(420, 420);
+              mBody.setVelocity(0, -155);
+            }
           }
-        }
-      } else {
+        } else {
         // Jump 'n' Run: Kiste darf NIEMALS in die Luft geschleudert werden oder wegfliegen!
         if (mBody.velocity.y < 0 && !mRect.getData("onLava")) {
           mBody.setVelocityY(0);
@@ -784,7 +814,16 @@ export class GameScene extends Phaser.Scene {
           }
         }
       }
-    });
+    },
+    (_pObj, mObj) => {
+      const mRect = mObj as Phaser.GameObjects.Rectangle;
+      // Brücken-Kiste ist für Dino voll begehbar!
+      if (mRect.getData("isBridge")) {
+        return false;
+      }
+      return true;
+    }
+  );
 
     // Overlap: Blaue Kisten mit Teleportern (Beamen & Vortex-Flug!)
     this.physics.add.overlap(this.moversGroup, this.teleportersGroup, (mObj, tpRect) => {
@@ -792,8 +831,12 @@ export class GameScene extends Phaser.Scene {
     });
 
     // Kollisionen: Gefahren, Münzen, Ziel, Gegner
-    this.physics.add.overlap(this.player.rect, this.hazards, () => {
-      // Wenn Dino sicher auf einer Kiste steht (Lava-Floß), stirbt er nicht!
+    this.physics.add.overlap(this.player.rect, this.hazards, (_p, hObj) => {
+      // Wenn diese Gefahrenstelle durch eine Kiste überbrückt wurde:
+      if ((hObj as Phaser.GameObjects.Rectangle).getData("bridged")) {
+        return;
+      }
+      // Wenn Dino sicher auf einer Kiste steht (Lava-Floß / Kistenbrücke), stirbt er nicht!
       if (this.isPlayerStandingOnCrate()) {
         return;
       }
@@ -1708,6 +1751,20 @@ export class GameScene extends Phaser.Scene {
       const mRect = mObj as Phaser.GameObjects.Rectangle;
       const mBody = mRect.body as Phaser.Physics.Arcade.Body;
       if (!mBody) continue;
+
+      if (mRect.getData("isBridge") || mRect.getData("onLava")) {
+        const pLeft = pBody.x;
+        const pRight = pBody.x + pBody.width;
+        const pTop = pBody.y;
+        const pBottom = pBody.y + pBody.height;
+        const mLeft = mBody.x - 4;
+        const mRight = mBody.x + mBody.width + 4;
+        const mTop = mBody.y - 4;
+        const mBottom = mBody.y + mBody.height + 4;
+        if (pRight > mLeft && pLeft < mRight && pBottom > mTop && pTop < mBottom) {
+          return true;
+        }
+      }
 
       const playerBottom = pBody.bottom;
       const crateTop = mBody.top;

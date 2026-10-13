@@ -228,59 +228,82 @@ const JUNGLE_LEVELS: Level[] = [
   {
     version: 2,
     name: "Das Kosmische Dimensions-Labyrinth",
-    intro: "Zero-G Labyrinth mit mehreren Portalen! Teleportiere dich zwischen Raumkammern hin und her, um alle Dino-Eier zu bergen!",
-    quips: ["Patsch!", "Dimensionstor durchschritten!", "Super Timing!"],
+    intro: "Zero-G Labyrinth mit Portalen & Kisten-Rätseln! Schiebe Kisten um Lavabrücken zu bauen, reise durch Dimensionstore und berge alle Dino-Eier!",
+    quips: ["Patsch!", "Dimensionstor durchschritten!", "Kistenbrücke gebaut!", "Super Timing!"],
     theme: "space",
     gameMode: "rpg_labyrinth",
-    start: { x: 120, y: 140 },
-    goal: { id: "goal", x: 840, y: 820, w: 48, h: 74 },
+    start: { x: 140, y: 160 },
+    goal: { id: "goal", x: 830, y: 820, w: 48, h: 74 },
     platforms: [
       // Außenmauern
-      { id: "sp-wall-top", x: 40, y: 40, w: 920, h: 40 },
-      { id: "sp-wall-bottom", x: 40, y: 920, w: 920, h: 40 },
-      { id: "sp-wall-left", x: 40, y: 40, w: 40, h: 920 },
-      { id: "sp-wall-right", x: 920, y: 40, w: 40, h: 920 },
-      // Raum-Trennwände
-      { id: "sw1", x: 340, y: 40, w: 40, h: 620 },
-      { id: "sw2", x: 340, y: 740, w: 40, h: 220 },
-      { id: "sw3", x: 660, y: 40, w: 40, h: 320 },
-      { id: "sw4", x: 660, y: 440, w: 40, h: 520 },
-      { id: "sh1", x: 80, y: 480, w: 260, h: 40 },
-      { id: "sh2", x: 380, y: 400, w: 280, h: 40 },
-      { id: "sh3", x: 700, y: 600, w: 220, h: 40 },
+      { id: "sp-wall-top", x: 40, y: 40, w: 920, h: 30 },
+      { id: "sp-wall-bottom", x: 40, y: 930, w: 920, h: 30 },
+      { id: "sp-wall-left", x: 40, y: 40, w: 30, h: 920 },
+      { id: "sp-wall-right", x: 930, y: 40, w: 30, h: 920 },
+
+      // Vertikale Trennwand 1 (x: 340) mit zwei breiten Türen (je 170-180px breit)
+      { id: "sw1a", x: 340, y: 70, w: 30, h: 80 },
+      { id: "sw1b", x: 340, y: 330, w: 30, h: 160 },
+      { id: "sw1c", x: 340, y: 490, w: 30, h: 160 },
+      { id: "sw1d", x: 340, y: 820, w: 30, h: 110 },
+
+      // Vertikale Trennwand 2 (x: 640) mit zwei breiten Türen (je 170-180px breit)
+      { id: "sw2a", x: 640, y: 70, w: 30, h: 80 },
+      { id: "sw2b", x: 640, y: 330, w: 30, h: 160 },
+      { id: "sw2c", x: 640, y: 490, w: 30, h: 160 },
+      { id: "sw2d", x: 640, y: 820, w: 30, h: 110 },
+
+      // Horizontale Trennwände (y: 490) mit großzügigen Durchgängen
+      // Raum 1 zu Raum 4 (Tür x: 140..300)
+      { id: "sh1a", x: 70, y: 490, w: 70, h: 30 },
+      { id: "sh1b", x: 300, y: 490, w: 40, h: 30 },
+
+      // Raum 2 zu Raum 5 (Kisten-Lava-Brückenkorridor x: 470..560)
+      { id: "sh2a", x: 370, y: 490, w: 100, h: 30 },
+      { id: "sh2b", x: 560, y: 490, w: 80, h: 30 },
+
+      // Raum 3 zu Raum 6 (Tür x: 720..880)
+      { id: "sh3a", x: 670, y: 490, w: 50, h: 30 },
+      { id: "sh3b", x: 880, y: 490, w: 50, h: 30 },
     ],
     hazards: [
-      { id: "floating-plasma-lab-1", type: "lava", x: 160, y: 320, w: 80, h: 40 },
-      { id: "floating-plasma-lab-2", type: "lava", x: 500, y: 640, w: 80, h: 40 },
+      // Kisten-Brücken-Rätsel: Lava im zentralen Durchgang (x: 470..560)
+      // Dino schiebt die Kiste "box-bridge" (490, 390) nach unten auf diese Lava,
+      // wodurch sofort eine feste Kistenbrücke entsteht!
+      { id: "plasma-bridge", type: "lava", x: 470, y: 485, w: 90, h: 40 },
     ],
     bouncers: [
-      { id: "b-space-lab-1", x: 220, y: 740, w: 50, h: 50 },
-      { id: "b-space-lab-2", x: 520, y: 220, w: 50, h: 50 },
+      { id: "b-space-lab-1", x: 230, y: 780, w: 50, h: 50 },
+      { id: "b-space-lab-2", x: 520, y: 200, w: 50, h: 50 },
     ],
     movers: [
-      { id: "box-space-1", x: 480, y: 480, w: 50, h: 50 },
+      // Kiste 1: Kann auf Lava geschoben werden für den Brückenweg!
+      { id: "box-bridge", x: 490, y: 390, w: 50, h: 50 },
+      // Kiste 2: In Raum 1, kann beiseite geschoben werden um Egg 1 freizulegen!
+      { id: "box-secret", x: 130, y: 350, w: 50, h: 50 },
     ],
     collectibles: [
-      { id: "e1", x: 140, y: 620, w: 30, h: 30, type: "egg", collected: false },
-      { id: "e2", x: 500, y: 120, w: 30, h: 30, type: "egg", collected: false },
-      { id: "e3", x: 820, y: 200, w: 30, h: 30, type: "egg", collected: false },
+      { id: "e1", x: 130, y: 430, w: 30, h: 30, type: "egg", collected: false },
+      { id: "e2", x: 820, y: 180, w: 30, h: 30, type: "egg", collected: false },
+      { id: "e3", x: 500, y: 820, w: 30, h: 30, type: "egg", collected: false },
     ],
     // Mehrere Portale, die zyklisch miteinander verbunden sind!
     teleporters: [
-      { id: "cosmic-tp-1", x: 140, y: 820, w: 40, h: 60, targetId: "cosmic-tp-2", pairIndex: 1 },
-      { id: "cosmic-tp-2", x: 480, y: 280, w: 40, h: 60, targetId: "cosmic-tp-3", pairIndex: 2 },
-      { id: "cosmic-tp-3", x: 820, y: 480, w: 40, h: 60, targetId: "cosmic-tp-1", pairIndex: 3 },
+      { id: "cosmic-tp-1", x: 130, y: 780, w: 40, h: 60, targetId: "cosmic-tp-2", pairIndex: 1 },
+      { id: "cosmic-tp-2", x: 420, y: 180, w: 40, h: 60, targetId: "cosmic-tp-3", pairIndex: 2 },
+      { id: "cosmic-tp-3", x: 820, y: 340, w: 40, h: 60, targetId: "cosmic-tp-1", pairIndex: 3 },
     ],
     movingPlatforms: [],
     coins: [
-      { id: "c1", x: 140, y: 220 },
-      { id: "c2", x: 500, y: 800 },
-      { id: "c3", x: 820, y: 120 },
+      { id: "c1", x: 130, y: 640 },
+      { id: "c2", x: 580, y: 180 },
+      { id: "c3", x: 500, y: 680 },
+      { id: "c4", x: 820, y: 120 },
     ],
     enemies: [
-      { id: "en-sp-1", x: 220, y: 200, patrol: 45 },
-      { id: "en-sp-2", x: 500, y: 520, patrol: 45 },
-      { id: "en-sp-3", x: 820, y: 720, patrol: 45 },
+      { id: "en-sp-1", x: 220, y: 220, patrol: 45 },
+      { id: "en-sp-2", x: 740, y: 240, patrol: 45 },
+      { id: "en-sp-3", x: 740, y: 680, patrol: 45 },
     ],
   },
   starterLevelAllColors,
