@@ -70,11 +70,28 @@ export function DrawingCanvas({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  const getInitialZoom = () => {
+    if (typeof window === "undefined") return 0.85;
+    const isMobile = window.innerWidth <= 680;
+    if (isMobile) {
+      if (window.innerHeight > window.innerWidth) {
+        // Hochformat auf Smartphone: 0.55 ist eine angenehme, große Zeichengröße
+        return 0.55;
+      }
+      const scaleX = (window.innerWidth - 16) / 1280;
+      const scaleY = (window.innerHeight - 90) / 720;
+      return Number(Math.max(0.25, Math.min(scaleX, scaleY, 1.0)).toFixed(2));
+    }
+    const availW = Math.max(300, window.innerWidth - 32);
+    const availH = Math.max(300, window.innerHeight - 170);
+    return Number(Math.min(availW / 1280, availH / 720, 1.0).toFixed(2));
+  };
+
   const [tool, setTool] = useState<Tool>("black");
   const [brushSize, setBrushSize] = useState<number>(14);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
-  const [zoom, setZoom] = useState(0.85);
+  const [zoom, setZoom] = useState<number>(getInitialZoom);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanMode, setIsPanMode] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -120,37 +137,95 @@ export function DrawingCanvas({
   const CANVAS_HEIGHT = 720;
 
   // 🔍 Responsiver Zoom & Skalierung für Smartphone, Laptop- und Desktop-Bildschirme
-  const fitToScreen = useCallback(() => {
+  const fitToScreen = useCallback((zoomMode?: "fit" | "large") => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const isMobile = window.innerWidth <= 680;
     const padX = isMobile ? 8 : 24;
     const padY = isMobile ? 8 : 24;
-    const availW = Math.max(200, rect.width - padX);
-    const availH = Math.max(200, rect.height - padY);
+    const w = rect.width > 0 ? rect.width : window.innerWidth;
+    const h = rect.height > 0 ? rect.height : (window.innerHeight - (isMobile ? 120 : 180));
+    const availW = Math.max(200, w - padX);
+    const availH = Math.max(200, h - padY);
     const scaleX = availW / CANVAS_WIDTH;
     const scaleY = availH / CANVAS_HEIGHT;
-    // Perfekt einpassen: Maximiert die sichtbare Fläche ohne Abschneiden
-    const bestZoom = Math.min(scaleX, scaleY, 1.0);
-    setZoom(Number(Math.max(0.2, bestZoom).toFixed(2)));
+
+    if (zoomMode === "large") {
+      setZoom(0.75);
+      setPan({ x: 0, y: 0 });
+      return;
+    }
+
+    if (zoomMode === "fit") {
+      const bestZoom = Math.min(scaleX, scaleY, 1.0);
+      setZoom(Number(Math.max(0.2, bestZoom).toFixed(2)));
+      setPan({ x: 0, y: 0 });
+      return;
+    }
+
+    // Auto-Fit beim Laden
+    if (isMobile && window.innerHeight > window.innerWidth) {
+      // Im Smartphone-Hochformat: 0.55 für großes, bequemes Zeichnen
+      setZoom(0.55);
+    } else {
+      const bestZoom = Math.min(scaleX, scaleY, 1.0);
+      setZoom(Number(Math.max(0.2, bestZoom).toFixed(2)));
+    }
     setPan({ x: 0, y: 0 });
   }, []);
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const timer = setTimeout(fitToScreen, 40);
+    const timer = setTimeout(() => fitToScreen(), 40);
     const ro = new ResizeObserver(() => fitToScreen());
     ro.observe(el);
-    window.addEventListener("resize", fitToScreen);
+    const onResize = () => fitToScreen();
+    window.addEventListener("resize", onResize);
     return () => {
       clearTimeout(timer);
       ro.disconnect();
-      window.removeEventListener("resize", fitToScreen);
+      window.removeEventListener("resize", onResize);
     };
   }, [fitToScreen]);
 
-  // Initialisieren & weißer Hintergrund
+  // Starter-Level für Erststart des Editors zeichnen (Boden, Plattformen, Trampolin, Eier, Ziel)
+  const drawStarterLevel = (ctx: CanvasRenderingContext2D) => {
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    // 1. Feste schwarze Böden & Plattformen
+    ctx.fillStyle = "#1d1d24";
+    ctx.fillRect(40, 620, 1200, 36); // Durchgehender Boden
+    ctx.fillRect(360, 510, 180, 24); // Plattform 1
+    ctx.fillRect(620, 410, 180, 24); // Plattform 2
+    ctx.fillRect(880, 310, 260, 24); // Zielplattform
+
+    // 2. Grünes Trampolin (Bouncer)
+    ctx.fillStyle = "#2fb457";
+    ctx.fillRect(230, 595, 80, 25);
+
+    // 3. Rote Gefahrenzone (Lava)
+    ctx.fillStyle = "#d6453d";
+    ctx.fillRect(570, 605, 90, 15);
+
+    // 4. Gelbe Dino-Eier (Sammelobjekte)
+    ctx.fillStyle = "#f5c518";
+    const drawEgg = (cx: number, cy: number) => {
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, 14, 18, 0, 0, Math.PI * 2);
+      ctx.fill();
+    };
+    drawEgg(450, 475);
+    drawEgg(710, 375);
+    drawEgg(960, 275);
+
+    // 5. Ziel (Flagge)
+    ctx.fillStyle = "#f59e0b";
+    ctx.fillRect(1060, 230, 40, 80);
+  };
+
+  // Initialisieren & weißer Hintergrund / Starter-Level
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -172,8 +247,9 @@ export function DrawingCanvas({
       };
       img.src = initialImage;
     } else {
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+      // Erst-Start des Editors: Zeichne ein spielbares Starter-Level,
+      // damit auf dem Smartphone nicht einfach ein leeres weißes Nichts da ist!
+      drawStarterLevel(ctx);
       saveHistory();
     }
   }, [initialImage]);
@@ -1350,11 +1426,20 @@ export function DrawingCanvas({
           <button
             type="button"
             className="tool-btn-marker"
-            onClick={fitToScreen}
-            title="Leinwand automatisch optimal an den Laptop-Bildschirm anpassen"
+            onClick={() => fitToScreen("fit")}
+            title="Ganzes Level anzeigen"
             style={{ fontSize: "0.8rem", padding: "6px 9px", background: "#3b4252" }}
           >
-            🔍 Anpassen ({Math.round(zoom * 100)}%)
+            🔍 Übersicht ({Math.round(zoom * 100)}%)
+          </button>
+          <button
+            type="button"
+            className="tool-btn-marker"
+            onClick={() => fitToScreen("large")}
+            title="Großes Zeichenblatt (75%)"
+            style={{ fontSize: "0.8rem", padding: "6px 9px", background: "#059669", color: "#ffffff" }}
+          >
+            🔎 Groß
           </button>
           <button
             type="button"
@@ -1375,6 +1460,11 @@ export function DrawingCanvas({
             −
           </button>
         </div>
+      </div>
+
+      {/* Smartphone Orientierungshinweis */}
+      <div className="mobile-orientation-hint">
+        <span>🔄 Tipp: Smartphone <strong>quer halten</strong> für riesigen Vollbild-Zeichenspaß!</span>
       </div>
 
       <div
