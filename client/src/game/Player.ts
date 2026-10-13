@@ -404,9 +404,10 @@ export class Player {
       this.sprite.setPosition(body.center.x, body.center.y - 2 + bobY);
       // dino_idle und dino_jump blicken in der Bilddatei nach links (-1), dino_walk und dino_run nach rechts (1)
       const baseDir = tex === "dino_idle" || tex === "dino_jump" ? -1 : 1;
+      const uniformScale = 44 / (this.sprite.height || 200);
       this.sprite.setScale(
-        (rect.scaleX * this.facing * baseDir * 50) / (this.sprite.width || 200),
-        (rect.scaleY * 42) / (this.sprite.height || 200)
+        rect.scaleX * this.facing * baseDir * uniformScale,
+        rect.scaleY * uniformScale
       );
       if (this.sprite.texture.key !== tex && this.scene.textures.exists(tex)) {
         this.sprite.setTexture(tex);
@@ -432,9 +433,10 @@ export class Player {
       if (isAirborne) tex = "dino_jump";
       else if (isRunning) tex = "dino_walk";
       const baseDir = tex === "dino_idle" || tex === "dino_jump" ? -1 : 1;
+      const uniformScale = 44 / (this.sprite.height || 200);
       this.sprite.setScale(
-        (f.scaleX * this.facing * baseDir * 50) / (this.sprite.width || 200),
-        (f.scaleY * 42) / (this.sprite.height || 200)
+        f.scaleX * this.facing * baseDir * uniformScale,
+        f.scaleY * uniformScale
       );
       if (this.sprite.texture.key !== tex && this.scene.textures.exists(tex)) {
         this.sprite.setTexture(tex);

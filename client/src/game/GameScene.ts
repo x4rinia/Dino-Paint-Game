@@ -689,19 +689,23 @@ export class GameScene extends Phaser.Scene {
       const hazardType = (h as Phaser.GameObjects.Rectangle).getData("hazardType");
       if (this.gameMode === "rpg_labyrinth") {
         // Im Labyrinth: Kiste auf Lava schieben baut eine feste, begehbare Kisten-Brücke!
-        this.physics.add.overlap(this.moversGroup, h, (mObj, hObj) => {
-          const mRect = mObj as Phaser.GameObjects.Rectangle;
-          const hRect = hObj as Phaser.GameObjects.Rectangle;
-          if (!mRect.getData("isBridge")) {
-            mRect.setData("isBridge", true);
-            mRect.setData("onLava", true);
-            hRect.setData("bridged", true);
-            const mBody = mRect.body as Phaser.Physics.Arcade.Body;
+        this.physics.add.overlap(this.moversGroup, h, (obj1, obj2) => {
+          const o1 = obj1 as Phaser.GameObjects.Rectangle;
+          const o2 = obj2 as Phaser.GameObjects.Rectangle;
+          const mover = o1.getData("hazardType") ? o2 : o1;
+          const hazard = o1.getData("hazardType") ? o1 : o2;
+
+          if (!mover.getData("isBridge")) {
+            mover.setData("isBridge", true);
+            mover.setData("onLava", true);
+            hazard.setData("bridged", true);
+            h.setData("bridged", true);
+            const mBody = mover.body as Phaser.Physics.Arcade.Body;
             if (mBody) {
               mBody.setVelocity(0, 0);
-              mBody.setImmovable(true);
+              mBody.setDrag(10000, 10000);
             }
-            burstParticles(this, mRect.x, mRect.y, {
+            burstParticles(this, mover.x, mover.y, {
               color: 0xf97316,
               count: 14,
               speed: [40, 110],
@@ -709,22 +713,25 @@ export class GameScene extends Phaser.Scene {
               duration: 350,
             });
             playStomp();
-            floatText(this, "🪵 Kisten-Brücke gebaut!", mRect.x, mRect.y - 20, INK_CSS.orange);
+            floatText(this, "🪵 Kisten-Brücke gebaut!", mover.x, mover.y - 20, INK_CSS.orange);
           }
         });
       } else {
-        this.physics.add.collider(this.moversGroup, h, (mObj) => {
-          const mRect = mObj as Phaser.GameObjects.Rectangle;
-          const mBody = mRect.body as Phaser.Physics.Arcade.Body;
+        this.physics.add.collider(this.moversGroup, h, (obj1, obj2) => {
+          const o1 = obj1 as Phaser.GameObjects.Rectangle;
+          const o2 = obj2 as Phaser.GameObjects.Rectangle;
+          const mover = o1.getData("hazardType") ? o2 : o1;
+          const hazard = o1.getData("hazardType") ? o1 : o2;
+          const mBody = mover.body as Phaser.Physics.Arcade.Body;
           if (hazardType === "lava") {
             // Holz-Kiste schwimmt auf Lava wie ein Floß!
-            mRect.setData("onLava", true);
-            const hTop = h.y;
-            if (mRect.y + mRect.height / 2 >= hTop) {
+            mover.setData("onLava", true);
+            const hTop = hazard.y;
+            if (mover.y + mover.height / 2 >= hTop) {
               mBody.setVelocityY(Math.min(mBody.velocity.y * 0.15, -20));
             }
             if (Math.random() < 0.05) {
-              burstParticles(this, mRect.x + (Math.random() - 0.5) * 16, hTop, {
+              burstParticles(this, mover.x + (Math.random() - 0.5) * 16, hTop, {
                 color: 0xf97316,
                 count: 2,
                 speed: [15, 45],
@@ -831,9 +838,14 @@ export class GameScene extends Phaser.Scene {
     });
 
     // Kollisionen: Gefahren, Münzen, Ziel, Gegner
-    this.physics.add.overlap(this.player.rect, this.hazards, (_p, hObj) => {
+    this.physics.add.overlap(this.player.rect, this.hazards, (pObj, hObj) => {
+      if (this.dead || this.locked) return;
+      const o1 = pObj as Phaser.GameObjects.Rectangle;
+      const o2 = hObj as Phaser.GameObjects.Rectangle;
+      const hazard = o1.getData("hazardType") ? o1 : (o2?.getData("hazardType") ? o2 : null);
+
       // Wenn diese Gefahrenstelle durch eine Kiste überbrückt wurde:
-      if ((hObj as Phaser.GameObjects.Rectangle).getData("bridged")) {
+      if (hazard?.getData("bridged")) {
         return;
       }
       // Wenn Dino sicher auf einer Kiste steht (Lava-Floß / Kistenbrücke), stirbt er nicht!
@@ -1753,14 +1765,14 @@ export class GameScene extends Phaser.Scene {
       if (!mBody) continue;
 
       if (mRect.getData("isBridge") || mRect.getData("onLava")) {
-        const pLeft = pBody.x;
-        const pRight = pBody.x + pBody.width;
-        const pTop = pBody.y;
-        const pBottom = pBody.y + pBody.height;
-        const mLeft = mBody.x - 4;
-        const mRight = mBody.x + mBody.width + 4;
-        const mTop = mBody.y - 4;
-        const mBottom = mBody.y + mBody.height + 4;
+        const pLeft = pBody.x - 6;
+        const pRight = pBody.x + pBody.width + 6;
+        const pTop = pBody.y - 6;
+        const pBottom = pBody.y + pBody.height + 6;
+        const mLeft = mBody.x - 8;
+        const mRight = mBody.x + mBody.width + 8;
+        const mTop = mBody.y - 8;
+        const mBottom = mBody.y + mBody.height + 8;
         if (pRight > mLeft && pLeft < mRight && pBottom > mTop && pTop < mBottom) {
           return true;
         }
@@ -1769,8 +1781,8 @@ export class GameScene extends Phaser.Scene {
       const playerBottom = pBody.bottom;
       const crateTop = mBody.top;
       const verticallyOnTop =
-        Math.abs(playerBottom - crateTop) <= 8 || (playerBottom >= crateTop && playerBottom <= crateTop + 14);
-      const horizontallyOverlapping = pBody.right > mBody.left + 4 && pBody.left < mBody.right - 4;
+        Math.abs(playerBottom - crateTop) <= 12 || (playerBottom >= crateTop && playerBottom <= crateTop + 20);
+      const horizontallyOverlapping = pBody.right > mBody.left + 2 && pBody.left < mBody.right - 2;
 
       if (verticallyOnTop && horizontallyOverlapping) {
         return true;
@@ -2100,7 +2112,11 @@ export class GameScene extends Phaser.Scene {
       m.body.reset(m.startX, m.startY);
       m.body.setVelocity(0, 0);
       m.rect.setData("onLava", false);
+      m.rect.setData("isBridge", false);
       m.art.setPosition(m.startX, m.startY);
+    }
+    for (const h of this.hazards) {
+      h.setData("bridged", false);
     }
 
     // Sammelobjekte präzise auf 30x30 Bildgröße zurücksetzen
