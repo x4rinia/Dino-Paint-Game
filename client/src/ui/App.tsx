@@ -359,6 +359,23 @@ export function App() {
     handleStartPlaying(firstLevel, (firstLevel as any).originalImage);
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        if (worldIntroCampaign) {
+          e.preventDefault();
+          void handleConfirmStartCampaign();
+        } else if (worldOutroStatus) {
+          e.preventDefault();
+          setWorldOutroStatus(null);
+          setScreen("library");
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [worldIntroCampaign, worldOutroStatus]);
+
   const handleStartPlaying = (
     level: Level,
     drawingDataUrl?: string
@@ -569,7 +586,12 @@ export function App() {
           }}
           initialImage={initialDrawingForStudio}
           backgroundTheme={selectedBackground}
+          onBackgroundChange={setSelectedBackground}
           gameMode={gameMode}
+          onGameModeChange={(newMode) => {
+            setGameModeState(newMode);
+            void setSetting("game_mode", newMode);
+          }}
           onOpenSettings={() => setShowSettings(true)}
           onOpenGameMode={() => setShowGameModeModal(true)}
           onOpenPhotoScanner={() => setScreen("camera")}
@@ -755,7 +777,7 @@ export function App() {
   return (
     <div
       className={`dino-app-home ${tvMode ? "tv-mode-layout" : ""}`}
-      style={{ backgroundImage: 'url("./sprites/home_background_themes.jpg")' }}
+      style={{ backgroundImage: 'url("./sprites/dino_menu_background.jpg")' }}
     >
       <header className="home-topbar">
         <div className="brand-logo" style={{ display: "flex", alignItems: "center", gap: "10px" }}>

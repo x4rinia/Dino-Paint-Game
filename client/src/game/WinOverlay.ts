@@ -19,6 +19,7 @@ export class WinOverlay {
   private readonly container: Phaser.GameObjects.Container;
   private readonly tapZone: Phaser.GameObjects.Zone;
   private readonly tapTimer: Phaser.Time.TimerEvent;
+  private readonly enterKey?: Phaser.Input.Keyboard.Key;
 
   constructor(scene: Phaser.Scene, payload: WinEvent, onReplay: () => void, compact?: WinOverlayCompact) {
     if (compact) {
@@ -30,13 +31,19 @@ export class WinOverlay {
     this.container.setDepth(DEPTH);
 
     this.tapZone = scene.add.zone(WORLD_W / 2, WORLD_H / 2, WORLD_W, WORLD_H).setScrollFactor(0).setDepth(DEPTH);
+    this.enterKey = scene.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+
     this.tapTimer = scene.time.delayedCall(TAP_DELAY_MS, () => {
-      if (this.tapZone.scene) this.tapZone.setInteractive().once("pointerdown", onReplay);
+      if (this.tapZone.scene) {
+        this.tapZone.setInteractive().once("pointerdown", onReplay);
+        this.enterKey?.once("down", onReplay);
+      }
     });
   }
 
   destroy() {
     this.tapTimer.remove(false);
+    this.enterKey?.removeAllListeners();
     this.tapZone.destroy();
     this.container.destroy();
   }
@@ -92,7 +99,7 @@ export class WinOverlay {
       .setOrigin(0.5)
       .setRotation(0.015);
     const hint = scene.add
-      .text(cx, cy + 88, "Tippen oder R zum Neustarten", { fontFamily: HAND_FONT, fontSize: "26px", color: INK_CSS.blue })
+      .text(cx, cy + 88, "Tippen, ENTER oder R zum Neustarten", { fontFamily: HAND_FONT, fontSize: "26px", color: INK_CSS.blue })
       .setOrigin(0.5)
       .setRotation(-0.02);
 

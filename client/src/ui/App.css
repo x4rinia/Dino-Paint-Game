@@ -175,7 +175,7 @@ body {
   display: flex;
   flex-direction: column;
   background-color: #0b0f19;
-  background-image: url("../sprites/home_background_themes.jpg");
+  background-image: url("./sprites/dino_menu_background.jpg");
   background-position: center center;
   background-size: cover;
   background-repeat: no-repeat;
@@ -189,9 +189,83 @@ body {
   content: "";
   position: fixed;
   inset: 0;
-  background: radial-gradient(circle at 50% 25%, rgba(10, 15, 28, 0.45) 0%, rgba(8, 12, 22, 0.72) 60%, rgba(5, 8, 16, 0.88) 100%);
+  background: radial-gradient(circle at 50% 20%, rgba(15, 23, 42, 0.22) 0%, rgba(15, 23, 42, 0.48) 60%, rgba(10, 15, 30, 0.72) 100%);
   pointer-events: none;
   z-index: 0;
+}
+
+/* ===================================================================
+   Level- & Welten-Bibliothek (Menu-Screen)
+   =================================================================== */
+
+.level-library-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #0b0f19;
+  background-image: url("./sprites/dino_menu_background.jpg");
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.level-library-page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 50% 20%, rgba(15, 23, 42, 0.25) 0%, rgba(15, 23, 42, 0.5) 60%, rgba(10, 15, 30, 0.75) 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.level-library-page .studio-header {
+  position: relative;
+  z-index: 10;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.level-library-page .studio-title h2 {
+  color: #ffffff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.level-library-page .studio-subtitle {
+  color: #cbd5e1;
+}
+
+.level-library-page .world-kachel-card {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 2px solid rgba(255, 255, 255, 0.85) !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.level-library-page .world-kachel-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.22) !important;
+}
+
+.level-library-page .level-card {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 2px solid rgba(255, 255, 255, 0.85) !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.level-library-page .level-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.22) !important;
 }
 
 .home-topbar {
@@ -1414,8 +1488,9 @@ body {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  background: rgba(10, 15, 28, 0.68);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1426,12 +1501,12 @@ body {
 .modal-box {
   background: #ffffff;
   color: var(--color-text);
-  border-radius: var(--radius-md);
+  border-radius: 20px;
   padding: 28px;
   max-width: 520px;
   width: 100%;
-  box-shadow: var(--shadow-lg);
-  border: 3px solid #23272e;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+  border: 2px solid rgba(255, 255, 255, 0.8);
 }
 
 .settings-modal {

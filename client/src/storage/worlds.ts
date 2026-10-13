@@ -26,27 +26,31 @@ const JUNGLE_LEVELS: Level[] = [
     intro: "Vulkan-Pfad mit glühenden Felsen und roten Stacheln! Nutze geschickte Sprünge und den Doppelsprung.",
     quips: ["Guter Sprung!", "Nicht in die Stacheln treten!", "Perfekt gelandet!"],
     theme: "volcano",
-    start: { x: 80, y: 880 },
-    goal: { id: "goal", x: 920, y: 640, w: 48, h: 74 },
+    start: { x: 70, y: 870 },
+    goal: { id: "goal", x: 910, y: 640, w: 48, h: 74 },
     platforms: [
-      { id: "p1", x: 20, y: 920, w: 240, h: 80 },
-      { id: "p2", x: 340, y: 860, w: 160, h: 30 },
-      { id: "p3", x: 580, y: 800, w: 160, h: 30 },
-      { id: "p4", x: 800, y: 720, w: 200, h: 80 },
+      { id: "p1", x: 0, y: 920, w: 260, h: 80 },
+      { id: "p2", x: 340, y: 850, w: 160, h: 30 },
+      { id: "p-mid-ground", x: 300, y: 920, w: 400, h: 80 },
+      { id: "p3", x: 570, y: 780, w: 160, h: 30 },
+      { id: "p4", x: 770, y: 720, w: 230, h: 80 },
     ],
     hazards: [
-      { id: "spikes-1", type: "spike", x: 270, y: 950, w: 60, h: 25 },
-      { id: "spikes-2", type: "spike", x: 510, y: 950, w: 60, h: 25 },
+      { id: "spikes-1", type: "spike", x: 260, y: 955, w: 50, h: 25 },
+      { id: "spikes-2", type: "spike", x: 700, y: 955, w: 70, h: 25 },
     ],
     bouncers: [],
     movers: [],
     collectibles: [
-      { id: "e1", x: 410, y: 790, w: 30, h: 30, type: "egg", collected: false },
-      { id: "e2", x: 650, y: 730, w: 30, h: 30, type: "egg", collected: false },
+      { id: "e1", x: 420, y: 790, w: 30, h: 30, type: "egg", collected: false },
+      { id: "e2", x: 650, y: 720, w: 30, h: 30, type: "egg", collected: false },
     ],
     teleporters: [],
     movingPlatforms: [],
-    coins: [],
+    coins: [
+      { id: "c1", x: 180, y: 860 },
+      { id: "c2", x: 840, y: 660 },
+    ],
     enemies: [],
   },
   starterLevelPortals,
@@ -56,111 +60,142 @@ const JUNGLE_LEVELS: Level[] = [
     intro: "Papier-Skizzenwelt: Schiebe den blauen Block an die Wand, um höher gelegene Eier zu erreichen!",
     quips: ["Schwere Kiste!", "Jetzt kommst du hoch!", "Dino hat Bärenkräfte!"],
     theme: "paper",
-    start: { x: 80, y: 880 },
-    goal: { id: "goal", x: 910, y: 580, w: 48, h: 74 },
+    start: { x: 70, y: 870 },
+    goal: { id: "goal", x: 910, y: 560, w: 48, h: 74 },
     platforms: [
-      { id: "p1", x: 20, y: 920, w: 450, h: 80 },
-      { id: "p2", x: 480, y: 780, w: 180, h: 30 },
-      { id: "p3", x: 740, y: 660, w: 240, h: 40 },
+      { id: "p1", x: 0, y: 920, w: 440, h: 80 },
+      { id: "p-ledge", x: 440, y: 800, w: 190, h: 120 },
+      { id: "p-mid", x: 660, y: 720, w: 160, h: 30 },
+      { id: "p-goal", x: 840, y: 640, w: 160, h: 80 },
+      { id: "p-bottom-safety", x: 630, y: 920, w: 370, h: 80 },
     ],
     hazards: [],
-    bouncers: [],
+    bouncers: [
+      { id: "b-safety", x: 700, y: 890, w: 70, h: 26 },
+    ],
     movers: [
-      { id: "box-1", x: 260, y: 860, w: 48, h: 48 },
+      { id: "box-1", x: 260, y: 865, w: 48, h: 48 },
     ],
     collectibles: [
-      { id: "e1", x: 300, y: 720, w: 30, h: 30, type: "egg", collected: false },
-      { id: "e2", x: 560, y: 710, w: 30, h: 30, type: "egg", collected: false },
+      { id: "e1", x: 330, y: 730, w: 30, h: 30, type: "egg", collected: false },
+      { id: "e2", x: 730, y: 660, w: 30, h: 30, type: "egg", collected: false },
     ],
     teleporters: [],
     movingPlatforms: [],
-    coins: [],
+    coins: [
+      { id: "c1", x: 160, y: 860 },
+      { id: "c2", x: 530, y: 740 },
+    ],
     enemies: [],
   },
   {
     version: 2,
     name: "Lianen-Brücken",
-    intro: "Dschungel-Wipfel mit tropischem Wind: Kombiniere Trampoline und schmale Plattformen in luftiger Höhe!",
+    intro: "Dschungel-Wipfel mit tropischem Wind: Nutze die grünen Trampoline für luftige Sprünge!",
     quips: ["Huiiiii!", "Wie ein Flugsaurier!", "Ziel in Sicht!"],
     theme: "jungle",
-    start: { x: 80, y: 880 },
+    start: { x: 70, y: 870 },
     goal: { id: "goal", x: 910, y: 520, w: 48, h: 74 },
     platforms: [
-      { id: "p1", x: 20, y: 920, w: 220, h: 80 },
-      { id: "p2", x: 400, y: 760, w: 140, h: 26 },
-      { id: "p3", x: 700, y: 620, w: 140, h: 26 },
-      { id: "p4", x: 850, y: 600, w: 140, h: 80 },
+      { id: "p1", x: 0, y: 920, w: 260, h: 80 },
+      { id: "p2", x: 290, y: 780, w: 160, h: 30 },
+      { id: "p-safe-ground", x: 300, y: 920, w: 350, h: 80 },
+      { id: "p3", x: 500, y: 810, w: 150, h: 28 },
+      { id: "p4", x: 690, y: 680, w: 150, h: 30 },
+      { id: "p5", x: 850, y: 600, w: 150, h: 80 },
     ],
     hazards: [
-      { id: "h1", type: "spike", x: 260, y: 960, w: 120, h: 25 },
-      { id: "h2", type: "spike", x: 560, y: 960, w: 120, h: 25 },
+      { id: "h1", type: "spike", x: 255, y: 955, w: 50, h: 25 },
+      { id: "h2", type: "spike", x: 650, y: 955, w: 60, h: 25 },
     ],
     bouncers: [
-      { id: "b1", x: 170, y: 890, w: 80, h: 24 },
-      { id: "b2", x: 490, y: 730, w: 80, h: 24 },
+      { id: "b1", x: 180, y: 890, w: 75, h: 26 },
+      { id: "b-safe", x: 420, y: 890, w: 75, h: 26 },
+      { id: "b2", x: 570, y: 780, w: 75, h: 26 },
     ],
     movers: [],
     collectibles: [
-      { id: "e1", x: 300, y: 640, w: 30, h: 30, type: "egg", collected: false },
-      { id: "e2", x: 620, y: 530, w: 30, h: 30, type: "egg", collected: false },
+      { id: "e1", x: 360, y: 720, w: 30, h: 30, type: "egg", collected: false },
+      { id: "e2", x: 750, y: 620, w: 30, h: 30, type: "egg", collected: false },
     ],
     teleporters: [],
     movingPlatforms: [],
-    coins: [],
+    coins: [
+      { id: "c1", x: 120, y: 860 },
+      { id: "c2", x: 730, y: 620 },
+    ],
     enemies: [],
   },
   {
     version: 2,
     name: "Schwebelifte über der Schlucht",
-    intro: "Vulkan-Krater: Steige auf den braunen Holz-Lift und fahre sicher über den feurigen Abgrund!",
+    intro: "Vulkan-Krater: Steige auf den Schwebelift und fahre sicher über den feurigen Abgrund!",
     quips: ["Aufzug fährt ab!", "Gleichmäßige Fahrt!", "Sauber rübergekommen!"],
     theme: "volcano",
-    start: { x: 80, y: 880 },
-    goal: { id: "goal", x: 920, y: 640, w: 48, h: 74 },
+    start: { x: 70, y: 870 },
+    goal: { id: "goal", x: 910, y: 620, w: 48, h: 74 },
     platforms: [
-      { id: "p1", x: 20, y: 920, w: 260, h: 80 },
-      { id: "p2", x: 740, y: 720, w: 240, h: 80 },
+      { id: "p1", x: 0, y: 920, w: 240, h: 80 },
+      { id: "p-mid-island", x: 420, y: 820, w: 160, h: 30 },
+      { id: "p-mid-ground", x: 420, y: 920, w: 160, h: 80 },
+      { id: "p-goal-island", x: 770, y: 700, w: 230, h: 80 },
     ],
     hazards: [
-      { id: "h1", type: "spike", x: 320, y: 960, w: 380, h: 25 },
+      { id: "h1", type: "lava", x: 245, y: 955, w: 170, h: 30 },
+      { id: "h2", type: "lava", x: 585, y: 955, w: 180, h: 30 },
     ],
-    bouncers: [],
+    bouncers: [
+      { id: "b-recovery", x: 460, y: 890, w: 75, h: 26 },
+    ],
     movers: [],
     collectibles: [
-      { id: "e1", x: 500, y: 720, w: 30, h: 30, type: "egg", collected: false },
+      { id: "e1", x: 490, y: 760, w: 30, h: 30, type: "egg", collected: false },
+      { id: "e2", x: 840, y: 640, w: 30, h: 30, type: "egg", collected: false },
     ],
     teleporters: [],
     movingPlatforms: [
-      { id: "lift-1", x: 320, y: 820, w: 120, h: 24, axis: "horizontal", distance: 260, speed: 70 },
+      { id: "lift-1", x: 260, y: 840, w: 110, h: 24, axis: "horizontal", distance: 140, speed: 65 },
+      { id: "lift-2", x: 600, y: 750, w: 110, h: 24, axis: "horizontal", distance: 130, speed: 65 },
     ],
-    coins: [],
+    coins: [
+      { id: "c1", x: 120, y: 860 },
+      { id: "c2", x: 820, y: 640 },
+    ],
     enemies: [],
   },
   {
     version: 2,
     name: "Flug-Insekten Reviere",
-    intro: "Kosmos-Dimension mit reduzierter Schwerkraft: Vorsicht vor den außerirdischen Flug-Insekten!",
+    intro: "Kosmos-Dimension mit reduzierter Schwerkraft: Weiche den außerirdischen Flug-Insekten aus oder bezwinge sie mit einem Sprung!",
     quips: ["Patsch!", "Flugbahn gut abgepasst!", "Super Timing!"],
     theme: "space",
-    start: { x: 80, y: 880 },
-    goal: { id: "goal", x: 920, y: 620, w: 48, h: 74 },
+    start: { x: 70, y: 870 },
+    goal: { id: "goal", x: 910, y: 600, w: 48, h: 74 },
     platforms: [
-      { id: "p1", x: 20, y: 920, w: 320, h: 80 },
-      { id: "p2", x: 440, y: 820, w: 220, h: 30 },
-      { id: "p3", x: 760, y: 700, w: 220, h: 80 },
+      { id: "p1", x: 0, y: 920, w: 260, h: 80 },
+      { id: "p2", x: 280, y: 840, w: 180, h: 30 },
+      { id: "p-low", x: 240, y: 920, w: 520, h: 80 },
+      { id: "p3", x: 500, y: 760, w: 190, h: 30 },
+      { id: "p4", x: 730, y: 680, w: 270, h: 80 },
     ],
     hazards: [],
-    bouncers: [],
+    bouncers: [
+      { id: "b-space", x: 460, y: 890, w: 80, h: 26 },
+    ],
     movers: [],
     collectibles: [
-      { id: "e1", x: 540, y: 750, w: 30, h: 30, type: "egg", collected: false },
+      { id: "e1", x: 360, y: 760, w: 30, h: 30, type: "egg", collected: false },
+      { id: "e2", x: 600, y: 680, w: 30, h: 30, type: "egg", collected: false },
     ],
     teleporters: [],
     movingPlatforms: [],
-    coins: [],
+    coins: [
+      { id: "c1", x: 120, y: 860 },
+      { id: "c2", x: 780, y: 620 },
+    ],
     enemies: [
-      { id: "en-1", x: 550, y: 790, patrol: 90 },
-      { id: "en-2", x: 830, y: 660, patrol: 80 },
+      { id: "en-1", x: 360, y: 810, patrol: 45 },
+      { id: "en-2", x: 580, y: 730, patrol: 45 },
     ],
   },
   starterLevelAllColors,
@@ -200,38 +235,39 @@ export const BUILTIN_STARTER_MAP: Record<string, Level> = {
 };
 
 const WORLDS_STORAGE_KEY = "dino_worlds_v2";
+const WORLDS_INIT_KEY = "dino_worlds_initialized_v2";
 
 /** Lädt alle Welten aus dem lokalen Speicher */
 export async function getAllWorlds(): Promise<World[]> {
   try {
-    const custom = await getSetting<World[]>(WORLDS_STORAGE_KEY, []);
-    if (custom && custom.length > 0) {
-      let modified = false;
-      const updated = custom.map((w) => {
-        if (w.id === "world-adventure-1" && ((w.theme as string) === "jungle" || !w.theme || (w.theme as string) !== "all")) {
-          modified = true;
-          return {
-            ...w,
-            theme: "all" as WorldTheme,
-            description: DEFAULT_WORLDS[0].description,
-          };
-        }
-        return w;
-      });
-      if (modified) {
-        await saveAllWorlds(updated);
+    const initialized = await getSetting<boolean>(WORLDS_INIT_KEY, false);
+    if (!initialized) {
+      const existing = await getSetting<World[]>(WORLDS_STORAGE_KEY, []);
+      if (existing && existing.length > 0) {
+        await setSetting(WORLDS_INIT_KEY, true);
+        return existing;
       }
-      return updated;
+      // Erste Initialisierung: Standard-Beispielwelt anlegen
+      await setSetting(WORLDS_STORAGE_KEY, DEFAULT_WORLDS);
+      await setSetting(WORLDS_INIT_KEY, true);
+      return DEFAULT_WORLDS;
     }
+
+    const custom = await getSetting<World[]>(WORLDS_STORAGE_KEY, []);
+    if (Array.isArray(custom)) {
+      return custom;
+    }
+    return [];
   } catch (err) {
     console.warn("Fehler beim Laden der Welten:", err);
   }
-  return DEFAULT_WORLDS;
+  return [];
 }
 
 /** Speichert alle Welten dauerhaft */
 export async function saveAllWorlds(worlds: World[]): Promise<void> {
   await setSetting(WORLDS_STORAGE_KEY, worlds);
+  await setSetting(WORLDS_INIT_KEY, true);
 }
 
 /** Erstellt eine neue Welt mit 8 freien Slots */

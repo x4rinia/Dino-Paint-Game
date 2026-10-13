@@ -13,6 +13,7 @@ interface DrawingCanvasProps {
   onBackToMenu: (currentDrawing?: string) => void;
   initialImage?: string;
   backgroundTheme?: BackgroundTheme;
+  onBackgroundChange?: (bg: BackgroundTheme) => void;
   gameMode?: "jump_n_run" | "rpg_labyrinth";
   onGameModeChange?: (mode: "jump_n_run" | "rpg_labyrinth") => void;
   onOpenSettings?: () => void;
@@ -57,7 +58,8 @@ export function DrawingCanvas({
   onPlayLevel,
   onBackToMenu,
   initialImage,
-  backgroundTheme,
+  backgroundTheme = "paper",
+  onBackgroundChange,
   gameMode = "jump_n_run",
   onGameModeChange,
   onOpenSettings,
@@ -88,7 +90,17 @@ export function DrawingCanvas({
   const [isSaving, setIsSaving] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [levelNameInput, setLevelNameInput] = useState("Mein Dino-Level");
+  const [saveTheme, setSaveTheme] = useState<BackgroundTheme>(backgroundTheme || "paper");
+  const [saveGameMode, setSaveGameMode] = useState<"jump_n_run" | "rpg_labyrinth">(gameMode || "jump_n_run");
   const [tooltipsEnabled, setTooltipsEnabled] = useState(true);
+
+  useEffect(() => {
+    if (backgroundTheme) setSaveTheme(backgroundTheme);
+  }, [backgroundTheme]);
+
+  useEffect(() => {
+    if (gameMode) setSaveGameMode(gameMode);
+  }, [gameMode]);
 
   useEffect(() => {
     getSetting<boolean>("tooltips_enabled", true).then(setTooltipsEnabled);
@@ -649,11 +661,12 @@ export function DrawingCanvas({
     const canvas = canvasRef.current;
     if (!canvas) return;
     const link = document.createElement("a");
-    link.download = `dino-level-${Date.now()}.png`;
+    const cleanName = (levelNameInput || "mein_dino_level").trim().replace(/[^a-zA-Z0-9_-]/g, "_");
+    link.download = `${cleanName}.png`;
     link.href = canvas.toDataURL("image/png");
     link.click();
-    setSaveToast("✓ Bild heruntergeladen!");
-    setTimeout(() => setSaveToast(null), 2500);
+    setSaveToast("✓ PNG heruntergeladen!");
+    setTimeout(() => setSaveToast(null), 3000);
   };
 
   const handleSaveToLibrary = async (chosenName?: string) => {
@@ -699,8 +712,8 @@ export function DrawingCanvas({
 
       const levelToSave: Level = {
         ...result.level,
-        gameMode: (gameMode as any) || "jump_n_run",
-        theme: (backgroundTheme as any) || "paper",
+        gameMode: saveGameMode,
+        theme: saveTheme,
       };
 
       await saveLevel({
@@ -709,6 +722,13 @@ export function DrawingCanvas({
         thumbnail: thumbUrl,
         originalImage: dataUrl,
       });
+
+      if (onGameModeChange && saveGameMode !== gameMode) {
+        onGameModeChange(saveGameMode);
+      }
+      if (onBackgroundChange && saveTheme !== backgroundTheme) {
+        onBackgroundChange(saveTheme);
+      }
 
       setSaveToast("✓ In Bibliothek gespeichert!");
       setTimeout(() => setSaveToast(null), 3500);
@@ -719,6 +739,24 @@ export function DrawingCanvas({
       setIsSaving(false);
     }
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        if (showClearConfirm) {
+          e.preventDefault();
+          clearCanvas();
+        } else if (showSaveModal) {
+          if ((document.activeElement as HTMLElement)?.tagName !== "INPUT") {
+            e.preventDefault();
+            void handleSaveToLibrary();
+          }
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showClearConfirm, showSaveModal]);
 
   const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -812,7 +850,9 @@ export function DrawingCanvas({
             ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
             ctx.drawImage(img, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
             saveHistory();
-            setSaveToast("✓ Bild erfolgreich geladen!");
+            const baseName = file.name.replace(/\.[^/.]+$/, "");
+            if (baseName) setLevelNameInput(baseName);
+            setSaveToast(`✓ Bild "${file.name}" geladen!`);
             setTimeout(() => setSaveToast(null), 3000);
           };
           img.src = dataUrl;
@@ -915,6 +955,47 @@ export function DrawingCanvas({
             </button>
           )}
 
+          {/* 📤 PNG Upload & 🖼️ PNG Download */}
+          <label
+            className="button button-secondary"
+            title="PNG-Bild vom Computer in den Editor laden"
+            style={{
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "5px",
+              backgroundColor: "#2e3b56",
+              color: "#e2e8f0",
+              border: "1px solid rgba(255, 255, 255, 0.25)",
+              fontSize: "0.88rem",
+              fontWeight: 600,
+            }}
+          >
+            📤 PNG Upload
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/*,.json"
+              style={{ display: "none" }}
+              onChange={handleUploadFile}
+            />
+          </label>
+
+          <button
+            className="button button-secondary"
+            type="button"
+            onClick={exportPng}
+            title="Aktuelle Zeichnung als PNG-Bild herunterladen"
+            style={{
+              backgroundColor: "#2e3b56",
+              color: "#e2e8f0",
+              border: "1px solid rgba(255, 255, 255, 0.25)",
+              fontSize: "0.88rem",
+              fontWeight: 600,
+            }}
+          >
+            🖼️ PNG Download
+          </button>
+
           {onOpenPhotoScanner && (
             <button
               className="button button-secondary"
@@ -960,9 +1041,9 @@ export function DrawingCanvas({
           <button
             className="button button-save"
             type="button"
-            onClick={() => handleSaveToLibrary()}
+            onClick={() => setShowSaveModal(true)}
             disabled={isSaving}
-            title="Level direkt in der Bibliothek sichern"
+            title="Level mit Name, Spielwelt & Modus in der Bibliothek sichern"
           >
             {saveToast ? saveToast : "💾 Level speichern"}
           </button>
@@ -1213,8 +1294,8 @@ export function DrawingCanvas({
             <h3>Zeichnung löschen?</h3>
             <p>Möchtest du das gesamte Zeichenblatt wirklich leeren?</p>
             <div className="modal-actions">
-              <button className="button button-danger" type="button" onClick={clearCanvas}>
-                Ja, alles löschen
+              <button className="button button-danger" type="button" autoFocus onClick={clearCanvas}>
+                Ja, alles löschen (Enter)
               </button>
               <button className="button button-secondary" type="button" onClick={() => setShowClearConfirm(false)}>
                 Abbrechen
@@ -1225,49 +1306,152 @@ export function DrawingCanvas({
       )}
 
       {showSaveModal && (
-        <div className="modal-backdrop">
-          <div className="modal-box" style={{ maxWidth: 440 }}>
-            <h3>💾 Level in Bibliothek speichern</h3>
-            <p style={{ marginTop: 8, marginBottom: 12 }}>
-              Gib deinem Level einen Namen. Es wird offline in deiner Bibliothek gespeichert:
+        <div className="modal-backdrop" onClick={() => setShowSaveModal(false)}>
+          <div
+            className="modal-box"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 500, background: "#1e222d", color: "#f8fafc", borderRadius: 16, border: "1px solid #334155", padding: "24px" }}
+          >
+            <h3 style={{ margin: "0 0 10px 0", fontSize: "1.35rem", display: "flex", alignItems: "center", gap: "8px" }}>
+              💾 Level in Bibliothek speichern
+            </h3>
+            <p style={{ marginTop: 0, marginBottom: 14, color: "#94a3b8", fontSize: "0.92rem", lineHeight: 1.45 }}>
+              Gib deinem Level einen Namen und lege fest, welcher Hintergrund und Spielmodus verwendet werden soll:
             </p>
-            <input
-              type="text"
-              value={levelNameInput}
-              onChange={(e) => setLevelNameInput(e.target.value)}
-              className="form-input"
-              placeholder="Name des Levels (z.B. Lava-Grotte)"
-              style={{
-                width: "100%",
-                padding: "10px 14px",
-                fontSize: "1.05rem",
-                borderRadius: "8px",
-                border: "2px solid #3c4254",
-                background: "#181a20",
-                color: "#fff",
-                marginBottom: 16,
-              }}
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleSaveToLibrary();
-              }}
-            />
-            <div className="modal-actions">
+
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: "block", fontSize: "0.88rem", fontWeight: 700, color: "#cbd5e1", marginBottom: 6 }}>
+                Name des Levels:
+              </label>
+              <input
+                type="text"
+                value={levelNameInput}
+                onChange={(e) => setLevelNameInput(e.target.value)}
+                className="form-input"
+                placeholder="Name des Levels (z.B. Lava-Grotte)"
+                style={{
+                  width: "100%",
+                  padding: "10px 14px",
+                  fontSize: "1rem",
+                  borderRadius: "8px",
+                  border: "2px solid #3c4254",
+                  background: "#11141c",
+                  color: "#fff",
+                  boxSizing: "border-box",
+                }}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSaveToLibrary();
+                }}
+              />
+            </div>
+
+            {/* Hintergrund / Spielwelt-Thema */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: "block", fontSize: "0.88rem", fontWeight: 700, color: "#cbd5e1", marginBottom: 6 }}>
+                Hintergrund / Thema:
+              </label>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                {[
+                  { id: "paper", label: "📝 Papier", desc: "Klassischer Notizblock" },
+                  { id: "jungle", label: "🌴 Dschungel", desc: "Wind & Lianen" },
+                  { id: "space", label: "🚀 Kosmos", desc: "Schwerelos & Sterne" },
+                  { id: "volcano", label: "🌋 Vulkan", desc: "Doppelsprung & Glut" },
+                ].map((th) => {
+                  const isSelected = saveTheme === th.id;
+                  return (
+                    <button
+                      key={th.id}
+                      type="button"
+                      onClick={() => setSaveTheme(th.id as BackgroundTheme)}
+                      style={{
+                        padding: "8px 12px",
+                        borderRadius: "8px",
+                        border: isSelected ? "2px solid #38bdf8" : "1px solid #334155",
+                        background: isSelected ? "#1e293b" : "#131722",
+                        color: "#fff",
+                        textAlign: "left",
+                        cursor: "pointer",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "2px",
+                        boxShadow: isSelected ? "0 0 10px rgba(56, 189, 248, 0.35)" : "none",
+                      }}
+                    >
+                      <span style={{ fontWeight: 800, fontSize: "0.92rem" }}>{th.label}</span>
+                      <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>{th.desc}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Spielmodus */}
+            <div style={{ marginBottom: 18 }}>
+              <label style={{ display: "block", fontSize: "0.88rem", fontWeight: 700, color: "#cbd5e1", marginBottom: 6 }}>
+                Spielmodus:
+              </label>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                {[
+                  { id: "jump_n_run", label: "🏃 Jump 'n' Run", desc: "Hüpfen & Schieben" },
+                  { id: "rpg_labyrinth", label: "🧭 4-Wege Labyrinth", desc: "Draufsicht & Rätsel" },
+                ].map((m) => {
+                  const isSelected = saveGameMode === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setSaveGameMode(m.id as "jump_n_run" | "rpg_labyrinth")}
+                      style={{
+                        padding: "8px 12px",
+                        borderRadius: "8px",
+                        border: isSelected ? "2px solid #4ade80" : "1px solid #334155",
+                        background: isSelected ? "#142d1f" : "#131722",
+                        color: "#fff",
+                        textAlign: "left",
+                        cursor: "pointer",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "2px",
+                        boxShadow: isSelected ? "0 0 10px rgba(74, 222, 128, 0.35)" : "none",
+                      }}
+                    >
+                      <span style={{ fontWeight: 800, fontSize: "0.92rem" }}>{m.label}</span>
+                      <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>{m.desc}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="modal-actions" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: 16 }}>
               <button
-                className="button button-save"
                 type="button"
-                onClick={() => handleSaveToLibrary()}
-                disabled={isSaving}
-              >
-                {isSaving ? "Speichere…" : "Speichern"}
-              </button>
-              <button
                 className="button button-secondary"
-                type="button"
-                onClick={() => setShowSaveModal(false)}
+                onClick={exportPng}
+                title="Aktuelle Zeichnung als PNG-Bild sichern"
+                style={{ fontSize: "0.88rem" }}
               >
-                Abbrechen
+                🖼️ Als PNG sichern
               </button>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  className="button button-secondary"
+                  type="button"
+                  onClick={() => setShowSaveModal(false)}
+                >
+                  Abbrechen
+                </button>
+                <button
+                  className="button button-save"
+                  type="button"
+                  onClick={() => handleSaveToLibrary()}
+                  disabled={isSaving}
+                  style={{ fontWeight: 700 }}
+                >
+                  {isSaving ? "Speichere…" : "Speichern ✓ (Enter)"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

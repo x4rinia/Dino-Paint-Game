@@ -1,5 +1,5 @@
-// Dino Draw Your Game – Standalone Offline Service Worker (v2.18)
-const CACHE_NAME = "dino-draw-cache-v2-18";
+// Dino Draw Your Game – Standalone Offline Service Worker (v2.19)
+const CACHE_NAME = "dino-draw-cache-v2-19";
 
 // Grundlegende statische Ressourcen, die beim Installieren vorgeladen werden
 const PRECACHE_URLS = [
@@ -12,6 +12,7 @@ const PRECACHE_URLS = [
   "./icons/icon-maskable-512.png",
   "./icons/apple-touch-icon.png",
   "./sprites/home_background_themes.jpg",
+  "./sprites/dino_menu_background.jpg",
   "./sprites/dino_mascot.png",
 ];
 

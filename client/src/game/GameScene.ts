@@ -213,7 +213,6 @@ export class GameScene extends Phaser.Scene {
   private editKey!: Phaser.Input.Keyboard.Key;
 
   // Gamepad State
-  private lastGamepadRestart = false;
   private lastGamepadPause = false;
 
   constructor() {
@@ -381,7 +380,9 @@ export class GameScene extends Phaser.Scene {
       // Hoher Reibungswiderstand: Block stoppt sofort bei Wänden oder wenn Dino aufhört zu schieben!
       body.setDrag(1200, this.gameMode === "rpg_labyrinth" ? 1200 : 0);
       body.setFriction(1, 1);
-      body.setMass(2.0);
+      body.setMass(3.0);
+      // Maximale Geschwindigkeit begrenzen, damit die Kiste nicht wegfliegt
+      body.setMaxVelocity(160, 600);
 
       let art: Phaser.GameObjects.Graphics | Phaser.GameObjects.Image;
       if (this.textures.exists("block_crate")) {
@@ -695,6 +696,7 @@ export class GameScene extends Phaser.Scene {
         const mBody = mRect.body as Phaser.Physics.Arcade.Body;
         if (hazardType === "lava") {
           // Holz-Kiste schwimmt auf Lava wie ein Floß!
+          mRect.setData("onLava", true);
           const hTop = h.y;
           if (mRect.y + mRect.height / 2 >= hTop) {
             mBody.setVelocityY(Math.min(mBody.velocity.y * 0.15, -20));
@@ -722,42 +724,65 @@ export class GameScene extends Phaser.Scene {
       const now = this.time.now;
       const lastPush = (mRect.getData("lastPushTime") as number) || 0;
       // Kiste wird beim Anstoßen um ca. 1 Kästchen (~30-36px) verschoben und stoppt dann
-      const PUSH_COOLDOWN = 340;
-      const STEP_SPEED = 155;
-      const DRAG_STOP = 420;
+      const PUSH_COOLDOWN = 200;
+      const STEP_SPEED = 140;
+      const DRAG_STOP = 1200;
 
       if (this.gameMode === "rpg_labyrinth") {
-        if (now - lastPush > PUSH_COOLDOWN) {
+        if (now - lastPush > 340) {
           if (pBody.velocity.x > 20 && this.player.x < mBody.x) {
             mRect.setData("lastPushTime", now);
-            mBody.setDrag(DRAG_STOP, DRAG_STOP);
-            mBody.setVelocity(STEP_SPEED, 0);
+            mBody.setDrag(420, 420);
+            mBody.setVelocity(155, 0);
           } else if (pBody.velocity.x < -20 && this.player.x > mBody.x) {
             mRect.setData("lastPushTime", now);
-            mBody.setDrag(DRAG_STOP, DRAG_STOP);
-            mBody.setVelocity(-STEP_SPEED, 0);
+            mBody.setDrag(420, 420);
+            mBody.setVelocity(-155, 0);
           } else if (pBody.velocity.y > 20 && this.player.y < mBody.y) {
             mRect.setData("lastPushTime", now);
-            mBody.setDrag(DRAG_STOP, DRAG_STOP);
-            mBody.setVelocity(0, STEP_SPEED);
+            mBody.setDrag(420, 420);
+            mBody.setVelocity(0, 155);
           } else if (pBody.velocity.y < -20 && this.player.y > mBody.y) {
             mRect.setData("lastPushTime", now);
-            mBody.setDrag(DRAG_STOP, DRAG_STOP);
-            mBody.setVelocity(0, -STEP_SPEED);
+            mBody.setDrag(420, 420);
+            mBody.setVelocity(0, -155);
           }
         }
       } else {
-        if (pBody.touching.down) {
+        // Jump 'n' Run: Kiste darf NIEMALS in die Luft geschleudert werden oder wegfliegen!
+        if (mBody.velocity.y < 0 && !mRect.getData("onLava")) {
+          mBody.setVelocityY(0);
+        }
+
+        const isStandingOnTop =
+          pBody.bottom <= mBody.top + 12 &&
+          this.player.x >= mBody.x - mBody.halfWidth - 6 &&
+          this.player.x <= mBody.x + mBody.halfWidth + 6;
+
+        if (isStandingOnTop) {
+          // Spieler steht oben auf der Kiste
           this.lastGrounded = { x: this.player.x, feetY: this.player.bottom };
-        } else if (now - lastPush > PUSH_COOLDOWN) {
-          if (pBody.touching.right && mBody.touching.left && pBody.velocity.x > 15) {
-            mRect.setData("lastPushTime", now);
-            mBody.setDragX(DRAG_STOP);
-            mBody.setVelocityX(STEP_SPEED);
-          } else if (pBody.touching.left && mBody.touching.right && pBody.velocity.x < -15) {
-            mRect.setData("lastPushTime", now);
-            mBody.setDragX(DRAG_STOP);
-            mBody.setVelocityX(-STEP_SPEED);
+        } else if (pBody.top >= mBody.bottom - 12 && pBody.velocity.y < 0) {
+          // Spieler stößt von unten gegen die Kiste -> Kopf stößt an wie an Decke, Kiste hebt nicht ab!
+          pBody.setVelocityY(0);
+          mBody.setVelocityY(0);
+        } else {
+          // Spieler schiebt die Kiste von der Seite (nur nach vorn in Schieberichtung!)
+          if (now - lastPush > PUSH_COOLDOWN) {
+            // Nach rechts schieben
+            if (this.player.x < mBody.x && (pBody.velocity.x > 10 || pBody.touching.right)) {
+              mRect.setData("lastPushTime", now);
+              mBody.setDragX(DRAG_STOP);
+              mBody.setVelocityX(STEP_SPEED);
+              if (!mRect.getData("onLava")) mBody.setVelocityY(Math.max(0, mBody.velocity.y));
+            }
+            // Nach links schieben
+            else if (this.player.x > mBody.x && (pBody.velocity.x < -10 || pBody.touching.left)) {
+              mRect.setData("lastPushTime", now);
+              mBody.setDragX(DRAG_STOP);
+              mBody.setVelocityX(-STEP_SPEED);
+              if (!mRect.getData("onLava")) mBody.setVelocityY(Math.max(0, mBody.velocity.y));
+            }
           }
         }
       }
@@ -901,7 +926,7 @@ export class GameScene extends Phaser.Scene {
     const touchInput = this.touchControls?.read();
 
     // Auto-Hide Touch-Steuerung wenn Controller aktiv bedient wird
-    if (gp.left || gp.right || gp.jump || gp.restart || gp.pause) {
+    if (gp.left || gp.right || gp.jump || gp.pause) {
       if (this.touchControls?.isVisible()) {
         this.touchControls.setVisible(false);
       }
@@ -926,11 +951,8 @@ export class GameScene extends Phaser.Scene {
     }
     this.stuck.suppress(this.won || this.intro);
 
-    // Neustart per R oder Gamepad Y
-    const restartRequested =
-      Phaser.Input.Keyboard.JustDown(this.restartKey) ||
-      (gp.restart && !this.lastGamepadRestart);
-    this.lastGamepadRestart = gp.restart;
+    // Neustart per R
+    const restartRequested = Phaser.Input.Keyboard.JustDown(this.restartKey);
 
     if (restartRequested && !this.intro) {
       this.restartLevel();
@@ -1060,8 +1082,13 @@ export class GameScene extends Phaser.Scene {
       enemy.draw(tick);
     }
 
-    // Blaue bewegliche Objekte synchronisieren
+    // Blaue bewegliche Objekte synchronisieren & gegen Abheben/Wegfliegen sichern
     for (const m of this.moversList) {
+      if (this.gameMode === "jump_n_run") {
+        if (m.body.velocity.y < 0 && !m.rect.getData("onLava")) {
+          m.body.setVelocityY(0);
+        }
+      }
       m.art.setPosition(m.rect.x, m.rect.y);
     }
 
@@ -1188,10 +1215,9 @@ export class GameScene extends Phaser.Scene {
     up: boolean;
     down: boolean;
     jump: boolean;
-    restart: boolean;
     pause: boolean;
   } {
-    const res = { left: false, right: false, up: false, down: false, jump: false, restart: false, pause: false };
+    const res = { left: false, right: false, up: false, down: false, jump: false, pause: false };
     if (typeof navigator.getGamepads !== "function") return res;
 
     const gamepads = navigator.getGamepads();
@@ -1215,8 +1241,7 @@ export class GameScene extends Phaser.Scene {
       const swapAB = (this.game.registry.get("gamepadSwapAB") as boolean) || false;
       const jumpPressed = swapAB ? (g.buttons[1]?.pressed ?? false) : (g.buttons[0]?.pressed ?? false);
       if (jumpPressed || (this.gameMode !== "rpg_labyrinth" && dpadUp)) res.jump = true;
-      // Button 3 (Y) -> Neustart
-      if (g.buttons[3]?.pressed) res.restart = true;
+      // Button 2 (X) und Button 3 (Y) sind absichtlich ohne Funktion
       // Button 9 (Start) -> Pause
       if (g.buttons[9]?.pressed) res.pause = true;
     }
@@ -1716,13 +1741,9 @@ export class GameScene extends Phaser.Scene {
         size: 10,
         duration: 480,
       });
-      if (this.gameMode === "rpg_labyrinth") {
-        const nextX = Phaser.Math.Clamp(mRect.x + (mBody.velocity.x >= 0 ? 220 : -220), 80, WORLD_W - 80);
-        mRect.setPosition(nextX, mRect.y);
-        mBody.reset(nextX, mRect.y);
-      } else {
-        mBody.setVelocity(520, -800);
-      }
+      const nextX = Phaser.Math.Clamp(mRect.x + (mBody.velocity.x >= 0 ? 220 : -220), 80, WORLD_W - 80);
+      mRect.setPosition(nextX, mRect.y);
+      mBody.reset(nextX, mRect.y);
       return;
     }
 

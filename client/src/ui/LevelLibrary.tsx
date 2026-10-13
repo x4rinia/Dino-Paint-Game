@@ -43,6 +43,7 @@ export function LevelLibrary({
 
   // Modals & Aktionen
   const [deleteTarget, setDeleteTarget] = useState<SavedLevelItem | null>(null);
+  const [worldDeleteTarget, setWorldDeleteTarget] = useState<World | null>(null);
   const [assigningSlot, setAssigningSlot] = useState<number | null>(null);
   const [showCreateWorldModal, setShowCreateWorldModal] = useState(false);
   const [newWorldName, setNewWorldName] = useState("");
@@ -66,6 +67,22 @@ export function LevelLibrary({
   useEffect(() => {
     fetchAllData();
   }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        if (deleteTarget) {
+          e.preventDefault();
+          handleDelete(deleteTarget.id);
+        } else if (worldDeleteTarget) {
+          e.preventDefault();
+          executeDeleteWorld(worldDeleteTarget.id);
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [deleteTarget, worldDeleteTarget]);
 
   const activeWorld = selectedWorldId ? worlds.find((w) => w.id === selectedWorldId) || null : null;
 
@@ -131,8 +148,22 @@ export function LevelLibrary({
 
   const handleExportWorld = async (worldToExport: World) => {
     try {
+      const allSaved = await getAllLevels();
       const resolvedList = await Promise.all(
-        worldToExport.levelIds.map(async (id) => (id ? await resolveLevelById(id) : null))
+        worldToExport.levelIds.map(async (id) => {
+          if (!id) return null;
+          const found = allSaved.find((item) => item.id === id);
+          if (found) {
+            return {
+              ...found.level,
+              name: found.name || found.level.name,
+              originalImage: found.originalImage || found.thumbnail,
+              thumbnail: found.thumbnail,
+            };
+          }
+          const builtin = await resolveLevelById(id);
+          return builtin ? builtin : null;
+        })
       );
       const bundle = {
         type: "dino_world_bundle",
@@ -328,6 +359,28 @@ export function LevelLibrary({
     );
   };
 
+  const renderGameModeBadge = (mode?: string) => {
+    const isLabyrinth = mode === "rpg_labyrinth";
+    return (
+      <span
+        style={{
+          fontSize: "0.8rem",
+          fontWeight: 700,
+          color: isLabyrinth ? "#1e40af" : "#047857",
+          background: isLabyrinth ? "#dbeafe" : "#d1fae5",
+          padding: "3px 9px",
+          borderRadius: "12px",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "4px",
+          marginTop: "2px",
+        }}
+      >
+        {isLabyrinth ? "🧭 Labyrinth" : "🏃 Jump 'n' Run"}
+      </span>
+    );
+  };
+
   const playLevelItem = (item: SavedLevelItem) => {
     const fullLevel = item.level;
     const fullImage = item.originalImage || item.thumbnail;
@@ -384,23 +437,39 @@ export function LevelLibrary({
     setSelectedWorldId(created.id);
   };
 
-  const handleDeleteActiveWorld = async () => {
+  const handleDeleteWorld = (w: World) => {
+    setWorldDeleteTarget(w);
+  };
+
+  const executeDeleteWorld = async (worldId: string) => {
+    await deleteWorld(worldId);
+    setWorldDeleteTarget(null);
+    if (selectedWorldId === worldId) {
+      setSelectedWorldId(null);
+    }
+    await fetchAllData();
+  };
+
+  const handleDeleteActiveWorld = () => {
     if (!activeWorld) return;
-    if (worlds.length <= 1) {
-      alert("Du musst mindestens eine Welt behalten!");
-      return;
-    }
-    if (confirm(`Möchtest du "${activeWorld.name}" wirklich löschen?`)) {
-      await deleteWorld(activeWorld.id);
-      await fetchAllData();
-      if (worlds.length > 0) {
-        setSelectedWorldId(worlds[0].id);
-      }
-    }
+    handleDeleteWorld(activeWorld);
   };
 
   return (
-    <div className="level-library-page" style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+    <div
+      className="level-library-page"
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        backgroundImage: 'url("./sprites/dino_menu_background.jpg")',
+        backgroundPosition: "center center",
+        backgroundSize: "cover",
+        backgroundRepeat: "no-repeat",
+        backgroundAttachment: "fixed",
+        position: "relative",
+      }}
+    >
       <header className="studio-header">
         <button className="button button-secondary" type="button" onClick={onBackToMenu}>
           ◀ Menü
@@ -423,20 +492,6 @@ export function LevelLibrary({
               onChange={handleImport}
             />
           </label>
-
-          <label
-            className="button button-secondary"
-            style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
-            title="Komplette 8-Level-Welt (.world.json) importieren"
-          >
-            📥 Welt importieren
-            <input
-              type="file"
-              accept=".json,application/json,.world.json"
-              style={{ display: "none" }}
-              onChange={handleImportWorldFile}
-            />
-          </label>
         </div>
       </header>
 
@@ -450,6 +505,8 @@ export function LevelLibrary({
           maxWidth: "1140px",
           margin: "0 auto",
           width: "100%",
+          position: "relative",
+          zIndex: 5,
         }}
       >
         <button
@@ -470,7 +527,7 @@ export function LevelLibrary({
         </button>
       </div>
 
-      <main className="library-content" style={{ flex: 1, padding: "20px 24px 60px", maxWidth: "1140px", margin: "0 auto", width: "100%" }}>
+      <main className="library-content" style={{ flex: 1, padding: "20px 24px 60px", maxWidth: "1140px", margin: "0 auto", width: "100%", position: "relative", zIndex: 5 }}>
         {loading && <div className="loading-state">Lade Welten & Level…</div>}
 
         {/* ======================================================== */}
@@ -489,28 +546,21 @@ export function LevelLibrary({
                     marginBottom: "18px",
                     flexWrap: "wrap",
                     gap: "12px",
+                    background: "rgba(255, 255, 255, 0.92)",
+                    backdropFilter: "blur(12px)",
+                    WebkitBackdropFilter: "blur(12px)",
+                    padding: "16px 22px",
+                    borderRadius: "18px",
+                    boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
                   }}
                 >
                   <div>
                     <h3 style={{ margin: 0, fontSize: "1.5rem", color: "#0f172a" }}>🗺️ Spielwelten-Übersicht</h3>
-                    <p style={{ margin: "4px 0 0", color: "#64748b", fontSize: "0.95rem" }}>
+                    <p style={{ margin: "4px 0 0", color: "#475569", fontSize: "0.95rem" }}>
                       Wähle eine Welt, um ihre 8 Level zu bearbeiten, oder starte direkt eine Kampagne!
                     </p>
                   </div>
                   <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
-                    <label
-                      className="button button-secondary"
-                      style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px", padding: "10px 18px", fontSize: "0.95rem" }}
-                      title="Gespeicherte Welt (.world.json) importieren"
-                    >
-                      📥 Welt importieren
-                      <input
-                        type="file"
-                        accept=".json,application/json,.world.json"
-                        style={{ display: "none" }}
-                        onChange={handleImportWorldFile}
-                      />
-                    </label>
                     <button
                       type="button"
                       className="button button-primary"
@@ -597,24 +647,37 @@ export function LevelLibrary({
                           </div>
                         </div>
 
-                        <div style={{ display: "flex", gap: "10px", marginTop: "auto" }}>
+                        <div style={{ display: "flex", gap: "8px", marginTop: "auto", alignItems: "center" }}>
                           <button
                             type="button"
                             className="button button-primary"
                             onClick={() => handleStartCampaign(w)}
-                            style={{ flex: 1, padding: "11px 14px", fontSize: "0.96rem", fontWeight: "bold" }}
+                            style={{ flex: 1, padding: "10px 14px", fontSize: "0.94rem", fontWeight: "bold" }}
                             title="Spielt alle belegten Level dieser Welt in zufälliger Reihenfolge!"
                           >
-                            ▶ Welt spielen (Zufall)
+                            ▶ Spielen
                           </button>
                           <button
                             type="button"
                             className="button button-secondary"
                             onClick={() => setSelectedWorldId(w.id)}
-                            style={{ padding: "11px 16px", fontSize: "0.96rem" }}
+                            style={{ padding: "10px 14px", fontSize: "0.94rem" }}
                             title="8 Level dieser Welt ansehen und bearbeiten"
                           >
-                            📂 Level ansehen
+                            📂 Level
+                          </button>
+                          <button
+                            type="button"
+                            className="button button-danger-small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteWorld(w);
+                            }}
+                            style={{ padding: "9px 12px", fontSize: "0.95rem" }}
+                            title={`Welt "${w.name}" löschen`}
+                            aria-label="Welt löschen"
+                          >
+                            🗑️
                           </button>
                         </div>
                       </div>
@@ -729,18 +792,18 @@ export function LevelLibrary({
                       type="button"
                       className="button button-secondary"
                       onClick={() => handleExportWorld(activeWorld)}
-                      title="Diese komplette Welt mit allen 8 Leveln als .world.json exportieren"
+                      title="Diese komplette Welt mit allen 8 Leveln als .world.json Datei herunterladen"
                       style={{ fontSize: "0.92rem", padding: "10px 16px" }}
                     >
-                      💾 Welt als JSON sichern
+                      💾 Welt (JSON) herunterladen
                     </button>
 
                     <label
                       className="button button-secondary"
                       style={{ fontSize: "0.92rem", padding: "10px 16px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}
-                      title="Eine gespeicherte Welt (.world.json) importieren"
+                      title="Eine gespeicherte Welt (.world.json oder .json) von deinem PC hochladen"
                     >
-                      📥 Welt importieren
+                      📥 Welt (JSON) hochladen
                       <input
                         type="file"
                         accept=".json,application/json,.world.json"
@@ -850,11 +913,19 @@ export function LevelLibrary({
                         <strong style={{ display: "block", fontSize: "1rem", color: "#0f172a", marginBottom: "4px" }}>
                           {resolved ? resolved.name : "Kein Level verbunden"}
                         </strong>
-                        <span style={{ fontSize: "0.82rem", color: "#64748b" }}>
-                          {resolved
-                            ? `${resolved.platforms?.length ?? 0} Plattformen, ${resolved.collectibles?.length ?? 0} Münzen`
-                            : "Slot ist noch frei"}
-                        </span>
+                        {resolved ? (
+                          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                            <div style={{ display: "flex", gap: "5px", alignItems: "center", flexWrap: "wrap" }}>
+                              {renderGameModeBadge(resolved.gameMode)}
+                              {renderThemeBadge(resolved.theme || "paper")}
+                            </div>
+                            <span style={{ fontSize: "0.82rem", color: "#64748b" }}>
+                              {resolved.platforms?.length ?? 0} Plattformen, {resolved.collectibles?.length ?? 0} Münzen
+                            </span>
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: "0.82rem", color: "#64748b" }}>Slot ist noch frei</span>
+                        )}
                       </div>
 
                       <div style={{ display: "flex", gap: "8px", marginTop: "auto" }}>
@@ -936,6 +1007,8 @@ export function LevelLibrary({
                         })}
                       </span>
                       <div className="card-badges">
+                        {renderGameModeBadge(item.level?.gameMode)}
+                        {renderThemeBadge((item.level as any)?.theme || "paper")}
                         <span>
                           {item.level?.platforms?.length ?? 0}{" "}
                           {(item.level?.platforms?.length ?? 0) === 1 ? "Plattform" : "Plattformen"}
@@ -1123,7 +1196,7 @@ export function LevelLibrary({
               </div>
 
               <div>
-                <label style={{ display: "block", fontWeight: "bold", marginBottom: "6px" }}>Thema der Welt:</label>
+                <label style={{ display: "block", fontWeight: "bold", marginBottom: "6px" }}>Hintergrund / Thema der Welt:</label>
                 <select
                   value={newWorldTheme}
                   onChange={(e) => setNewWorldTheme(e.target.value as WorldTheme)}
@@ -1157,17 +1230,42 @@ export function LevelLibrary({
 
       {/* MODAL: LEVEL LÖSCHEN */}
       {deleteTarget && (
-        <div className="modal-backdrop">
-          <div className="modal-box">
+        <div className="modal-backdrop" onClick={() => setDeleteTarget(null)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <h3>Level löschen?</h3>
             <p>
               Möchtest du das Level <strong>„{deleteTarget.name}“</strong> wirklich unwiderruflich löschen?
             </p>
             <div className="modal-actions">
-              <button className="button button-danger" type="button" onClick={() => handleDelete(deleteTarget.id)}>
-                Löschen
+              <button className="button button-danger" type="button" autoFocus onClick={() => handleDelete(deleteTarget.id)}>
+                Löschen (Enter)
               </button>
               <button className="button button-secondary" type="button" onClick={() => setDeleteTarget(null)}>
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: WELT LÖSCHEN */}
+      {worldDeleteTarget && (
+        <div className="modal-backdrop" onClick={() => setWorldDeleteTarget(null)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <h3>Welt löschen?</h3>
+            <p>
+              Möchtest du die Welt <strong>„{worldDeleteTarget.name}“</strong> wirklich löschen?
+            </p>
+            <div className="modal-actions">
+              <button
+                className="button button-danger"
+                type="button"
+                autoFocus
+                onClick={() => executeDeleteWorld(worldDeleteTarget.id)}
+              >
+                Löschen (Enter)
+              </button>
+              <button className="button button-secondary" type="button" onClick={() => setWorldDeleteTarget(null)}>
                 Abbrechen
               </button>
             </div>
