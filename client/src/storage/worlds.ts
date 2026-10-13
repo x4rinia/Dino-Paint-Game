@@ -324,39 +324,28 @@ export const BUILTIN_STARTER_MAP: Record<string, Level> = {
   starter_allcolors: JUNGLE_LEVELS[7],
 };
 
-const WORLDS_STORAGE_KEY = "dino_worlds_v2";
-const WORLDS_INIT_KEY = "dino_worlds_initialized_v2";
+const WORLDS_STORAGE_KEY = "dino_worlds_v3";
+const WORLDS_INIT_KEY = "dino_worlds_initialized_v3";
 
-/** Lädt alle Welten aus dem lokalen Speicher (Beispielwelt ist unlöschbar und immer vorhanden) */
+/** Lädt alle Welten aus dem lokalen Speicher (Beispielwelt ist unlöschbar und immer aktuell vorhanden) */
 export async function getAllWorlds(): Promise<World[]> {
   try {
     const custom = await getSetting<World[]>(WORLDS_STORAGE_KEY, []);
     let list: World[] = Array.isArray(custom) ? [...custom] : [];
 
-    // Die Standard-Beispielwelt (world-adventure-1) ist unlöschbar und wird sofort wiederhergestellt, falls sie fehlt
-    const hasDefaultWorld = list.some((w) => w.id === "world-adventure-1");
-    if (!hasDefaultWorld) {
+    // Die Standard-Beispielwelt (world-adventure-1) ist unlöschbar und wird sofort synchronisiert
+    const defaultWorldIdx = list.findIndex((w) => w.id === "world-adventure-1");
+    if (defaultWorldIdx === -1) {
       list.unshift(DEFAULT_WORLDS[0]);
       await setSetting(WORLDS_STORAGE_KEY, list);
     } else {
-      // Stelle sicher, dass die Beispielwelt alle 8 Level-Slots und das All-Themes-Setting besitzt
-      let modified = false;
-      list = list.map((w) => {
-        if (w.id === "world-adventure-1") {
-          const filledSlots = w.levelIds.filter(Boolean).length;
-          if (filledSlots < 8 || w.theme !== "all" || !w.description) {
-            modified = true;
-            return {
-              ...DEFAULT_WORLDS[0],
-              bestTime: w.bestTime,
-            };
-          }
-        }
-        return w;
-      });
-      if (modified) {
-        await setSetting(WORLDS_STORAGE_KEY, list);
-      }
+      // Immer mit den neuesten Level-Definitionen synchronisieren (Beispielwelt bleibt stets auf dem neuesten Stand!)
+      const current = list[defaultWorldIdx];
+      list[defaultWorldIdx] = {
+        ...DEFAULT_WORLDS[0],
+        bestTime: current.bestTime,
+      };
+      await setSetting(WORLDS_STORAGE_KEY, list);
     }
 
     return list;

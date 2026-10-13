@@ -18,14 +18,12 @@ if errorlevel 1 (
     exit /b 1
 )
 
-if not exist "client\dist\index.html" (
-    echo [INFO] Erste Ausfuehrung: Erstelle Web-App-Dateien...
-    call npm.cmd run build
-    if errorlevel 1 (
-        echo [FEHLER] Bauen des Web-Clients fehlgeschlagen!
-        pause
-        exit /b 1
-    )
+echo [INFO] Aktualisiere Web-App-Dateien (Build)...
+call npm.cmd run build
+if errorlevel 1 (
+    echo [FEHLER] Bauen des Web-Clients fehlgeschlagen!
+    pause
+    exit /b 1
 )
 
 echo [INFO] Starte lokalen Server auf Port 3000...
