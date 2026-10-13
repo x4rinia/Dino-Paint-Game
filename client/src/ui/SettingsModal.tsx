@@ -375,6 +375,10 @@ export function SettingsModal({
               <div style={{ color: "#fca5a5" }}>Zurück / Abbrechen</div>
             </div>
             <div style={{ background: "rgba(255,255,255,0.06)", padding: "8px 12px", borderRadius: "6px" }}>
+              <strong>🔥 X- / Y-Taste (X / F / Taste 2 & 3):</strong>
+              <div style={{ color: "#fb923c", fontWeight: 600 }}>Feuerball spucken!</div>
+            </div>
+            <div style={{ background: "rgba(255,255,255,0.06)", padding: "8px 12px", borderRadius: "6px" }}>
               <strong>⏸️ Start / Menü:</strong>
               <div style={{ color: "#94a3b8" }}>Pause & Einstellungen</div>
             </div>

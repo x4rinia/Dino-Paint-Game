@@ -8,10 +8,10 @@ import type { Level, SavedLevelItem } from "@sketchquest/shared";
 export const starterLevelTutorial: Level = {
   version: 2,
   name: "Dinos Erstes Abenteuer",
-  intro: "Willkommen im Dschungel! Sammle die goldenen Dino-Eier und hüpfe mit dem grünen Trampolin ins Ziel!",
+  intro: "Willkommen im Dschungel! Nutze Trampoline, spucke Feuerbälle auf Gegner mit Y/X und sammle alle Dino-Eier!",
   quips: [
     "Das Trampolin federt dich super nach oben!",
-    "Vergiss nicht, die Eier einzusammeln!",
+    "Treffer mit dem Feuerball!",
     "Super Sprung!",
     "Ein Kinderspiel für einen echten Dino!",
   ],
@@ -29,6 +29,7 @@ export const starterLevelTutorial: Level = {
     { id: "hazard-1", type: "lava", x: 325, y: 950, w: 50, h: 30 },
   ],
   bouncers: [
+    { id: "bounce-start", x: 190, y: 890, w: 80, h: 26 },
     { id: "bounce-1", x: 580, y: 890, w: 90, h: 26 },
   ],
   movers: [],
@@ -44,7 +45,10 @@ export const starterLevelTutorial: Level = {
     { id: "coin-2", x: 490, y: 770 },
     { id: "coin-3", x: 760, y: 640 },
   ],
-  enemies: [],
+  enemies: [
+    { id: "en-tuto-1", x: 520, y: 790, patrol: 55 },
+    { id: "en-tuto-2", x: 820, y: 660, patrol: 50 },
+  ],
 };
 
 /**
@@ -54,12 +58,12 @@ export const starterLevelTutorial: Level = {
 export const starterLevelPortals: Level = {
   version: 2,
   name: "Portal-Express",
-  intro: "Kosmos-Station: Nutze das lila Portal, um durch die dicke Schutzwand auf die Zielseite zu beamen!",
+  intro: "Kosmos-Station: Nutze Portale und Trampoline, und grille feindliche Insekten mit deinem Feuerball!",
   quips: [
     "Wuuusch! Teleportation funktioniert perfekt!",
-    "Durch die Wand gebeamt!",
-    "Erst alle Dino-Eier sammeln!",
+    "Feuerball trifft Flug-Insekt!",
     "Schwerelos durchs All hüpfen!",
+    "Erst alle Dino-Eier sammeln!",
   ],
   theme: "space",
   start: { x: 70, y: 870 },
@@ -73,9 +77,10 @@ export const starterLevelPortals: Level = {
     { id: "float-island-2", x: 780, y: 710, w: 200, h: 30 },
   ],
   hazards: [
-    { id: "cosmic-hazard", type: "spike", x: 530, y: 955, w: 80, h: 25 },
+    { id: "cosmic-hazard", type: "lava", x: 530, y: 955, w: 80, h: 25 },
   ],
   bouncers: [
+    { id: "space-bouncer-left", x: 220, y: 890, w: 80, h: 26 },
     { id: "space-bouncer", x: 650, y: 780, w: 80, h: 26 },
   ],
   movers: [],
@@ -92,7 +97,11 @@ export const starterLevelPortals: Level = {
     { id: "c-1", x: 120, y: 860 },
     { id: "c-2", x: 840, y: 650 },
   ],
-  enemies: [],
+  enemies: [
+    { id: "en-portal-1", x: 250, y: 770, patrol: 50 },
+    { id: "en-portal-2", x: 700, y: 770, patrol: 50 },
+    { id: "en-portal-3", x: 860, y: 670, patrol: 45 },
+  ],
 };
 
 /**
@@ -105,11 +114,11 @@ export const starterLevelPortals: Level = {
 export const starterLevelAllColors: Level = {
   version: 2,
   name: "Die 8 Farben-Arena",
-  intro: "Das Meisterstück: Alle 8 Spielfarben vereint! Kisten schieben, Schwebelift fahren, Portale nutzen und Gegner überwinden!",
+  intro: "Das Meisterstück: Alle 8 Spielfarben vereint! Kisten schieben, Schwebelift fahren, Portale nutzen und Gegner mit Feuerbällen bezwingen!",
   quips: [
     "Meisterhaft gezeichnet!",
     "Der braune Schwebelift fährt dich rüber!",
-    "Patsch! Den Gegner sauber übersprungen!",
+    "Treffer mit dem Feuerball!",
     "Wuuusch durch das lila Portal!",
     "Alle 8 Farben erfolgreich gemeistert!",
   ],
@@ -124,11 +133,13 @@ export const starterLevelAllColors: Level = {
     { id: "ground-right", x: 720, y: 920, w: 260, h: 80 },
   ],
   hazards: [
-    { id: "spikes-1", type: "spike", x: 425, y: 955, w: 30, h: 20 },
-    { id: "spikes-2", type: "spike", x: 685, y: 955, w: 30, h: 20 },
+    { id: "spikes-1", type: "lava", x: 425, y: 955, w: 30, h: 20 },
+    { id: "spikes-2", type: "lava", x: 685, y: 955, w: 30, h: 20 },
   ],
   bouncers: [
+    { id: "bounce-arena-start", x: 200, y: 890, w: 80, h: 26 },
     { id: "trampoline-mid", x: 480, y: 890, w: 80, h: 26 },
+    { id: "bounce-arena-right", x: 780, y: 890, w: 80, h: 26 },
   ],
   movers: [
     { id: "box-1", x: 180, y: 865, w: 48, h: 48 },
@@ -152,6 +163,9 @@ export const starterLevelAllColors: Level = {
   ],
   enemies: [
     { id: "enemy-1", x: 840, y: 900, patrol: 50 },
+    { id: "enemy-2", x: 340, y: 780, patrol: 50 },
+    { id: "enemy-3", x: 550, y: 880, patrol: 50 },
+    { id: "enemy-4", x: 820, y: 590, patrol: 45 },
   ],
 };
 

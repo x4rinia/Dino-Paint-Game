@@ -18,7 +18,7 @@ const TEXT_OFFSET_Y = 60;
 const STREAK_DEPTH = 1400;
 
 const CAUSE_TEXT: Record<DeathCause, { message: string; color: string }> = {
-  spike: { message: "SPIKED", color: "#d6453d" },
+  spike: { message: "TOASTED", color: "#e8590c" },
   lava: { message: "TOASTED", color: "#e8590c" },
   enemy: { message: "SQUISHED", color: "#8a3ffc" },
   fall: { message: "GRAVITY WINS", color: "#2a6df4" },
@@ -38,8 +38,6 @@ export function playDeathEffect(scene: Phaser.Scene, x: number, y: number, cause
 
   switch (cause) {
     case "spike":
-      burstParticles(scene, ex, ey, { color: SPIKE_COLOR, count: 12, speed: [90, 200], duration: 450 });
-      break;
     case "lava": {
       const upward: [number, number] = [-Math.PI * 0.85, -Math.PI * 0.15];
       burstParticles(scene, ex, ey, { color: LAVA_ORANGE, count: 18, speed: [160, 340], size: 9, duration: 750, arc: upward });

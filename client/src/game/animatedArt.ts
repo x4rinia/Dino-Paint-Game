@@ -196,7 +196,7 @@ export class LevelDoodles {
     level: Level,
     private readonly coinRects: Phaser.GameObjects.Rectangle[]
   ) {
-    this.lava = level.hazards.filter((h) => h.type === "lava").map((h) => new LavaSurface(scene, h));
+    this.lava = level.hazards.map((h) => new LavaSurface(scene, h));
     this.coinArts = level.coins.map((c) => new CoinArt(scene, c.id, sx(c.x), sy(c.y)));
     this.goal = new GoalDoodle(scene, level.goal);
     this.boilCoins = level.coins.length <= MAX_BOILING_COINS;

@@ -143,7 +143,7 @@ export const sampleLevel: Level = {
     { id: "plat-3", x: 820, y: 650, w: 160, h: 24 },
   ],
   hazards: [
-    { id: "spike-1", type: "spike", x: 230, y: 890, w: 40, h: 30 },
+    { id: "lava-0", type: "lava", x: 230, y: 890, w: 40, h: 30 },
     { id: "lava-1", type: "lava", x: 340, y: 960, w: 80, h: 40 },
   ],
   bouncers: [],

@@ -11,7 +11,7 @@ const BUTTON_GAP = 30;
 const HIT_PADDING = 20;
 const MIN_TOUCH_POINTERS = 3;
 
-type ActionKind = "left" | "right" | "up" | "down" | "jump" | "pause";
+type ActionKind = "left" | "right" | "up" | "down" | "jump" | "pause" | "fire";
 type Button = {
   kind: ActionKind;
   x: number;
@@ -31,8 +31,8 @@ export function touchControlsEnabled(scene: Phaser.Scene): boolean {
 
 /**
  * On-Screen Touch-Steuerung für Smartphone und Tablet.
- * - Jump 'n' Run: Links, Rechts, Sprung, Pause
- * - RPG Maker: 4-Wege D-Pad (Hoch, Runter, Links, Rechts) + Ausweichen/Dash
+ * - Jump 'n' Run: Links, Rechts, Sprung, Feuerball (🔥), Pause
+ * - RPG Maker: 4-Wege D-Pad (Hoch, Runter, Links, Rechts) + Sprung/Dash, Feuerball (🔥)
  */
 export class TouchControls {
   private readonly scene: Phaser.Scene;
@@ -49,6 +49,8 @@ export class TouchControls {
 
     const { width, height } = scene.scale;
     const y = height - EDGE_MARGIN - BUTTON_SIZE / 2;
+    const jumpX = width - EDGE_MARGIN - BUTTON_SIZE / 2;
+    const fireX = jumpX - BUTTON_SIZE - BUTTON_GAP;
 
     if (gameMode === "rpg_labyrinth") {
       // 🧭 RPG Maker Modus: Kompaktes 4-Wege Kreuz
@@ -62,7 +64,8 @@ export class TouchControls {
         this.createButton("down", cx, cy + step, btnSize, btnSize),
         this.createButton("left", cx - step, cy, btnSize, btnSize),
         this.createButton("right", cx + step, cy, btnSize, btnSize),
-        this.createButton("jump", width - EDGE_MARGIN - BUTTON_SIZE / 2, y, BUTTON_SIZE, BUTTON_SIZE),
+        this.createButton("fire", fireX, y, BUTTON_SIZE, BUTTON_SIZE),
+        this.createButton("jump", jumpX, y, BUTTON_SIZE, BUTTON_SIZE),
         this.createButton("pause", width - 60, 60, 64, 64),
       ];
     } else {
@@ -71,7 +74,8 @@ export class TouchControls {
       this.buttons = [
         this.createButton("left", leftX, y, BUTTON_SIZE, BUTTON_SIZE),
         this.createButton("right", leftX + BUTTON_SIZE + BUTTON_GAP, y, BUTTON_SIZE, BUTTON_SIZE),
-        this.createButton("jump", width - EDGE_MARGIN - BUTTON_SIZE / 2, y, BUTTON_SIZE, BUTTON_SIZE),
+        this.createButton("fire", fireX, y, BUTTON_SIZE, BUTTON_SIZE),
+        this.createButton("jump", jumpX, y, BUTTON_SIZE, BUTTON_SIZE),
         this.createButton("pause", width - 60, 60, 64, 64),
       ];
     }
@@ -91,8 +95,8 @@ export class TouchControls {
   }
 
   /** Which buttons are held right now. Call every frame. */
-  read(): MoveInput & { pause: boolean } {
-    const held = { left: false, right: false, up: false, down: false, jump: false, pause: false };
+  read(): MoveInput & { pause: boolean; fire: boolean } {
+    const held = { left: false, right: false, up: false, down: false, jump: false, pause: false, fire: false };
 
     for (const pointer of this.scene.input.manager.pointers) {
       if (!pointer.isDown) continue;
@@ -147,6 +151,19 @@ export class TouchControls {
       // Pause symbol: zwei parallele Balken
       sketchLine(art, { x: -8, y: -14 }, { x: -8, y: 14 }, ink, rng);
       sketchLine(art, { x: 8, y: -14 }, { x: 8, y: 14 }, ink, rng);
+      return;
+    }
+
+    if (kind === "fire") {
+      // Feuerball-Symbol (orange-gelbe Flamme)
+      fillPoly(art, corners, pressed ? 0xfecaca : 0xffedd5, pressed ? 0.9 : 0.7);
+      sketchPoly(art, corners, { color: 0xea580c, width: 3.5, alpha: pressed ? 0.95 : 0.7, wobble: 2 }, rng);
+      art.fillStyle(0xf97316, 0.95);
+      art.fillCircle(0, 4, 14);
+      art.fillStyle(0xfacc15, 0.95);
+      art.fillCircle(0, 1, 9);
+      art.fillStyle(0xffffff, 0.95);
+      art.fillCircle(0, -1, 4.5);
       return;
     }
 

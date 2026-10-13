@@ -121,8 +121,7 @@ function sanitizeRect<T extends { id: string; x: number; y: number; w: number; h
 function sanitizeHazard(raw: unknown): Hazard | null {
   const rect = sanitizeRect<Hazard>(raw);
   if (!rect) return null;
-  const type = isRecord(raw) ? raw.type : undefined;
-  return { ...rect, type: type === "lava" ? "lava" : "spike" };
+  return { ...rect, type: "lava" };
 }
 
 function sanitizeMover(raw: unknown): Mover | null {

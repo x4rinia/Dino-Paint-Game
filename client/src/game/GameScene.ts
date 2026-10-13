@@ -3,6 +3,7 @@ import {
   BOUNCE_VELOCITY,
   JUMP_VELOCITY,
   PLAYER_H,
+  PLAYER_W,
   WORLD_H,
   WORLD_W,
   gameEvents,
@@ -25,7 +26,7 @@ import { ReplayController } from "./Replay";
 import { LevelIntro } from "./LevelIntro";
 import { TouchControls, touchControlsEnabled } from "./TouchControls";
 import { RotateBanner } from "./RotateBanner";
-import { isMuted, playCoin, playDeath, playHelper, playJump, playStomp, playTeleport, playWin, toggleMute, startBgMusic, pauseBgMusic, resumeBgMusic, stopBgMusic } from "./audio";
+import { isMuted, playCoin, playDeath, playFireball, playHelper, playJump, playStomp, playTeleport, playWin, toggleMute, startBgMusic, pauseBgMusic, resumeBgMusic, stopBgMusic } from "./audio";
 import { DebugOverlay } from "./DebugOverlay";
 import { DEBUG } from "./debug";
 import { prepareLevel } from "./prepareLevel";
@@ -206,11 +207,14 @@ export class GameScene extends Phaser.Scene {
 
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private keys!: Record<"W" | "A" | "S" | "D", Phaser.Input.Keyboard.Key>;
+  private fireKeyF!: Phaser.Input.Keyboard.Key;
+  private fireKeyX!: Phaser.Input.Keyboard.Key;
   private restartKey!: Phaser.Input.Keyboard.Key;
   private muteKey!: Phaser.Input.Keyboard.Key;
   private helperKey!: Phaser.Input.Keyboard.Key;
   private pauseKey!: Phaser.Input.Keyboard.Key;
   private editKey!: Phaser.Input.Keyboard.Key;
+  private lastFireballAt = 0;
 
   // Gamepad State
   private lastGamepadPause = false;
@@ -398,10 +402,10 @@ export class GameScene extends Phaser.Scene {
       this.moversList.push({ rect, body, art, w: mw, h: mh, id: m.id });
     }
 
-    // 4. ROT: Gefahren
+    // 4. ROT: Gefahren (Immer als brodelnde Lava)
     for (const h of level.hazards) {
-      const r = this.rectTopLeft(h, h.type === "lava" ? COLORS.lava : COLORS.spike);
-      r.setData("hazardType", h.type);
+      const r = this.rectTopLeft(h, COLORS.lava);
+      r.setData("hazardType", "lava");
       this.physics.add.existing(r, true);
       this.hazards.push(r);
     }
@@ -794,13 +798,12 @@ export class GameScene extends Phaser.Scene {
     });
 
     // Kollisionen: Gefahren, Münzen, Ziel, Gegner
-    this.physics.add.overlap(this.player.rect, this.hazards, (_p, hazard) => {
-      // Wenn Dino sicher auf einer Kiste steht (Lava-Floß oder Stachel-Brücke), stirbt er nicht!
+    this.physics.add.overlap(this.player.rect, this.hazards, () => {
+      // Wenn Dino sicher auf einer Kiste steht (Lava-Floß), stirbt er nicht!
       if (this.isPlayerStandingOnCrate()) {
         return;
       }
-      const type = (hazard as Phaser.GameObjects.Rectangle).getData("hazardType") as DeathCause;
-      this.triggerDeath(type, this.player.x, this.player.y);
+      this.triggerDeath("lava", this.player.x, this.player.y);
     });
     this.physics.add.overlap(this.player.rect, this.coins, (_p, coin) => {
       this.collectCoin(coin as Phaser.GameObjects.Rectangle);
@@ -900,6 +903,8 @@ export class GameScene extends Phaser.Scene {
     const kb = this.input.keyboard!;
     this.cursors = kb.createCursorKeys();
     this.keys = kb.addKeys("W,A,S,D") as typeof this.keys;
+    this.fireKeyF = kb.addKey("F");
+    this.fireKeyX = kb.addKey("X");
     this.restartKey = kb.addKey("R");
     this.muteKey = kb.addKey("M");
     this.helperKey = kb.addKey("H");
@@ -926,10 +931,21 @@ export class GameScene extends Phaser.Scene {
     const touchInput = this.touchControls?.read();
 
     // Auto-Hide Touch-Steuerung wenn Controller aktiv bedient wird
-    if (gp.left || gp.right || gp.jump || gp.pause) {
+    if (gp.left || gp.right || gp.jump || gp.fire || gp.pause) {
       if (this.touchControls?.isVisible()) {
         this.touchControls.setVisible(false);
       }
+    }
+
+    // Feuerball spucken (Taste X / F, Gamepad X / Y oder Touch 🔥)
+    const fireRequested =
+      Phaser.Input.Keyboard.JustDown(this.fireKeyX) ||
+      Phaser.Input.Keyboard.JustDown(this.fireKeyF) ||
+      gp.fire ||
+      touchInput?.fire;
+
+    if (fireRequested && !this.dead && !this.won && !this.locked && !this.intro) {
+      this.shootFireball();
     }
 
     const pauseRequested =
@@ -1215,9 +1231,10 @@ export class GameScene extends Phaser.Scene {
     up: boolean;
     down: boolean;
     jump: boolean;
+    fire: boolean;
     pause: boolean;
   } {
-    const res = { left: false, right: false, up: false, down: false, jump: false, pause: false };
+    const res = { left: false, right: false, up: false, down: false, jump: false, fire: false, pause: false };
     if (typeof navigator.getGamepads !== "function") return res;
 
     const gamepads = navigator.getGamepads();
@@ -1241,7 +1258,12 @@ export class GameScene extends Phaser.Scene {
       const swapAB = (this.game.registry.get("gamepadSwapAB") as boolean) || false;
       const jumpPressed = swapAB ? (g.buttons[1]?.pressed ?? false) : (g.buttons[0]?.pressed ?? false);
       if (jumpPressed || (this.gameMode !== "rpg_labyrinth" && dpadUp)) res.jump = true;
-      // Button 2 (X) und Button 3 (Y) sind absichtlich ohne Funktion
+
+      // Button 2 (X) oder Button 3 (Y) -> Feuerball spucken!
+      if (g.buttons[2]?.pressed || g.buttons[3]?.pressed) {
+        res.fire = true;
+      }
+
       // Button 9 (Start) -> Pause
       if (g.buttons[9]?.pressed) res.pause = true;
     }
@@ -1780,6 +1802,108 @@ export class GameScene extends Phaser.Scene {
       this.recorder.clear(this.time.now);
       for (const p of this.level.platforms) if (isAssist(p.id)) showAssistTag(this, p);
     });
+  }
+
+  /** Spuckt einen kleinen Feuerball in Blickrichtung, der Gegner besiegt */
+  private shootFireball() {
+    const now = this.time.now;
+    if (now - this.lastFireballAt < 280) return;
+    this.lastFireballAt = now;
+
+    playFireball();
+
+    const facing = this.player.facing || 1;
+    const startX = this.player.x + facing * (PLAYER_W / 2 + 10);
+    const startY = this.player.y - 4;
+
+    // Erzeuge Feuerball Physik-Körper
+    const fbSize = 18;
+    const fbRect = this.add.rectangle(startX, startY, fbSize, fbSize, 0xff6600, 0);
+    this.physics.add.existing(fbRect);
+    const fbBody = fbRect.body as Phaser.Physics.Arcade.Body;
+    fbBody.setAllowGravity(false);
+    fbBody.setVelocityX(facing * 620);
+    fbBody.setCircle(fbSize / 2);
+
+    // Optische Darstellung: Glühender Feuerball mit Flammen-Kern & Skizzen-Stil
+    const fbArt = this.add.graphics().setDepth(DEPTH.player + 1);
+    const updateArt = () => {
+      fbArt.clear();
+      // Äußere Flamme
+      fbArt.fillStyle(0xf97316, 0.9);
+      fbArt.fillCircle(fbRect.x, fbRect.y, 11);
+      // Mittlerer gelber Kern
+      fbArt.fillStyle(0xfacc15, 0.95);
+      fbArt.fillCircle(fbRect.x - facing * 2, fbRect.y, 7);
+      // Heißer weißer Kern
+      fbArt.fillStyle(0xffffff, 1);
+      fbArt.fillCircle(fbRect.x - facing * 3, fbRect.y, 3.5);
+    };
+    updateArt();
+
+    // Trail-Funken Partikel
+    const trailTimer = this.time.addEvent({
+      delay: 40,
+      loop: true,
+      callback: () => {
+        if (!fbRect.active) return;
+        updateArt();
+        burstParticles(this, fbRect.x, fbRect.y, {
+          color: Math.random() > 0.5 ? 0xf97316 : 0xfacc15,
+          count: 2,
+          speed: [20, 60],
+          size: 3,
+          duration: 180,
+        });
+      },
+    });
+
+    let destroyed = false;
+    const destroyFireball = (withBurst = true) => {
+      if (destroyed) return;
+      destroyed = true;
+      trailTimer.remove();
+      if (withBurst) {
+        burstParticles(this, fbRect.x, fbRect.y, {
+          color: 0xf97316,
+          count: 14,
+          speed: [60, 180],
+          size: 6,
+          duration: 260,
+        });
+      }
+      fbArt.destroy();
+      fbRect.destroy();
+    };
+
+    // Auto-Verschwinden nach maximal 1.4 Sekunden
+    this.time.delayedCall(1400, () => destroyFireball(false));
+
+    // Kollision mit Plattformen / Wänden
+    this.physics.add.collider(fbRect, this.platforms, () => {
+      destroyFireball(true);
+    });
+
+    // Kollision mit beweglichen Plattformen
+    this.physics.add.collider(fbRect, this.movingPlatformsGroup, () => {
+      destroyFireball(true);
+    });
+
+    // Kollision mit Kisten
+    this.physics.add.collider(fbRect, this.moversGroup, () => {
+      destroyFireball(true);
+    });
+
+    // Kollision mit Gegnern: Gegner besiegen!
+    for (const enemy of this.enemies) {
+      this.physics.add.overlap(fbRect, enemy.rect, () => {
+        if (!enemy.alive || destroyed) return;
+        enemy.kill();
+        playStomp();
+        floatText(this, "🔥 Treffer!", enemy.midX, enemy.midY - 26, INK_CSS.orange, "20px");
+        destroyFireball(true);
+      });
+    }
   }
 
   private handleEnemyOverlap(enemy: Enemy) {

@@ -714,7 +714,7 @@ export function analyzeDrawing(
         const isLava = r.y >= 650 && r.w >= 300 && r.h >= 25;
         hazards.push({
           id: `hazard-${hId++}`,
-          type: isLava ? "lava" : "spike",
+          type: "lava",
           x: Math.round(r.x),
           y: Math.round(r.y),
           w: Math.round(r.w),

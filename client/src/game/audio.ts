@@ -247,3 +247,9 @@ export function playTeleport() {
   tone({ freq: 880, endFreq: 1320, type: "triangle", delay: 0.08, duration: 0.18, volume: 0.3 });
 }
 
+/** Feuriger Zisch- und Schuss-Sound beim Spucken eines Feuerballs */
+export function playFireball() {
+  tone({ freq: 480, endFreq: 180, type: "sawtooth", duration: 0.12, volume: 0.35 });
+  tone({ freq: 220, endFreq: 80, type: "triangle", delay: 0.04, duration: 0.14, volume: 0.25 });
+}
+
