@@ -199,43 +199,7 @@ export function DrawingCanvas({
     };
   }, [fitToScreen]);
 
-  // Starter-Level für Erststart des Editors zeichnen (Boden, Plattformen, Trampolin, Eier, Ziel)
-  const drawStarterLevel = (ctx: CanvasRenderingContext2D) => {
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-    // 1. Feste schwarze Böden & Plattformen
-    ctx.fillStyle = "#1d1d24";
-    ctx.fillRect(40, 620, 1200, 36); // Durchgehender Boden
-    ctx.fillRect(360, 510, 180, 24); // Plattform 1
-    ctx.fillRect(620, 410, 180, 24); // Plattform 2
-    ctx.fillRect(880, 310, 260, 24); // Zielplattform
-
-    // 2. Grünes Trampolin (Bouncer)
-    ctx.fillStyle = "#2fb457";
-    ctx.fillRect(230, 595, 80, 25);
-
-    // 3. Rote Gefahrenzone (Lava)
-    ctx.fillStyle = "#d6453d";
-    ctx.fillRect(570, 605, 90, 15);
-
-    // 4. Gelbe Dino-Eier (Sammelobjekte)
-    ctx.fillStyle = "#f5c518";
-    const drawEgg = (cx: number, cy: number) => {
-      ctx.beginPath();
-      ctx.ellipse(cx, cy, 14, 18, 0, 0, Math.PI * 2);
-      ctx.fill();
-    };
-    drawEgg(450, 475);
-    drawEgg(710, 375);
-    drawEgg(960, 275);
-
-    // 5. Ziel (Flagge)
-    ctx.fillStyle = "#f59e0b";
-    ctx.fillRect(1060, 230, 40, 80);
-  };
-
-  // Initialisieren & weißer Hintergrund / Starter-Level
+  // Initialisieren: Sauberes, rein weißes Zeichenblatt
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -257,9 +221,9 @@ export function DrawingCanvas({
       };
       img.src = initialImage;
     } else {
-      // Erst-Start des Editors: Zeichne ein spielbares Starter-Level,
-      // damit auf dem Smartphone nicht einfach ein leeres weißes Nichts da ist!
-      drawStarterLevel(ctx);
+      // Das Blatt im Zeichenstudio ist standardmäßig komplett weiß und leer
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
       saveHistory();
     }
   }, [initialImage]);
