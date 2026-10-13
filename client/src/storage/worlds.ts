@@ -237,36 +237,50 @@ export const BUILTIN_STARTER_MAP: Record<string, Level> = {
 const WORLDS_STORAGE_KEY = "dino_worlds_v2";
 const WORLDS_INIT_KEY = "dino_worlds_initialized_v2";
 
-/** Lädt alle Welten aus dem lokalen Speicher */
+/** Lädt alle Welten aus dem lokalen Speicher (Beispielwelt ist unlöschbar und immer vorhanden) */
 export async function getAllWorlds(): Promise<World[]> {
   try {
-    const initialized = await getSetting<boolean>(WORLDS_INIT_KEY, false);
-    if (!initialized) {
-      const existing = await getSetting<World[]>(WORLDS_STORAGE_KEY, []);
-      if (existing && existing.length > 0) {
-        await setSetting(WORLDS_INIT_KEY, true);
-        return existing;
+    const custom = await getSetting<World[]>(WORLDS_STORAGE_KEY, []);
+    let list: World[] = Array.isArray(custom) ? [...custom] : [];
+
+    // Die Standard-Beispielwelt (world-adventure-1) ist unlöschbar und wird sofort wiederhergestellt, falls sie fehlt
+    const hasDefaultWorld = list.some((w) => w.id === "world-adventure-1");
+    if (!hasDefaultWorld) {
+      list.unshift(DEFAULT_WORLDS[0]);
+      await setSetting(WORLDS_STORAGE_KEY, list);
+    } else {
+      // Stelle sicher, dass die Beispielwelt alle 8 Level-Slots und das All-Themes-Setting besitzt
+      let modified = false;
+      list = list.map((w) => {
+        if (w.id === "world-adventure-1") {
+          const filledSlots = w.levelIds.filter(Boolean).length;
+          if (filledSlots < 8 || w.theme !== "all" || !w.description) {
+            modified = true;
+            return {
+              ...DEFAULT_WORLDS[0],
+              bestTime: w.bestTime,
+            };
+          }
+        }
+        return w;
+      });
+      if (modified) {
+        await setSetting(WORLDS_STORAGE_KEY, list);
       }
-      // Erste Initialisierung: Standard-Beispielwelt anlegen
-      await setSetting(WORLDS_STORAGE_KEY, DEFAULT_WORLDS);
-      await setSetting(WORLDS_INIT_KEY, true);
-      return DEFAULT_WORLDS;
     }
 
-    const custom = await getSetting<World[]>(WORLDS_STORAGE_KEY, []);
-    if (Array.isArray(custom)) {
-      return custom;
-    }
-    return [];
+    return list;
   } catch (err) {
     console.warn("Fehler beim Laden der Welten:", err);
   }
-  return [];
+  return DEFAULT_WORLDS;
 }
 
-/** Speichert alle Welten dauerhaft */
+/** Speichert alle Welten dauerhaft (schützt world-adventure-1 davor, verloren zu gehen) */
 export async function saveAllWorlds(worlds: World[]): Promise<void> {
-  await setSetting(WORLDS_STORAGE_KEY, worlds);
+  const hasDefault = worlds.some((w) => w.id === "world-adventure-1");
+  const listToSave = hasDefault ? worlds : [DEFAULT_WORLDS[0], ...worlds];
+  await setSetting(WORLDS_STORAGE_KEY, listToSave);
   await setSetting(WORLDS_INIT_KEY, true);
 }
 
@@ -320,8 +334,12 @@ export async function setWorldLevelSlot(
   return w;
 }
 
-/** Löscht eine Welt */
+/** Löscht eine Welt (Beispielwelt ist geschützt und unlöschbar) */
 export async function deleteWorld(worldId: string): Promise<void> {
+  if (worldId === "world-adventure-1") {
+    console.warn("Die Beispielwelt 'world-adventure-1' ist geschützt und kann nicht gelöscht werden.");
+    return;
+  }
   const worlds = await getAllWorlds();
   const filtered = worlds.filter((w) => w.id !== worldId);
   await saveAllWorlds(filtered);

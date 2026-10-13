@@ -438,6 +438,10 @@ export function LevelLibrary({
   };
 
   const handleDeleteWorld = (w: World) => {
+    if (w.id === "world-adventure-1") {
+      alert("Die Standard-Beispielwelt ist geschützt und unlöschbar!");
+      return;
+    }
     setWorldDeleteTarget(w);
   };
 
@@ -666,19 +670,36 @@ export function LevelLibrary({
                           >
                             📂 Level
                           </button>
-                          <button
-                            type="button"
-                            className="button button-danger-small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteWorld(w);
-                            }}
-                            style={{ padding: "9px 12px", fontSize: "0.95rem" }}
-                            title={`Welt "${w.name}" löschen`}
-                            aria-label="Welt löschen"
-                          >
-                            🗑️
-                          </button>
+                          {w.id !== "world-adventure-1" ? (
+                            <button
+                              type="button"
+                              className="button button-danger-small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteWorld(w);
+                              }}
+                              style={{ padding: "9px 12px", fontSize: "0.95rem" }}
+                              title={`Welt "${w.name}" löschen`}
+                              aria-label="Welt löschen"
+                            >
+                              🗑️
+                            </button>
+                          ) : (
+                            <span
+                              style={{
+                                padding: "6px 10px",
+                                fontSize: "0.82rem",
+                                color: "#047857",
+                                background: "#ecfdf5",
+                                border: "1px solid #a7f3d0",
+                                borderRadius: "10px",
+                                fontWeight: 700,
+                              }}
+                              title="Die Standard-Beispielwelt ist dauerhaft geschützt und unlöschbar"
+                            >
+                              🔒 Geschützt
+                            </span>
+                          )}
                         </div>
                       </div>
                     );
@@ -812,15 +833,17 @@ export function LevelLibrary({
                       />
                     </label>
 
-                    <button
-                      type="button"
-                      className="button button-secondary"
-                      onClick={handleDeleteActiveWorld}
-                      title="Diese Welt löschen"
-                      style={{ padding: "10px 14px", color: "#dc2626" }}
-                    >
-                      🗑
-                    </button>
+                    {activeWorld.id !== "world-adventure-1" && (
+                      <button
+                        type="button"
+                        className="button button-secondary"
+                        onClick={handleDeleteActiveWorld}
+                        title="Diese Welt löschen"
+                        style={{ padding: "10px 14px", color: "#dc2626" }}
+                      >
+                        🗑 Welt löschen
+                      </button>
+                    )}
                   </div>
                 </div>
 
