@@ -79,6 +79,7 @@ export function DrawingCanvas({
   const [isPanMode, setIsPanMode] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [showEditorBurger, setShowEditorBurger] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
 
   // Start (S) und Ziel (Z) Marker
@@ -118,12 +119,13 @@ export function DrawingCanvas({
   const CANVAS_WIDTH = 1280;
   const CANVAS_HEIGHT = 720;
 
-  // 🔍 Responsiver Zoom & Skalierung für Laptop- und Desktop-Bildschirme
+  // 🔍 Responsiver Zoom & Skalierung für Smartphone, Laptop- und Desktop-Bildschirme
   const fitToScreen = useCallback(() => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const padX = 24;
-    const padY = 24;
+    const isMobile = window.innerWidth <= 680;
+    const padX = isMobile ? 8 : 24;
+    const padY = isMobile ? 8 : 24;
     const availW = Math.max(200, rect.width - padX);
     const availH = Math.max(200, rect.height - padY);
     const scaleX = availW / CANVAS_WIDTH;
@@ -920,7 +922,7 @@ export function DrawingCanvas({
   return (
     <div className="drawing-studio">
       <header className="studio-header">
-        <button className="button button-secondary" type="button" onClick={handleBackToMenu}>
+        <button className="button button-secondary studio-back-btn" type="button" onClick={handleBackToMenu}>
           ◀ Menü
         </button>
         <div className="studio-title">
@@ -928,80 +930,64 @@ export function DrawingCanvas({
           <span className="studio-subtitle">Zeichne mit allen 9 Spielfarben deine Welt</span>
         </div>
         <div className="studio-header-actions">
-          {onOpenGameMode && (
-            <button
-              className="button studio-mode-badge"
-              type="button"
-              onClick={onOpenGameMode}
-              title="Spielmodus (Jump 'n' Run oder 4-Wege Labyrinth) und Welt-Hintergrund wählen"
+          {/* Desktop-Aktionen (auf Bildschirmen > 680px) */}
+          <div className="studio-actions-desktop">
+            {onOpenGameMode && (
+              <button
+                className="button studio-mode-badge"
+                type="button"
+                onClick={onOpenGameMode}
+                title="Spielmodus (Jump 'n' Run oder 4-Wege Labyrinth) und Welt-Hintergrund wählen"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "flex-start",
+                  padding: "4px 12px",
+                  lineHeight: 1.15,
+                  backgroundColor: "#1e293b",
+                  border: "1px solid rgba(255, 255, 255, 0.25)",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                }}
+              >
+                <span style={{ fontSize: "0.68rem", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  Modus:
+                </span>
+                <span style={{ fontSize: "0.92rem", fontWeight: 700, color: "#4ade80" }}>
+                  {gameMode === "rpg_labyrinth" ? "🧭 4-Wege Labyrinth" : "🏃 Jump 'n' Run"}
+                </span>
+              </button>
+            )}
+
+            <label
+              className="button button-secondary"
+              title="PNG-Bild vom Computer in den Editor laden"
               style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "flex-start",
-                padding: "4px 12px",
-                lineHeight: 1.15,
-                backgroundColor: "#1e293b",
-                border: "1px solid rgba(255, 255, 255, 0.25)",
-                borderRadius: "8px",
                 cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px",
+                backgroundColor: "#2e3b56",
+                color: "#e2e8f0",
+                border: "1px solid rgba(255, 255, 255, 0.25)",
+                fontSize: "0.88rem",
+                fontWeight: 600,
               }}
             >
-              <span style={{ fontSize: "0.68rem", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                Modus:
-              </span>
-              <span style={{ fontSize: "0.92rem", fontWeight: 700, color: "#4ade80" }}>
-                {gameMode === "rpg_labyrinth" ? "🧭 4-Wege Labyrinth" : "🏃 Jump 'n' Run"}
-              </span>
-            </button>
-          )}
+              📤 PNG Upload
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/*,.json"
+                style={{ display: "none" }}
+                onChange={handleUploadFile}
+              />
+            </label>
 
-          {/* 📤 PNG Upload & 🖼️ PNG Download */}
-          <label
-            className="button button-secondary"
-            title="PNG-Bild vom Computer in den Editor laden"
-            style={{
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "5px",
-              backgroundColor: "#2e3b56",
-              color: "#e2e8f0",
-              border: "1px solid rgba(255, 255, 255, 0.25)",
-              fontSize: "0.88rem",
-              fontWeight: 600,
-            }}
-          >
-            📤 PNG Upload
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/*,.json"
-              style={{ display: "none" }}
-              onChange={handleUploadFile}
-            />
-          </label>
-
-          <button
-            className="button button-secondary"
-            type="button"
-            onClick={exportPng}
-            title="Aktuelle Zeichnung als PNG-Bild herunterladen"
-            style={{
-              backgroundColor: "#2e3b56",
-              color: "#e2e8f0",
-              border: "1px solid rgba(255, 255, 255, 0.25)",
-              fontSize: "0.88rem",
-              fontWeight: 600,
-            }}
-          >
-            🖼️ PNG Download
-          </button>
-
-          {onOpenPhotoScanner && (
             <button
               className="button button-secondary"
               type="button"
-              onClick={onOpenPhotoScanner}
-              title="Foto einer Papierzeichnung aufnehmen oder Bild scannen"
+              onClick={exportPng}
+              title="Aktuelle Zeichnung als PNG-Bild herunterladen"
               style={{
                 backgroundColor: "#2e3b56",
                 color: "#e2e8f0",
@@ -1010,54 +996,274 @@ export function DrawingCanvas({
                 fontWeight: 600,
               }}
             >
-              📸 Foto scannen
+              🖼️ PNG Download
             </button>
-          )}
 
-          <button
-            className="button button-secondary"
-            type="button"
-            onClick={generateRandomLevel}
-            title="Generiert ein zufälliges buntes, spielbares Level"
-            style={{
-              background: "linear-gradient(135deg, #6366f1, #4f46e5)",
-              color: "#ffffff",
-              borderColor: "#4338ca",
-              fontWeight: 600,
-            }}
-          >
-            🎲 Zufall
-          </button>
+            {onOpenPhotoScanner && (
+              <button
+                className="button button-secondary"
+                type="button"
+                onClick={onOpenPhotoScanner}
+                title="Foto einer Papierzeichnung aufnehmen oder Bild scannen"
+                style={{
+                  backgroundColor: "#2e3b56",
+                  color: "#e2e8f0",
+                  border: "1px solid rgba(255, 255, 255, 0.25)",
+                  fontSize: "0.88rem",
+                  fontWeight: 600,
+                }}
+              >
+                📸 Foto scannen
+              </button>
+            )}
 
-          <button
-            className="button button-secondary"
-            type="button"
-            onClick={() => setShowGuide(true)}
-            title="Zeichen-Anleitung & Farbbedeutungen"
-          >
-            📖 Anleitung
-          </button>
+            <button
+              className="button button-secondary"
+              type="button"
+              onClick={generateRandomLevel}
+              title="Generiert ein zufälliges buntes, spielbares Level"
+              style={{
+                background: "linear-gradient(135deg, #6366f1, #4f46e5)",
+                color: "#ffffff",
+                borderColor: "#4338ca",
+                fontWeight: 600,
+              }}
+            >
+              🎲 Zufall
+            </button>
 
-          <button
-            className="button button-save"
-            type="button"
-            onClick={() => setShowSaveModal(true)}
-            disabled={isSaving}
-            title="Level mit Name, Spielwelt & Modus in der Bibliothek sichern"
-          >
-            {saveToast ? saveToast : "💾 Level speichern"}
-          </button>
+            <button
+              className="button button-secondary"
+              type="button"
+              onClick={() => setShowGuide(true)}
+              title="Zeichen-Anleitung & Farbbedeutungen"
+            >
+              📖 Anleitung
+            </button>
 
+            <button
+              className="button button-save"
+              type="button"
+              onClick={() => setShowSaveModal(true)}
+              disabled={isSaving}
+              title="Level mit Name, Spielwelt & Modus in der Bibliothek sichern"
+            >
+              {saveToast ? saveToast : "💾 Level speichern"}
+            </button>
+          </div>
+
+          {/* Hauptaktion: ▶ Jetzt spielen (bleibt auf Mobile & Desktop sofort griffbereit) */}
           <button
             className="button button-play-big"
             type="button"
             onClick={playNow}
             disabled={analyzing}
+            title="Zeichnung analysieren und sofort losspielen"
           >
             {analyzing ? "Analysiere…" : "▶ Jetzt spielen!"}
           </button>
+
+          {/* Smartphone Editor Burger-Button (auf Bildschirmen <= 680px) */}
+          <button
+            className="button button-mobile-burger button-editor-mobile-burger"
+            type="button"
+            onClick={() => setShowEditorBurger(true)}
+            aria-label="Editor-Menü öffnen"
+            title="Editor-Menü öffnen"
+          >
+            ☰
+          </button>
         </div>
       </header>
+
+      {/* Unsichtbarer File Input für Smartphone-Upload aus dem Burger-Menü */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/*,.json"
+        style={{ display: "none" }}
+        onChange={handleUploadFile}
+      />
+
+      {/* Smartphone Editor Burger Drawer */}
+      {showEditorBurger && (
+        <div className="modal-backdrop mobile-burger-backdrop" onClick={() => setShowEditorBurger(false)}>
+          <div className="mobile-burger-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="mobile-burger-header">
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ fontSize: "1.4rem" }}>🎨</span>
+                <strong style={{ fontSize: "1.05rem", color: "#f8fafc" }}>Editor-Menü</strong>
+              </div>
+              <button
+                type="button"
+                className="button button-burger-close"
+                onClick={() => setShowEditorBurger(false)}
+                aria-label="Menü schließen"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mobile-burger-links">
+              <button
+                type="button"
+                className="mobile-burger-item"
+                onClick={() => {
+                  setShowEditorBurger(false);
+                  setShowSaveModal(true);
+                }}
+              >
+                <span className="burger-item-icon">💾</span>
+                <div className="burger-item-text">
+                  <span className="burger-item-title">Level speichern</span>
+                  <span className="burger-item-desc">In deiner Bibliothek sichern</span>
+                </div>
+              </button>
+
+              {onOpenGameMode && (
+                <button
+                  type="button"
+                  className="mobile-burger-item"
+                  onClick={() => {
+                    setShowEditorBurger(false);
+                    onOpenGameMode();
+                  }}
+                >
+                  <span className="burger-item-icon">🧭</span>
+                  <div className="burger-item-text">
+                    <span className="burger-item-title">
+                      Modus: {gameMode === "rpg_labyrinth" ? "Labyrinth" : "Jump 'n' Run"}
+                    </span>
+                    <span className="burger-item-desc">Spielmodus & Welt-Thema anpassen</span>
+                  </div>
+                </button>
+              )}
+
+              {onOpenPhotoScanner && (
+                <button
+                  type="button"
+                  className="mobile-burger-item"
+                  onClick={() => {
+                    setShowEditorBurger(false);
+                    onOpenPhotoScanner();
+                  }}
+                >
+                  <span className="burger-item-icon">📸</span>
+                  <div className="burger-item-text">
+                    <span className="burger-item-title">Foto scannen</span>
+                    <span className="burger-item-desc">Papierzeichnung abfotografieren</span>
+                  </div>
+                </button>
+              )}
+
+              <button
+                type="button"
+                className="mobile-burger-item"
+                onClick={() => {
+                  setShowEditorBurger(false);
+                  fileInputRef.current?.click();
+                }}
+              >
+                <span className="burger-item-icon">📤</span>
+                <div className="burger-item-text">
+                  <span className="burger-item-title">PNG / Bild hochladen</span>
+                  <span className="burger-item-desc">Vom Smartphone-Speicher laden</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className="mobile-burger-item"
+                onClick={() => {
+                  setShowEditorBurger(false);
+                  exportPng();
+                }}
+              >
+                <span className="burger-item-icon">🖼️</span>
+                <div className="burger-item-text">
+                  <span className="burger-item-title">PNG Bild herunterladen</span>
+                  <span className="burger-item-desc">Zeichnung auf Gerät speichern</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className="mobile-burger-item"
+                onClick={() => {
+                  setShowEditorBurger(false);
+                  generateRandomLevel();
+                }}
+              >
+                <span className="burger-item-icon">🎲</span>
+                <div className="burger-item-text">
+                  <span className="burger-item-title">Zufallslevel</span>
+                  <span className="burger-item-desc">Bunte Strecke generieren</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className="mobile-burger-item"
+                onClick={() => {
+                  setShowEditorBurger(false);
+                  setShowGuide(true);
+                }}
+              >
+                <span className="burger-item-icon">📖</span>
+                <div className="burger-item-text">
+                  <span className="burger-item-title">Zeichen-Anleitung</span>
+                  <span className="burger-item-desc">Farbbedeutungen & Regeln</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className="mobile-burger-item"
+                onClick={() => {
+                  setShowEditorBurger(false);
+                  fitToScreen();
+                }}
+              >
+                <span className="burger-item-icon">🔍</span>
+                <div className="burger-item-text">
+                  <span className="burger-item-title">Leinwand anpassen</span>
+                  <span className="burger-item-desc">Optimal auf Bildschirmgröße zoomen</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className="mobile-burger-item"
+                onClick={() => {
+                  setShowEditorBurger(false);
+                  setShowClearConfirm(true);
+                }}
+              >
+                <span className="burger-item-icon">🗑️</span>
+                <div className="burger-item-text">
+                  <span className="burger-item-title">Alles löschen</span>
+                  <span className="burger-item-desc">Zeichenblatt komplett leeren</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className="mobile-burger-item"
+                onClick={() => {
+                  setShowEditorBurger(false);
+                  handleBackToMenu();
+                }}
+              >
+                <span className="burger-item-icon">◀</span>
+                <div className="burger-item-text">
+                  <span className="burger-item-title">Zurück zum Menü</span>
+                  <span className="burger-item-desc">Editor verlassen</span>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="studio-toolbar">
         <div className="tool-group colors-group">

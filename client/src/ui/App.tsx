@@ -105,6 +105,7 @@ export function App() {
   const [showTvModal, setShowTvModal] = useState(false);
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [showMobileBurger, setShowMobileBurger] = useState(false);
+  const [showPlayBurger, setShowPlayBurger] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState(false);
 
@@ -666,7 +667,7 @@ export function App() {
                 ? `🌍 Welt: ${worldCampaign.world.name} (Level ${worldCampaign.currentStep + 1}/${worldCampaign.sequenceOrder.length})`
                 : "Dino spielt:"}
             </span>
-            <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
               <h1 className="nav-level-name">{currentLevel?.name || "Level"}</h1>
               {worldCampaign && (
                 <div
@@ -677,7 +678,7 @@ export function App() {
                     fontWeight: 800,
                     borderRadius: "20px",
                     padding: "3px 12px",
-                    fontSize: "1.05rem",
+                    fontSize: "0.95rem",
                     display: "inline-flex",
                     alignItems: "center",
                     gap: "6px",
@@ -685,7 +686,7 @@ export function App() {
                 >
                   <span>⏱️ {formatWorldTime(campaignTimerMs)}</span>
                   {worldCampaign.world.bestTime && (
-                    <span style={{ fontSize: "0.82rem", opacity: 0.85, fontWeight: "normal" }}>
+                    <span style={{ fontSize: "0.8rem", opacity: 0.85, fontWeight: "normal" }}>
                       (Rekord: {formatWorldTime(worldCampaign.world.bestTime)})
                     </span>
                   )}
@@ -693,7 +694,9 @@ export function App() {
               )}
             </div>
           </div>
-          <div className="nav-play-buttons">
+
+          {/* Desktop-Aktionen (auf Bildschirmen > 680px) */}
+          <div className="nav-play-buttons nav-play-buttons-desktop">
             <button
               className="button button-pause"
               type="button"
@@ -764,9 +767,166 @@ export function App() {
               ◀ Hauptmenü
             </button>
           </div>
+
+          {/* Smartphone In-Game Burger-Menü Button (auf Bildschirmen <= 680px) */}
+          <button
+            className="button button-mobile-burger button-play-mobile-burger"
+            type="button"
+            onClick={() => setShowPlayBurger(true)}
+            aria-label="Spielmenü öffnen"
+            title="Spielmenü öffnen"
+          >
+            ☰
+          </button>
         </header>
 
         <div className={`game-stage-container bg-stage-${selectedBackground}`} ref={gameContainerRef} />
+
+        {/* Smartphone In-Game Burger-Menü Drawer */}
+        {showPlayBurger && (
+          <div className="modal-backdrop mobile-burger-backdrop" onClick={() => setShowPlayBurger(false)}>
+            <div className="mobile-burger-sheet" onClick={(e) => e.stopPropagation()}>
+              <div className="mobile-burger-header">
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span style={{ fontSize: "1.4rem" }}>🎮</span>
+                  <div>
+                    <strong style={{ fontSize: "1.05rem", color: "#f8fafc", display: "block" }}>
+                      {currentLevel?.name || "Level"}
+                    </strong>
+                    {worldCampaign && (
+                      <span style={{ fontSize: "0.78rem", color: "#f59e0b" }}>
+                        ⏱️ {formatWorldTime(campaignTimerMs)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="button button-burger-close"
+                  onClick={() => setShowPlayBurger(false)}
+                  aria-label="Menü schließen"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="mobile-burger-links">
+                <button
+                  type="button"
+                  className="mobile-burger-item"
+                  onClick={() => {
+                    setShowPlayBurger(false);
+                    gameHandleRef.current?.togglePause();
+                  }}
+                >
+                  <span className="burger-item-icon">⏸️</span>
+                  <div className="burger-item-text">
+                    <span className="burger-item-title">Pause / Weiter</span>
+                    <span className="burger-item-desc">Spiel anhalten oder fortsetzen</span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  className="mobile-burger-item"
+                  onClick={() => {
+                    setShowPlayBurger(false);
+                    gameHandleRef.current?.restartLevel();
+                  }}
+                >
+                  <span className="burger-item-icon">🔄</span>
+                  <div className="burger-item-text">
+                    <span className="burger-item-title">Level neustarten</span>
+                    <span className="burger-item-desc">Von vorne versuchen</span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  className="mobile-burger-item"
+                  onClick={() => {
+                    setShowPlayBurger(false);
+                    handleEditCurrentLevel();
+                  }}
+                >
+                  <span className="burger-item-icon">✏️</span>
+                  <div className="burger-item-text">
+                    <span className="burger-item-title">Im Zeichenstudio bearbeiten</span>
+                    <span className="burger-item-desc">Level öffnen und weiter zeichnen</span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  className="mobile-burger-item"
+                  onClick={() => {
+                    setShowPlayBurger(false);
+                    handleSaveCurrentLevel();
+                  }}
+                >
+                  <span className="burger-item-icon">💾</span>
+                  <div className="burger-item-text">
+                    <span className="burger-item-title">Level speichern</span>
+                    <span className="burger-item-desc">In deiner Bibliothek sichern</span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  className={`mobile-burger-item ${tvMode ? "active" : ""}`}
+                  onClick={() => {
+                    setShowPlayBurger(false);
+                    toggleTvMode();
+                  }}
+                >
+                  <span className="burger-item-icon">📺</span>
+                  <div className="burger-item-text">
+                    <span className="burger-item-title">TV-Modus ({tvMode ? "AN" : "AUS"})</span>
+                    <span className="burger-item-desc">Für Fernseher & Controller</span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  className="mobile-burger-item"
+                  onClick={() => {
+                    setShowPlayBurger(false);
+                    if (gameHandleRef.current) {
+                      gameHandleRef.current.destroy();
+                      gameHandleRef.current = null;
+                    }
+                    setScreen("library");
+                  }}
+                >
+                  <span className="burger-item-icon">🌍</span>
+                  <div className="burger-item-text">
+                    <span className="burger-item-title">Welten & Level-Bibliothek</span>
+                    <span className="burger-item-desc">Andere Level & Kampagnen wählen</span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  className="mobile-burger-item"
+                  onClick={() => {
+                    setShowPlayBurger(false);
+                    if (gameHandleRef.current) {
+                      gameHandleRef.current.destroy();
+                      gameHandleRef.current = null;
+                    }
+                    setScreen("menu");
+                  }}
+                >
+                  <span className="burger-item-icon">◀</span>
+                  <div className="burger-item-text">
+                    <span className="burger-item-title">Zurück zum Hauptmenü</span>
+                    <span className="burger-item-desc">Spiel beenden</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {worldIntroCampaign && renderWorldIntroModal()}
         {worldOutroStatus && renderWorldOutroModal()}
