@@ -32,23 +32,20 @@ const JUNGLE_LEVELS: Level[] = [
     goal: { id: "goal", x: 830, y: 810, w: 50, h: 70 },
     platforms: [
       // Außenmauern
-      { id: "wall-top", x: 40, y: 40, w: 920, h: 40 },
-      { id: "wall-bottom", x: 40, y: 920, w: 920, h: 40 },
-      { id: "wall-left", x: 40, y: 40, w: 40, h: 920 },
-      { id: "wall-right", x: 920, y: 40, w: 40, h: 920 },
-      // Vertikale Labyrinth-Wände
-      { id: "w1", x: 220, y: 80, w: 40, h: 320 },
-      { id: "w2", x: 220, y: 520, w: 40, h: 400 },
-      { id: "w3", x: 400, y: 220, w: 40, h: 560 },
-      { id: "w4", x: 580, y: 80, w: 40, h: 380 },
-      { id: "w5", x: 580, y: 600, w: 40, h: 320 },
-      { id: "w6", x: 760, y: 220, w: 40, h: 520 },
-      // Horizontale Raumteiler
-      { id: "h1", x: 80, y: 440, w: 140, h: 40 },
-      { id: "h2", x: 260, y: 220, w: 140, h: 40 },
-      { id: "h3", x: 400, y: 600, w: 180, h: 40 },
-      { id: "h4", x: 620, y: 360, w: 140, h: 40 },
-      { id: "h5", x: 760, y: 520, w: 160, h: 40 },
+      { id: "wall-top", x: 40, y: 40, w: 920, h: 30 },
+      { id: "wall-bottom", x: 40, y: 920, w: 920, h: 30 },
+      { id: "wall-left", x: 40, y: 40, w: 30, h: 910 },
+      { id: "wall-right", x: 920, y: 40, w: 30, h: 910 },
+      // Großzügige, breite Gänge (150-200px Durchgangsbreite, Dino hat wunderbar viel Platz)
+      { id: "w1", x: 260, y: 70, w: 30, h: 420 },
+      { id: "w2", x: 260, y: 640, w: 30, h: 280 },
+      { id: "w3", x: 500, y: 200, w: 30, h: 560 },
+      { id: "w4", x: 740, y: 70, w: 30, h: 440 },
+      { id: "w5", x: 740, y: 640, w: 30, h: 280 },
+      // Horizontale Raumteiler mit breiten Passagen
+      { id: "h1", x: 70, y: 520, w: 100, h: 30 },
+      { id: "h2", x: 380, y: 480, w: 120, h: 30 },
+      { id: "h3", x: 620, y: 380, w: 120, h: 30 },
     ],
     hazards: [
       { id: "lava-lab-1", type: "lava", x: 100, y: 680, w: 80, h: 40 },
@@ -93,22 +90,20 @@ const JUNGLE_LEVELS: Level[] = [
     goal: { id: "goal", x: 840, y: 820, w: 48, h: 74 },
     platforms: [
       // Außenmauern
-      { id: "v-wall-top", x: 40, y: 40, w: 920, h: 40 },
-      { id: "v-wall-bottom", x: 40, y: 920, w: 920, h: 40 },
-      { id: "v-wall-left", x: 40, y: 40, w: 40, h: 920 },
-      { id: "v-wall-right", x: 920, y: 40, w: 40, h: 920 },
-      // Labyrinth-Struktur
-      { id: "vp1", x: 220, y: 80, w: 40, h: 440 },
-      { id: "vp2", x: 220, y: 620, w: 40, h: 300 },
-      { id: "vp3", x: 420, y: 180, w: 40, h: 600 },
-      { id: "vp4", x: 600, y: 80, w: 40, h: 400 },
-      { id: "vp5", x: 600, y: 580, w: 40, h: 340 },
-      { id: "vp6", x: 780, y: 180, w: 40, h: 620 },
+      { id: "v-wall-top", x: 40, y: 40, w: 920, h: 30 },
+      { id: "v-wall-bottom", x: 40, y: 920, w: 920, h: 30 },
+      { id: "v-wall-left", x: 40, y: 40, w: 30, h: 910 },
+      { id: "v-wall-right", x: 920, y: 40, w: 30, h: 910 },
+      // Labyrinth-Struktur mit weiten Gängen
+      { id: "vp1", x: 280, y: 70, w: 30, h: 460 },
+      { id: "vp2", x: 280, y: 650, w: 30, h: 270 },
+      { id: "vp3", x: 520, y: 200, w: 30, h: 580 },
+      { id: "vp4", x: 740, y: 70, w: 30, h: 450 },
+      { id: "vp5", x: 740, y: 650, w: 30, h: 270 },
       // Querbalken
-      { id: "vh1", x: 80, y: 360, w: 140, h: 40 },
-      { id: "vh2", x: 260, y: 280, w: 160, h: 40 },
-      { id: "vh3", x: 420, y: 480, w: 180, h: 40 },
-      { id: "vh4", x: 640, y: 340, w: 140, h: 40 },
+      { id: "vh1", x: 70, y: 400, w: 120, h: 30 },
+      { id: "vh2", x: 400, y: 500, w: 120, h: 30 },
+      { id: "vh3", x: 630, y: 360, w: 110, h: 30 },
     ],
     hazards: [
       { id: "lava-vault-1", type: "lava", x: 100, y: 560, w: 80, h: 40 },
